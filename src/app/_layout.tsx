@@ -1,16 +1,37 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import React from 'react';
-import { useColorScheme } from 'react-native';
+import { Stack } from 'expo-router';
 
-import { AnimatedSplashOverlay } from '@/components/animated-icon';
-import AppTabs from '@/components/app-tabs';
-
-export default function TabLayout() {
-  const colorScheme = useColorScheme();
+export default function RootLayout() {
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <AnimatedSplashOverlay />
-      <AppTabs />
-    </ThemeProvider>
+    <Stack screenOptions={{ headerShown: false }}>
+      {/* Splash */}
+      <Stack.Screen name="index" />
+      {/* Tab navigator */}
+      <Stack.Screen name="(tabs)" />
+
+      {/* ── Luồng Lịch Sử ─────────────────────────────────── */}
+      <Stack.Screen name="stage/[periodSlug]" />
+      <Stack.Screen name="stage-detail/[periodSlug]/[stageSlug]" />
+      <Stack.Screen name="event/[periodSlug]/[stageSlug]/[eventSlug]" />
+
+      {/* ── Nhân Vật ──────────────────────────────────────── */}
+      <Stack.Screen name="person-list/[periodSlug]" />
+      <Stack.Screen name="person/[periodSlug]/[personSlug]" />
+      <Stack.Screen name="person-event/[periodSlug]/[personSlug]/[eventSlug]" />
+
+      {/* ── Hồ Sơ & Forum ─────────────────────────────────── */}
+      <Stack.Screen name="profile-overview/index" />
+      <Stack.Screen name="edit-profile/index" />
+      <Stack.Screen name="forum/index" />
+      <Stack.Screen name="forum/[postId]" />
+      <Stack.Screen name="forum/new" />
+
+      {/* ── Game ──────────────────────────────────────────── */}
+      <Stack.Screen name="quiz/[quizSlug]" />
+      <Stack.Screen name="timeline/[eraId]" />
+
+      {/* ── Khám Phá ──────────────────────────────────────── */}
+      <Stack.Screen name="explore/article/index" />
+      <Stack.Screen name="explore/museum/index" />
+    </Stack>
   );
 }
