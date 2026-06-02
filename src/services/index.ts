@@ -32,24 +32,25 @@ export {
 } from './eventService';
 
 export {
+  getPersonPeriods,
   getPersonsByPeriod,
-  getPersonById,
-  getPersonBySlug,
+  getPersonDetail,
+  getPersonEvents,
+  getPersonEventDetail,
 } from './personService';
 
 export {
   getQuizzes,
   getQuizById,
-  getQuestionsByQuiz,
 } from './quizService';
 
 export {
+  subscribeToForum,
   getPosts,
   getPostById,
   createPost,
-  updatePost,
   deletePost,
-  getRepliesByPost,
+  getReplies,
   addReply,
 } from './forumService';
 

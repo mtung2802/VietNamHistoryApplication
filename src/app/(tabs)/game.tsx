@@ -5,61 +5,93 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  ActivityIndicator, FlatList, ListRenderItemInfo, StatusBar,
-  StyleSheet, Text, TouchableOpacity, View,
+  FlatList,
+  ListRenderItemInfo,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { QuizItem } from '@/models/QuizzItem';
 import { Era } from '@/models/Era';
 import { getQuizzes } from '@/services/quizService';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '@/services/firebase';
-import { BORDER_RADIUS, COLORS, FONT_SIZES, FONT_WEIGHTS, SHADOWS, SPACING } from '@/constants/theme';
+import { BORDER_RADIUS, FONT_SIZES, FONT_WEIGHTS, SPACING } from '@/constants/theme';
+import { useThemeColors } from '@/contexts/ThemeContext';
+import {
+  Screen,
+  AppHeader,
+  Card,
+  Badge,
+  LoadingState,
+  EmptyState,
+} from '@/components/ui';
 
 type GameTab = 'quiz' | 'timeline';
 
-const LEVEL_COLOR: Record<string, string> = {
+const LEVEL_TONE: Record<string, string> = {
   easy: '#22c55e',
   medium: '#f59e0b',
   hard: '#ef4444',
 };
 const LEVEL_LABEL: Record<string, string> = {
-  easy: 'Dễ', medium: 'Trung bình', hard: 'Khó',
+  easy: 'Dễ',
+  medium: 'Trung bình',
+  hard: 'Khó',
 };
 
-// ── Quiz card ────────────────────────────────────────────────────────────────
 function QuizCard({ item, onPress }: { item: QuizItem; onPress: () => void }) {
-  const color = LEVEL_COLOR[item.level] ?? COLORS.primary;
+  const colors = useThemeColors();
   return (
-    <TouchableOpacity style={styles.gameCard} onPress={onPress} activeOpacity={0.85}>
-      <View style={[styles.levelBadge, { backgroundColor: color }]}>
-        <Text style={styles.levelText}>{LEVEL_LABEL[item.level] ?? item.level}</Text>
+    <Card onPress={onPress}>
+      <Badge
+        label={LEVEL_LABEL[item.level] ?? item.level}
+        color={LEVEL_TONE[item.level] ?? colors.primary}
+      />
+      <Text style={[styles.cardTitle, { color: colors.text }]} numberOfLines={2}>
+        {item.description}
+      </Text>
+      <View style={styles.metaRow}>
+        <Ionicons name="help-circle-outline" size={16} color={colors.textMuted} />
+        <Text style={[styles.cardSub, { color: colors.textMuted }]}>
+          {item.questionCount} câu hỏi
+        </Text>
       </View>
-      <Text style={styles.gameCardTitle} numberOfLines={2}>{item.description}</Text>
-      <Text style={styles.gameCardSub}>{item.questionCount} câu hỏi</Text>
-      <View style={styles.gameCardFooter}>
-        <Text style={styles.gameCardAction}>Bắt đầu ›</Text>
+      <View style={[styles.cardFooter, { borderTopColor: colors.border }]}>
+        <Text style={[styles.cardAction, { color: colors.primary }]}>Bắt đầu</Text>
+        <Ionicons name="play-circle" size={22} color={colors.primary} />
       </View>
-    </TouchableOpacity>
+    </Card>
   );
 }
 
-// ── Era card ─────────────────────────────────────────────────────────────────
 function EraCard({ item, onPress }: { item: Era; onPress: () => void }) {
+  const colors = useThemeColors();
   return (
-    <TouchableOpacity style={styles.gameCard} onPress={onPress} activeOpacity={0.85}>
-      <Text style={{ fontSize: 36, marginBottom: 8 }}>🗓️</Text>
-      <Text style={styles.gameCardTitle}>{item.title}</Text>
-      <View style={styles.gameCardFooter}>
-        <Text style={styles.gameCardAction}>Ghép ngay ›</Text>
+    <Card onPress={onPress}>
+      <View style={[styles.eraIcon, { backgroundColor: colors.primaryDim }]}>
+        <Ionicons name="time-outline" size={26} color={colors.primary} />
       </View>
-    </TouchableOpacity>
+      <Text style={[styles.cardTitle, { color: colors.text }]}>{item.title}</Text>
+      {!!item.description && (
+        <Text style={[styles.cardSub, { color: colors.textSecondary }]} numberOfLines={2}>
+          {item.description}
+        </Text>
+      )}
+      <View style={[styles.cardFooter, { borderTopColor: colors.border }]}>
+        <Text style={[styles.cardAction, { color: colors.primary }]}>Ghép ngay</Text>
+        <Ionicons name="extension-puzzle-outline" size={20} color={colors.primary} />
+      </View>
+    </Card>
   );
 }
 
-// ── Main ─────────────────────────────────────────────────────────────────────
 export default function GameScreen() {
   const router = useRouter();
+  const colors = useThemeColors();
   const [activeTab, setActiveTab] = useState<GameTab>('quiz');
   const [quizzes, setQuizzes] = useState<QuizItem[]>([]);
   const [eras, setEras] = useState<Era[]>([]);
@@ -93,97 +125,127 @@ export default function GameScreen() {
     else loadEras();
   }, [activeTab, loadQuizzes, loadEras]);
 
+  const TabButton = ({ tab, icon, label }: { tab: GameTab; icon: keyof typeof Ionicons.glyphMap; label: string }) => {
+    const active = activeTab === tab;
+    return (
+      <TouchableOpacity
+        style={[
+          styles.tab,
+          { backgroundColor: active ? colors.primary : 'transparent' },
+        ]}
+        onPress={() => setActiveTab(tab)}
+        activeOpacity={0.85}
+      >
+        <Ionicons
+          name={icon}
+          size={18}
+          color={active ? colors.onPrimary : colors.textSecondary}
+        />
+        <Text
+          style={[
+            styles.tabText,
+            { color: active ? colors.onPrimary : colors.textSecondary },
+          ]}
+        >
+          {label}
+        </Text>
+      </TouchableOpacity>
+    );
+  };
+
   return (
-    <View style={styles.root}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
+    <Screen>
+      <AppHeader title="Trò Chơi Lịch Sử" subtitle="Vừa học vừa chơi" showBack={false} />
 
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.starRow}>
-          {['★', '★', '★', '★', '★'].map((s, i) => <Text key={i} style={styles.starText}>{s}</Text>)}
-        </View>
-        <Text style={styles.headerTitle}>Trò Chơi Lịch Sử</Text>
-        <Text style={styles.headerSubtitle}>Vừa học vừa chơi</Text>
-      </View>
-      <View style={styles.accent} />
-
-      {/* Tab switcher — like Java highlightButton */}
-      <View style={styles.tabRow}>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'quiz' && styles.tabActive]}
-          onPress={() => setActiveTab('quiz')}
-        >
-          <Text style={[styles.tabText, activeTab === 'quiz' && styles.tabTextActive]}>🎯 Câu Đố Lịch Sử</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'timeline' && styles.tabActive]}
-          onPress={() => setActiveTab('timeline')}
-        >
-          <Text style={[styles.tabText, activeTab === 'timeline' && styles.tabTextActive]}>🗓️ Ghép Niên Đại</Text>
-        </TouchableOpacity>
+      <View style={[styles.tabRow, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <TabButton tab="quiz" icon="help-circle-outline" label="Câu Đố" />
+        <TabButton tab="timeline" icon="time-outline" label="Ghép Niên Đại" />
       </View>
 
       {loading ? (
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
-        </View>
+        <LoadingState />
       ) : activeTab === 'quiz' ? (
         <FlatList
           data={quizzes}
           keyExtractor={(q) => q.id}
           renderItem={({ item }: ListRenderItemInfo<QuizItem>) => (
-            <QuizCard item={item} onPress={() => router.push({ pathname: '/quiz/[quizSlug]', params: { quizSlug: item.id } })} />
+            <QuizCard
+              item={item}
+              onPress={() =>
+                router.push({ pathname: '/quiz/[quizSlug]', params: { quizSlug: item.id } })
+              }
+            />
           )}
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
-          ListEmptyComponent={<View style={styles.centered}><Text style={styles.emptyText}>Chưa có quiz nào.</Text></View>}
+          ListEmptyComponent={<EmptyState message="Chưa có câu đố nào." icon="help-circle-outline" />}
         />
       ) : (
         <FlatList
           data={eras}
           keyExtractor={(e) => e.eraId}
           renderItem={({ item }: ListRenderItemInfo<Era>) => (
-            <EraCard item={item} onPress={() => router.push({ pathname: '/timeline/[eraId]', params: { eraId: item.eraId } })} />
+            <EraCard
+              item={item}
+              onPress={() =>
+                router.push({ pathname: '/timeline/[eraId]', params: { eraId: item.eraId } })
+              }
+            />
           )}
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
-          ListEmptyComponent={<View style={styles.centered}><Text style={styles.emptyText}>Chưa có kỷ nguyên nào.</Text></View>}
+          ListEmptyComponent={<EmptyState message="Chưa có kỷ nguyên nào." icon="time-outline" />}
         />
       )}
-    </View>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: COLORS.lightBg },
-  header: { backgroundColor: COLORS.primary, paddingTop: 56, paddingBottom: SPACING[4], alignItems: 'center' },
-  starRow: { flexDirection: 'row', gap: 6, marginBottom: SPACING[2] },
-  starText: { color: COLORS.accent, fontSize: 14 },
-  headerTitle: { color: COLORS.white, fontSize: FONT_SIZES['2xl'], fontWeight: FONT_WEIGHTS.bold },
-  headerSubtitle: { color: 'rgba(255,255,255,0.8)', fontSize: FONT_SIZES.sm, fontStyle: 'italic', marginTop: 2 },
-  accent: { height: 4, backgroundColor: COLORS.accent },
-
   tabRow: {
-    flexDirection: 'row', margin: SPACING[4],
-    backgroundColor: COLORS.gray100, borderRadius: BORDER_RADIUS.full, padding: 4,
+    flexDirection: 'row',
+    margin: SPACING[4],
+    marginBottom: 0,
+    borderRadius: BORDER_RADIUS.full,
+    padding: 4,
+    borderWidth: StyleSheet.hairlineWidth,
+    gap: 4,
   },
-  tab: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: BORDER_RADIUS.full },
-  tabActive: { backgroundColor: COLORS.white, ...SHADOWS.sm },
-  tabText: { fontSize: FONT_SIZES.sm, color: COLORS.gray500, fontWeight: FONT_WEIGHTS.medium },
-  tabTextActive: { color: COLORS.primary, fontWeight: FONT_WEIGHTS.bold },
+  tab: {
+    flex: 1,
+    flexDirection: 'row',
+    paddingVertical: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    borderRadius: BORDER_RADIUS.full,
+  },
+  tabText: { fontSize: FONT_SIZES.sm, fontWeight: FONT_WEIGHTS.bold },
 
   list: { padding: SPACING[4], gap: SPACING[3], paddingBottom: SPACING[8] },
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
-  emptyText: { color: COLORS.gray400, fontSize: FONT_SIZES.base, textAlign: 'center' },
 
-  gameCard: {
-    backgroundColor: COLORS.white, borderRadius: BORDER_RADIUS.xl,
-    padding: SPACING[4], ...SHADOWS.md,
+  cardTitle: {
+    fontSize: FONT_SIZES.base,
+    fontWeight: FONT_WEIGHTS.bold,
+    lineHeight: 22,
+    marginTop: SPACING[2],
   },
-  levelBadge: { alignSelf: 'flex-start', borderRadius: BORDER_RADIUS.full, paddingHorizontal: 10, paddingVertical: 3, marginBottom: 8 },
-  levelText: { color: COLORS.white, fontSize: FONT_SIZES.xs, fontWeight: FONT_WEIGHTS.bold },
-  gameCardTitle: { fontSize: FONT_SIZES.base, fontWeight: FONT_WEIGHTS.bold, color: COLORS.gray900, lineHeight: 22, marginBottom: 4 },
-  gameCardSub: { fontSize: FONT_SIZES.xs, color: COLORS.gray500 },
-  gameCardFooter: { marginTop: SPACING[3], paddingTop: SPACING[2], borderTopWidth: 1, borderTopColor: COLORS.gray100, alignItems: 'flex-end' },
-  gameCardAction: { color: COLORS.primary, fontWeight: FONT_WEIGHTS.bold, fontSize: FONT_SIZES.sm },
+  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
+  cardSub: { fontSize: FONT_SIZES.xs },
+  eraIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: BORDER_RADIUS.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cardFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: SPACING[3],
+    paddingTop: SPACING[2],
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  cardAction: { fontWeight: FONT_WEIGHTS.bold, fontSize: FONT_SIZES.sm },
 });
