@@ -192,8 +192,8 @@ import { extractYoutubeId } from '@/utils/youtube';
 | **P2a** | Event detail + Stage detail (multimedia, YouTube, 2 cột) | `app/event/.../index.tsx`, `app/stage-detail/.../index.tsx` | | ⏳ Cần làm |
 | **P2b** | Person list + Person detail (section mở rộng + video) | `app/person-list/.../index.tsx`, `app/person/.../index.tsx` | | ⏳ Cần làm |
 | **P2c** | Forum detail/reply/like + Explore article/museum | `app/forum/[postId].tsx`, `app/forum/new.tsx`, `app/explore/` | | ⏳ Cần làm |
-| **P3a** | Quiz gameplay (chấm điểm, đếm giờ, màn kết quả) | `app/quiz/[quizSlug]/play.tsx` (mới), `services/quizService.ts` | | 📋 Pending |
-| **P3b** | Timeline puzzle (kéo-thả, HP bar, dialog thắng/thua) | `app/timeline/[eraId]/play.tsx` (mới) | | 📋 Pending |
+| **P3a** | Quiz gameplay (đếm ngược mỗi câu + tổng giờ, chấm điểm ×10, màn kết quả + review) | `app/quiz/[quizSlug]/play.tsx`, `result.tsx`, `services/quizService.ts` (`getQuestionsByQuiz`), `models/GameQuestion.ts` | — | ✅ Xong |
+| **P3b** | Timeline puzzle (chạm-để-đặt, 3 mạng HP, modal thắng/thua) | `app/timeline/[eraId]/play.tsx`, `services/timelinePuzzleService.ts`, `models/Era.ts` (events) | — | ✅ Xong |
 | **P4** | Google Sign-In + Profile overview + Edit profile + avatar upload | `app/profile-overview/`, `app/edit-profile/`, `services/authService.ts` | | 📋 Pending |
 
 ### Luồng đề xuất cho 3 người (song song)

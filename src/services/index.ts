@@ -42,6 +42,7 @@ export {
 export {
   getQuizzes,
   getQuizById,
+  getQuestionsByQuiz,
 } from './quizService';
 
 export {

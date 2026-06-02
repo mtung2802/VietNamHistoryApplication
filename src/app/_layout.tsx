@@ -39,8 +39,11 @@ function RootNavigator() {
         <Stack.Screen name="forum/new" />
 
         {/* ── Game ──────────────────────────────────────────── */}
-        <Stack.Screen name="quiz/[quizSlug]" />
-        <Stack.Screen name="timeline/[eraId]" />
+        <Stack.Screen name="quiz/[quizSlug]/index" />
+        <Stack.Screen name="quiz/[quizSlug]/play" />
+        <Stack.Screen name="quiz/[quizSlug]/result" />
+        <Stack.Screen name="timeline/[eraId]/index" />
+        <Stack.Screen name="timeline/[eraId]/play" />
 
         {/* ── Khám Phá ──────────────────────────────────────── */}
         <Stack.Screen name="explore/article/index" />
