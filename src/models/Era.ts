@@ -17,8 +17,11 @@ export interface TimelineEvent {
 export interface Era {
   eraId: string; // = document ID
   title: string;
+  name?: string;
   coverMediaRef?: string;
+  thumbnailUrl?: string;
   description?: string;
+  shortDesc?: string;
   sortOrder?: number;
   events?: TimelineEvent[];
 }

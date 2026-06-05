@@ -1,16 +1,14 @@
 /**
- * Màn CHƠI Timeline Puzzle
- * Route: /timeline/[eraId]/play
- * Port (đơn giản hoá cho mobile): TimeLineActivity.java
- *
- * - Chạm-để-đặt: chạm thẻ sự kiện đúng thứ tự thời gian tiếp theo (order)
- * - Đúng → đặt vào slot, xoá khỏi bài; Sai → rung thẻ + mất 1 mạng
- * - 3 mạng (HP bar gold). Hết mạng = thua. Xếp đúng hết = thắng.
+ * Timeline Puzzle gameplay.
+ * Port tu UI Java: nen chien truong, ban bai, card pixel-art va nhan vat frame animation.
  */
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
+  Image,
+  ImageBackground,
+  ImageSourcePropType,
   ScrollView,
   StyleSheet,
   Text,
@@ -23,13 +21,51 @@ import { getEraById } from '@/services/timelinePuzzleService';
 import { Era, TimelineEvent } from '@/models/Era';
 import { BORDER_RADIUS, FONT_SIZES, FONT_WEIGHTS, SPACING } from '@/constants/theme';
 import { useThemeColors } from '@/contexts/ThemeContext';
-import { Screen, AppHeader, Button, Card, LoadingState, ErrorState } from '@/components/ui';
+import { Button, Card, ErrorState, LoadingState, Screen, useTopInset } from '@/components/ui';
 
-const MAX_LIVES = 3;
+const MAX_WRONG_MOVES = 5;
+const MAX_ATTACKS = 3;
 
 type Status = 'playing' | 'won' | 'lost';
+type WarriorMode = 'idle' | 'walk' | 'attack';
 
-// Trộn mảng (Fisher–Yates)
+const GAME_ASSETS = {
+  sky: require('../../../../assets/images/game/summer3.png'),
+  table: require('../../../../assets/images/game/rell_table.png'),
+  card: require('../../../../assets/images/game/card.png'),
+  turretFrames: [
+    require('../../../../assets/images/game/turret_idle000.png'),
+    require('../../../../assets/images/game/turret_idle001.png'),
+    require('../../../../assets/images/game/turret_idle002.png'),
+    require('../../../../assets/images/game/turret_idle003.png'),
+    require('../../../../assets/images/game/turret_idle004.png'),
+    require('../../../../assets/images/game/turret_idle005.png'),
+  ],
+  warriorIdleFrames: [
+    require('../../../../assets/images/game/warrior2_idle000.png'),
+    require('../../../../assets/images/game/warrior2_idle001.png'),
+    require('../../../../assets/images/game/warrior2_idle002.png'),
+    require('../../../../assets/images/game/warrior2_idle003.png'),
+    require('../../../../assets/images/game/warrior2_idle004.png'),
+  ],
+  warriorWalkFrames: [
+    require('../../../../assets/images/game/warrior2_walk000.png'),
+    require('../../../../assets/images/game/warrior2_walk001.png'),
+    require('../../../../assets/images/game/warrior2_walk002.png'),
+    require('../../../../assets/images/game/warrior2_walk003.png'),
+    require('../../../../assets/images/game/warrior2_walk004.png'),
+    require('../../../../assets/images/game/warrior2_walk005.png'),
+    require('../../../../assets/images/game/warrior2_walk006.png'),
+    require('../../../../assets/images/game/warrior2_walk007.png'),
+  ],
+  warriorAttackFrames: [
+    require('../../../../assets/images/game/warrior2_atack000.png'),
+    require('../../../../assets/images/game/warrior2_atack001.png'),
+    require('../../../../assets/images/game/warrior2_atack002.png'),
+    require('../../../../assets/images/game/warrior2_atack003.png'),
+  ],
+};
+
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
@@ -39,36 +75,113 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
+function FrameSprite({
+  frames,
+  interval = 120,
+  style,
+}: {
+  frames: ImageSourcePropType[];
+  interval?: number;
+  style?: object;
+}) {
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    setIndex(0);
+    const timer = setInterval(() => {
+      setIndex((prev) => (prev + 1) % frames.length);
+    }, interval);
+    return () => clearInterval(timer);
+  }, [frames, interval]);
+
+  return <Image source={frames[index]} resizeMode="contain" style={style} />;
+}
+
+function EventCard({
+  event,
+  compact = false,
+}: {
+  event: TimelineEvent;
+  compact?: boolean;
+}) {
+  return (
+    <ImageBackground
+      source={GAME_ASSETS.card}
+      resizeMode="stretch"
+      style={compact ? styles.slotImageCard : styles.handImageCard}
+      imageStyle={styles.pixelCardImage}
+    >
+      <View style={compact ? styles.slotTitleBox : styles.handTitleBox}>
+        <Text style={compact ? styles.slotCardTitle : styles.handCardTitle} numberOfLines={compact ? 2 : 4}>
+          {event.name}
+        </Text>
+      </View>
+      <Text style={compact ? styles.slotYear : styles.handYear}>{event.year}</Text>
+      <View style={styles.cardDivider} />
+      {!!event.desc && (
+        <Text style={compact ? styles.slotCardDesc : styles.handCardDesc} numberOfLines={compact ? 3 : undefined}>
+          {event.desc}
+        </Text>
+      )}
+    </ImageBackground>
+  );
+}
+
 export default function TimelinePlayScreen() {
   const { eraId } = useLocalSearchParams<{ eraId: string }>();
   const router = useRouter();
+  const topInset = useTopInset();
   const colors = useThemeColors();
 
   const [era, setEra] = useState<Era | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Trạng thái ván
   const [sortedEvents, setSortedEvents] = useState<TimelineEvent[]>([]);
   const [hand, setHand] = useState<TimelineEvent[]>([]);
   const [placed, setPlaced] = useState<(TimelineEvent | null)[]>([]);
   const [currentStep, setCurrentStep] = useState(0);
-  const [lives, setLives] = useState(MAX_LIVES);
+  const [wrongMoves, setWrongMoves] = useState(0);
+  const [attacks, setAttacks] = useState(0);
   const [status, setStatus] = useState<Status>('playing');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [stageWidth, setStageWidth] = useState(360);
+  const [warriorMode, setWarriorMode] = useState<WarriorMode>('idle');
+  const [shakeKey, setShakeKey] = useState<string | null>(null);
 
-  // Animation rung thẻ sai
+  const enemyProgress = useRef(new Animated.Value(0)).current;
   const shakeX = useRef(new Animated.Value(0)).current;
-  const [shakeName, setShakeName] = useState<string | null>(null);
+  const turretScale = useRef(new Animated.Value(1)).current;
 
-  const setupGame = useCallback((events: TimelineEvent[]) => {
-    const sorted = [...events].sort((a, b) => a.order - b.order);
-    setSortedEvents(sorted);
-    setHand(shuffle(events));
-    setPlaced(new Array(sorted.length).fill(null));
-    setCurrentStep(0);
-    setLives(MAX_LIVES);
-    setStatus('playing');
-  }, []);
+  const lives = Math.max(0, MAX_ATTACKS - attacks);
+  const warriorFrames = useMemo(() => {
+    if (warriorMode === 'walk') return GAME_ASSETS.warriorWalkFrames;
+    if (warriorMode === 'attack') return GAME_ASSETS.warriorAttackFrames;
+    return GAME_ASSETS.warriorIdleFrames;
+  }, [warriorMode]);
+
+  const enemyTranslateX = enemyProgress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, -Math.max(130, stageWidth * 0.46)],
+  });
+
+  const setupGame = useCallback(
+    (events: TimelineEvent[]) => {
+      const sorted = [...events].sort((a, b) => a.order - b.order);
+      setSortedEvents(sorted);
+      setHand(shuffle(events));
+      setPlaced(new Array(sorted.length).fill(null));
+      setCurrentStep(0);
+      setWrongMoves(0);
+      setAttacks(0);
+      setStatus('playing');
+      setIsProcessing(false);
+      setWarriorMode('idle');
+      enemyProgress.setValue(0);
+      turretScale.setValue(1);
+    },
+    [enemyProgress, turretScale],
+  );
 
   const load = useCallback(async () => {
     if (!eraId) return;
@@ -93,169 +206,191 @@ export default function TimelinePlayScreen() {
     load();
   }, [load]);
 
-  const triggerShake = (name: string) => {
-    setShakeName(name);
+  const triggerCardShake = (key: string) => {
+    setShakeKey(key);
     shakeX.setValue(0);
     Animated.sequence([
-      Animated.timing(shakeX, { toValue: -8, duration: 50, useNativeDriver: true }),
-      Animated.timing(shakeX, { toValue: 8, duration: 50, useNativeDriver: true }),
-      Animated.timing(shakeX, { toValue: -6, duration: 50, useNativeDriver: true }),
-      Animated.timing(shakeX, { toValue: 0, duration: 50, useNativeDriver: true }),
-    ]).start(() => setShakeName(null));
+      Animated.timing(shakeX, { toValue: -10, duration: 45, useNativeDriver: true }),
+      Animated.timing(shakeX, { toValue: 10, duration: 45, useNativeDriver: true }),
+      Animated.timing(shakeX, { toValue: -7, duration: 45, useNativeDriver: true }),
+      Animated.timing(shakeX, { toValue: 0, duration: 45, useNativeDriver: true }),
+    ]).start(() => setShakeKey(null));
+  };
+
+  const playWalk = (nextWrongMoves: number) => {
+    setWarriorMode('walk');
+    Animated.timing(enemyProgress, {
+      toValue: Math.min(nextWrongMoves / MAX_WRONG_MOVES, 1),
+      duration: 800,
+      useNativeDriver: true,
+    }).start(() => {
+      setWarriorMode('idle');
+      setIsProcessing(false);
+    });
+  };
+
+  const playAttack = (nextAttacks: number) => {
+    setWarriorMode('attack');
+    Animated.sequence([
+      Animated.timing(turretScale, { toValue: 0.88, duration: 120, useNativeDriver: true }),
+      Animated.spring(turretScale, { toValue: 1, useNativeDriver: true }),
+    ]).start();
+
+    setTimeout(() => {
+      setWarriorMode('idle');
+      setIsProcessing(false);
+      if (nextAttacks >= MAX_ATTACKS) {
+        setStatus('lost');
+      }
+    }, 900);
   };
 
   const handleTapCard = (event: TimelineEvent) => {
-    if (status !== 'playing') return;
+    if (status !== 'playing' || isProcessing) return;
+
+    const key = `${event.order}-${event.name}`;
 
     if (event.order === currentStep + 1) {
-      // ĐÚNG → đặt vào slot hiện tại
+      setIsProcessing(true);
       setPlaced((prev) => {
         const next = [...prev];
         next[currentStep] = event;
         return next;
       });
       setHand((prev) => prev.filter((e) => e !== event));
+
       const nextStep = currentStep + 1;
       setCurrentStep(nextStep);
-      if (nextStep >= sortedEvents.length) {
-        setStatus('won');
-      }
-    } else {
-      // SAI → rung + mất mạng
-      triggerShake(event.name);
-      const nextLives = lives - 1;
-      setLives(nextLives);
-      if (nextLives <= 0) {
-        setStatus('lost');
-      }
+
+      setTimeout(() => {
+        setIsProcessing(false);
+        if (nextStep >= sortedEvents.length) {
+          setStatus('won');
+        }
+      }, 260);
+      return;
     }
+
+    setIsProcessing(true);
+    triggerCardShake(key);
+
+    if (wrongMoves < MAX_WRONG_MOVES) {
+      const nextWrongMoves = wrongMoves + 1;
+      setWrongMoves(nextWrongMoves);
+      playWalk(nextWrongMoves);
+      return;
+    }
+
+    const nextAttacks = attacks + 1;
+    setAttacks(nextAttacks);
+    playAttack(nextAttacks);
   };
 
-  if (loading) return <LoadingState message="Đang tải trò chơi…" />;
+  if (loading) return <LoadingState message="Đang tải trò chơi..." />;
   if (error) return <ErrorState message={error} onRetry={load} />;
 
   return (
-    <Screen>
-      <AppHeader title={era?.title ?? 'Ghép Niên Đại'} showThemeToggle={false} />
+    <Screen style={styles.screen}>
+      <View style={styles.gameRoot}>
+        <ImageBackground source={GAME_ASSETS.sky} resizeMode="cover" style={styles.battleBg}>
+          <TouchableOpacity
+            activeOpacity={0.82}
+            onPress={() => router.back()}
+            style={[styles.backButton, { top: topInset + 14 }]}
+          >
+            <Ionicons name="chevron-back" size={34} color="#3A3A3A" />
+          </TouchableOpacity>
 
-      {/* Thanh trạng thái: HP + tiến độ */}
-      <View style={styles.statusBar}>
-        <View style={styles.hpRow}>
-          {Array.from({ length: MAX_LIVES }).map((_, i) => (
-            <Ionicons
-              key={i}
-              name={i < lives ? 'heart' : 'heart-outline'}
-              size={22}
-              color={i < lives ? colors.primary : colors.textMuted}
-              style={{ marginRight: 4 }}
-            />
-          ))}
-        </View>
-        <Text style={[styles.progressText, { color: colors.textSecondary }]}>
-          Đã xếp {currentStep}/{sortedEvents.length}
-        </Text>
+          <View style={[styles.titlePill, { top: topInset + 18 }]}>
+            <Text style={styles.titleText} numberOfLines={1}>
+              {era?.title ?? 'Timeline Puzzle'}
+            </Text>
+            <Text style={styles.progressText}>
+              {currentStep}/{sortedEvents.length}
+            </Text>
+          </View>
+
+          <View
+            style={[styles.battleLayer, status !== 'playing' && styles.battleLayerEnded]}
+            onLayout={(e) => setStageWidth(e.nativeEvent.layout.width)}
+          >
+            <View style={styles.hpWrap}>
+              {Array.from({ length: MAX_ATTACKS }).map((_, i) => {
+                const filled = i < lives;
+                return (
+                  <View
+                    key={i}
+                    style={[
+                      styles.hpSegment,
+                      i === 0 && styles.hpLeft,
+                      i === MAX_ATTACKS - 1 && styles.hpRight,
+                      { backgroundColor: filled ? '#ff2d23' : '#4a4a4a' },
+                    ]}
+                  />
+                );
+              })}
+            </View>
+
+            <Animated.View style={[styles.turretWrap, { transform: [{ scale: turretScale }] }]}>
+              <FrameSprite frames={GAME_ASSETS.turretFrames} interval={130} style={styles.turret} />
+            </Animated.View>
+
+            <Animated.View style={[styles.enemyWrap, { transform: [{ translateX: enemyTranslateX }] }]}>
+              <FrameSprite
+                frames={warriorFrames}
+                interval={warriorMode === 'idle' ? 145 : 95}
+                style={styles.enemy}
+              />
+            </Animated.View>
+          </View>
+        </ImageBackground>
+
+        <ImageBackground source={GAME_ASSETS.table} resizeMode="stretch" style={styles.tableBg}>
+          <View style={styles.slotGrid}>
+            {sortedEvents.map((_, idx) => {
+              const event = placed[idx];
+              return (
+                <View key={idx} style={styles.slotCell}>
+                  {event ? (
+                    <EventCard event={event} compact />
+                  ) : (
+                    <View style={[styles.emptySlot, idx === currentStep && styles.nextSlot]}>
+                      <View style={styles.emptySlotMark} />
+                    </View>
+                  )}
+                </View>
+              );
+            })}
+          </View>
+
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.handScroller}
+            contentContainerStyle={styles.handContent}
+          >
+            {hand.map((event) => {
+              const key = `${event.order}-${event.name}`;
+              return (
+                <Animated.View
+                  key={key}
+                  style={shakeKey === key ? { transform: [{ translateX: shakeX }] } : undefined}
+                >
+                  <TouchableOpacity
+                    activeOpacity={0.88}
+                    disabled={isProcessing}
+                    onPress={() => handleTapCard(event)}
+                    style={styles.handPressable}
+                  >
+                    <EventCard event={event} />
+                  </TouchableOpacity>
+                </Animated.View>
+              );
+            })}
+          </ScrollView>
+        </ImageBackground>
       </View>
 
-      <ScrollView
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-      >
-        <Text style={[styles.hint, { color: colors.textMuted }]}>
-          Chạm thẻ sự kiện theo đúng thứ tự thời gian (từ sớm đến muộn).
-        </Text>
-
-        {/* Dòng thời gian (slots) */}
-        <Text style={[styles.sectionLabel, { color: colors.primary }]}>
-          DÒNG THỜI GIAN
-        </Text>
-        <View style={styles.slots}>
-          {sortedEvents.map((_, idx) => {
-            const ev = placed[idx];
-            const isNext = idx === currentStep && status === 'playing';
-            return (
-              <View
-                key={idx}
-                style={[
-                  styles.slot,
-                  {
-                    backgroundColor: ev ? colors.surface : 'transparent',
-                    borderColor: isNext ? colors.primary : colors.border,
-                    borderStyle: ev ? 'solid' : 'dashed',
-                    borderWidth: isNext ? 2 : 1.4,
-                  },
-                ]}
-              >
-                <View
-                  style={[
-                    styles.slotIndex,
-                    { backgroundColor: ev ? colors.primary : colors.surfaceElevated },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.slotIndexText,
-                      { color: ev ? colors.onPrimary : colors.textMuted },
-                    ]}
-                  >
-                    {idx + 1}
-                  </Text>
-                </View>
-                {ev ? (
-                  <View style={styles.slotBody}>
-                    <Text style={[styles.slotYear, { color: colors.primary }]}>
-                      {ev.year}
-                    </Text>
-                    <Text style={[styles.slotName, { color: colors.text }]} numberOfLines={2}>
-                      {ev.name}
-                    </Text>
-                  </View>
-                ) : (
-                  <Text style={[styles.slotEmpty, { color: colors.textMuted }]}>
-                    {isNext ? 'Sự kiện tiếp theo…' : 'Chưa xếp'}
-                  </Text>
-                )}
-              </View>
-            );
-          })}
-        </View>
-
-        {/* Bài (thẻ chưa xếp) */}
-        <Text style={[styles.sectionLabel, { color: colors.primary, marginTop: SPACING[4] }]}>
-          THẺ SỰ KIỆN ({hand.length})
-        </Text>
-        <View style={styles.hand}>
-          {hand.map((ev) => {
-            const isShaking = shakeName === ev.name;
-            return (
-              <Animated.View
-                key={ev.name}
-                style={isShaking ? { transform: [{ translateX: shakeX }] } : undefined}
-              >
-                <TouchableOpacity
-                  activeOpacity={0.85}
-                  onPress={() => handleTapCard(ev)}
-                  style={[
-                    styles.handCard,
-                    { backgroundColor: colors.surface, borderColor: colors.border },
-                  ]}
-                >
-                  <Ionicons name="bookmark-outline" size={18} color={colors.primary} />
-                  <Text style={[styles.handName, { color: colors.text }]} numberOfLines={3}>
-                    {ev.name}
-                  </Text>
-                  {!!ev.desc && (
-                    <Text style={[styles.handDesc, { color: colors.textMuted }]} numberOfLines={2}>
-                      {ev.desc}
-                    </Text>
-                  )}
-                </TouchableOpacity>
-              </Animated.View>
-            );
-          })}
-        </View>
-      </ScrollView>
-
-      {/* Modal kết thúc */}
       {status !== 'playing' && (
         <View style={[styles.overlay, { backgroundColor: colors.overlay }]}>
           <Card highlighted style={styles.modal}>
@@ -272,21 +407,14 @@ export default function TimelinePlayScreen() {
             >
               {status === 'won' ? 'Hoàn thành!' : 'Thua mất rồi!'}
             </Text>
-            <Text style={[styles.modalSub, { color: colors.textSecondary }]}>
-              {status === 'won'
-                ? 'Bạn đã xếp đúng toàn bộ dòng thời gian.'
-                : 'Dưới đây là thứ tự đúng:'}
-            </Text>
-
             <ScrollView style={styles.modalTimeline} showsVerticalScrollIndicator={false}>
-              {sortedEvents.map((ev, i) => (
-                <View key={i} style={styles.modalRow}>
-                  <Text style={[styles.modalYear, { color: colors.primary }]}>{ev.year}</Text>
-                  <Text style={[styles.modalName, { color: colors.text }]}>{ev.name}</Text>
+              {sortedEvents.map((event) => (
+                <View key={`${event.order}-${event.name}`} style={styles.modalRow}>
+                  <Text style={[styles.modalYear, { color: colors.primary }]}>{event.year}</Text>
+                  <Text style={[styles.modalName, { color: colors.text }]}>{event.name}</Text>
                 </View>
               ))}
             </ScrollView>
-
             <View style={styles.modalActions}>
               <Button
                 label="Chơi lại"
@@ -308,75 +436,281 @@ export default function TimelinePlayScreen() {
 }
 
 const styles = StyleSheet.create({
-  statusBar: {
+  screen: {
+    backgroundColor: '#000000',
+  },
+  gameRoot: {
+    flex: 1,
+    backgroundColor: '#000000',
+  },
+  battleBg: {
+    flex: 0.42,
+  },
+  tableBg: {
+    flex: 0.58,
+    paddingTop: SPACING[5],
+    paddingBottom: SPACING[4],
+  },
+  backButton: {
+    position: 'absolute',
+    left: 18,
+    zIndex: 30,
+    width: 64,
+    height: 64,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#B2B2B2',
+    shadowColor: '#000',
+    shadowOpacity: 0.28,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 8,
+  },
+  titlePill: {
+    position: 'absolute',
+    left: 96,
+    right: 18,
+    zIndex: 20,
+    minHeight: 42,
+    paddingHorizontal: 14,
+    borderRadius: BORDER_RADIUS.full,
+    backgroundColor: 'rgba(36, 28, 20, 0.46)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 214, 116, 0.32)',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: SPACING[4],
-    paddingVertical: SPACING[3],
+    gap: SPACING[2],
   },
-  hpRow: { flexDirection: 'row', alignItems: 'center' },
-  progressText: { fontSize: FONT_SIZES.sm, fontWeight: FONT_WEIGHTS.semibold },
-
-  content: { padding: SPACING[4], paddingBottom: SPACING[8], gap: SPACING[2] },
-  hint: { fontSize: FONT_SIZES.sm, fontStyle: 'italic', marginBottom: SPACING[2] },
-  sectionLabel: {
-    fontSize: FONT_SIZES.xs,
+  titleText: {
+    flex: 1,
+    color: '#FFF1C7',
+    fontSize: FONT_SIZES.sm,
     fontWeight: FONT_WEIGHTS.bold,
-    letterSpacing: 0.6,
-    marginBottom: SPACING[2],
   },
-
-  slots: { gap: SPACING[2] },
-  slot: {
+  progressText: {
+    color: '#FFD45A',
+    fontSize: FONT_SIZES.sm,
+    fontWeight: FONT_WEIGHTS.black,
+  },
+  battleLayer: {
+    flex: 1,
+    position: 'relative',
+  },
+  battleLayerEnded: {
+    opacity: 0.45,
+  },
+  hpWrap: {
+    position: 'absolute',
+    left: 50,
+    bottom: 126,
+    zIndex: 12,
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING[3],
-    padding: SPACING[3],
-    borderRadius: BORDER_RADIUS.lg,
-    minHeight: 56,
+    padding: 4,
+    borderRadius: 18,
+    backgroundColor: '#0a0a0a',
+    shadowColor: '#000',
+    shadowOpacity: 0.35,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 12,
   },
-  slotIndex: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+  hpSegment: {
+    width: 43,
+    height: 16,
+    borderLeftWidth: 5,
+    borderLeftColor: '#0a0a0a',
+  },
+  hpLeft: {
+    borderTopLeftRadius: 12,
+    borderBottomLeftRadius: 12,
+    borderLeftWidth: 0,
+  },
+  hpRight: {
+    borderTopRightRadius: 12,
+    borderBottomRightRadius: 12,
+  },
+  turretWrap: {
+    position: 'absolute',
+    left: 58,
+    bottom: 54,
+    zIndex: 10,
+  },
+  turret: {
+    width: 106,
+    height: 121,
+  },
+  enemyWrap: {
+    position: 'absolute',
+    right: 48,
+    bottom: 62,
+    zIndex: 11,
+  },
+  enemy: {
+    width: 82,
+    height: 88,
+    transform: [{ scaleX: -1 }],
+  },
+  slotGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignSelf: 'stretch',
+    paddingHorizontal: 22,
+    justifyContent: 'space-between',
+    rowGap: 8,
+  },
+  slotCell: {
+    width: '23.2%',
+    aspectRatio: 0.82,
+  },
+  emptySlot: {
+    flex: 1,
+    borderWidth: 1.4,
+    borderStyle: 'dashed',
+    borderColor: '#F4BD00',
+    backgroundColor: 'rgba(227, 151, 65, 0.12)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  slotIndexText: { fontSize: FONT_SIZES.sm, fontWeight: FONT_WEIGHTS.bold },
-  slotBody: { flex: 1 },
-  slotYear: { fontSize: FONT_SIZES.sm, fontWeight: FONT_WEIGHTS.bold },
-  slotName: { fontSize: FONT_SIZES.sm, lineHeight: 18 },
-  slotEmpty: { fontSize: FONT_SIZES.sm, fontStyle: 'italic' },
-
-  hand: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING[3] },
-  handCard: {
-    width: 150,
-    borderRadius: BORDER_RADIUS.lg,
-    borderWidth: 1.4,
-    padding: SPACING[3],
-    gap: 6,
+  nextSlot: {
+    backgroundColor: 'rgba(255, 205, 74, 0.18)',
   },
-  handName: { fontSize: FONT_SIZES.sm, fontWeight: FONT_WEIGHTS.semibold, lineHeight: 18 },
-  handDesc: { fontSize: FONT_SIZES.xs, lineHeight: 16 },
-
+  emptySlotMark: {
+    width: 20,
+    height: 20,
+    backgroundColor: 'rgba(123, 74, 31, 0.16)',
+  },
+  handScroller: {
+    marginTop: 'auto',
+    maxHeight: 238,
+  },
+  handContent: {
+    paddingHorizontal: 18,
+    gap: 10,
+    alignItems: 'flex-end',
+    paddingBottom: 8,
+  },
+  handPressable: {
+    width: 142,
+    height: 230,
+  },
+  handImageCard: {
+    width: 142,
+    height: 230,
+    paddingTop: 20,
+    paddingHorizontal: 14,
+  },
+  slotImageCard: {
+    flex: 1,
+    paddingTop: 8,
+    paddingHorizontal: 8,
+  },
+  pixelCardImage: {
+    borderRadius: 4,
+  },
+  handCardTitle: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: FONT_WEIGHTS.black,
+    textAlign: 'center',
+    includeFontPadding: false,
+  },
+  handTitleBox: {
+    height: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  slotCardTitle: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    lineHeight: 11,
+    fontWeight: FONT_WEIGHTS.black,
+    textAlign: 'center',
+    includeFontPadding: false,
+  },
+  slotTitleBox: {
+    minHeight: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  handYear: {
+    marginTop: 4,
+    color: '#FFC107',
+    fontSize: 16,
+    fontWeight: FONT_WEIGHTS.black,
+    textAlign: 'center',
+  },
+  slotYear: {
+    marginTop: 1,
+    color: '#FFC107',
+    fontSize: 9,
+    fontWeight: FONT_WEIGHTS.black,
+    textAlign: 'center',
+  },
+  cardDivider: {
+    height: 1,
+    marginTop: 3,
+    marginHorizontal: 3,
+    backgroundColor: '#FFC107',
+  },
+  handCardDesc: {
+    marginTop: 8,
+    color: '#D7D4DF',
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: FONT_WEIGHTS.bold,
+  },
+  slotCardDesc: {
+    marginTop: 3,
+    color: '#D7D4DF',
+    fontSize: 7,
+    lineHeight: 9,
+    fontWeight: FONT_WEIGHTS.semibold,
+  },
   overlay: {
     ...StyleSheet.absoluteFillObject,
+    zIndex: 1000,
+    elevation: 1000,
     alignItems: 'center',
     justifyContent: 'center',
     padding: SPACING[5],
   },
-  modal: { width: '100%', maxWidth: 420, alignItems: 'center', gap: SPACING[2], paddingVertical: SPACING[6] },
-  modalTitle: { fontSize: FONT_SIZES['2xl'], fontWeight: FONT_WEIGHTS.bold },
-  modalSub: { fontSize: FONT_SIZES.sm, textAlign: 'center' },
-  modalTimeline: { maxHeight: 220, alignSelf: 'stretch', marginVertical: SPACING[3] },
+  modal: {
+    width: '100%',
+    maxWidth: 420,
+    alignItems: 'center',
+    gap: SPACING[2],
+    paddingVertical: SPACING[6],
+  },
+  modalTitle: {
+    fontSize: FONT_SIZES['2xl'],
+    fontWeight: FONT_WEIGHTS.bold,
+  },
+  modalTimeline: {
+    maxHeight: 220,
+    alignSelf: 'stretch',
+    marginVertical: SPACING[3],
+  },
   modalRow: {
     flexDirection: 'row',
     gap: SPACING[3],
     paddingVertical: 6,
     alignItems: 'flex-start',
   },
-  modalYear: { fontSize: FONT_SIZES.sm, fontWeight: FONT_WEIGHTS.bold, width: 52 },
-  modalName: { flex: 1, fontSize: FONT_SIZES.sm, lineHeight: 20 },
-  modalActions: { alignSelf: 'stretch', gap: SPACING[3] },
+  modalYear: {
+    width: 52,
+    fontSize: FONT_SIZES.sm,
+    fontWeight: FONT_WEIGHTS.bold,
+  },
+  modalName: {
+    flex: 1,
+    fontSize: FONT_SIZES.sm,
+    lineHeight: 20,
+  },
+  modalActions: {
+    alignSelf: 'stretch',
+    gap: SPACING[3],
+  },
 });

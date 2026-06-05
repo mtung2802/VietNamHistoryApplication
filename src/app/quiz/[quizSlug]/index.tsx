@@ -103,7 +103,7 @@ export default function QuizDetailScreen() {
         {/* Info cards */}
         <View style={styles.infoRow}>
           <InfoCell value={String(quiz.questionCount)} label="Câu hỏi" />
-          <InfoCell value={LEVEL_LABEL[quiz.level] ?? quiz.level} label="Độ khó" />
+          <InfoCell value={LEVEL_LABEL[quiz.level] ?? quiz.level} label="Phân loại" />
           {quiz.settings?.timeLimit ? (
             <InfoCell value={`${quiz.settings.timeLimit}s`} label="Mỗi câu" />
           ) : null}
