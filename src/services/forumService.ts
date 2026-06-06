@@ -23,7 +23,7 @@ export const subscribeToForum = (
   return onSnapshot(
     q,
     (snap) => {
-      const posts = snap.docs.map((d) => ({ postId: d.id, ...d.data() } as ForumPost));
+      const posts = snap.docs.map((d) => ({ ...d.data(), postId: d.id } as ForumPost));
       callback(posts);
     },
     onError,
@@ -35,7 +35,7 @@ export const getPosts = async (): Promise<ForumPost[]> => {
   try {
     const q = query(POSTS_COL(), orderBy('createdAt', 'desc'));
     const snap = await getDocs(q);
-    return snap.docs.map((d) => ({ postId: d.id, ...d.data() } as ForumPost));
+    return snap.docs.map((d) => ({ ...d.data(), postId: d.id } as ForumPost));
   } catch (e) {
     console.error('❌ Lỗi getPosts:', e);
     throw e;
@@ -47,7 +47,7 @@ export const getPostById = async (postId: string): Promise<ForumPost | null> => 
   try {
     const snap = await getDoc(doc(db, 'forum', 'posts', 'all', postId));
     if (!snap.exists()) return null;
-    return { postId: snap.id, ...snap.data() } as ForumPost;
+    return { ...snap.data(), postId: snap.id } as ForumPost;
   } catch (e) {
     console.error('❌ Lỗi getPostById:', e);
     throw e;
@@ -89,7 +89,7 @@ export const getReplies = async (postId: string): Promise<Reply[]> => {
       orderBy('createdAt', 'asc'),
     );
     const snap = await getDocs(q);
-    return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Reply));
+    return snap.docs.map((d) => ({ ...d.data(), id: d.id } as Reply));
   } catch (e) {
     console.error('❌ Lỗi getReplies:', e);
     throw e;

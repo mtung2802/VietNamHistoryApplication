@@ -1,81 +1,54 @@
-/**
- * Hook quản lý session người dùng bằng AsyncStorage
- * Lưu và lấy thông tin người dùng từ local storage
- */
-
-import { useEffect, useState } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { UserModel } from '@/models/UserModel';
-
-const USER_SESSION_KEY = '@vietnam_history_app_user_session';
+import { useCallback, useEffect, useState } from 'react';
+import {
+  clearUserSession as removeStoredSession,
+  getUserSession,
+  saveUserSession as persistUserSession,
+  SessionUser,
+} from '@/services/userSession';
 
 interface UseUserSessionReturn {
-  user: UserModel | null;
+  user: SessionUser | null;
   loading: boolean;
-  saveUserSession: (user: UserModel) => Promise<void>;
+  saveUserSession: (user: SessionUser) => Promise<void>;
   clearUserSession: () => Promise<void>;
+  reloadUserSession: () => Promise<void>;
 }
 
-/**
- * Hook để quản lý session người dùng bằng AsyncStorage
- * @returns Object chứa user, loading state, và các hàm để lưu/xóa session
- */
 export const useUserSession = (): UseUserSessionReturn => {
-  const [user, setUser] = useState<UserModel | null>(null);
+  const [user, setUser] = useState<SessionUser | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Lấy user session khi component mount
-  useEffect(() => {
-    loadUserSession();
+  const reloadUserSession = useCallback(async () => {
+    try {
+      setLoading(true);
+      setUser(await getUserSession());
+    } catch (error) {
+      console.error('Không thể tải phiên đăng nhập:', error);
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  /**
-   * Lấy thông tin user session từ AsyncStorage
-   */
-  const loadUserSession = async (): Promise<void> => {
-    try {
-      setLoading(true);
-      const jsonString = await AsyncStorage.getItem(USER_SESSION_KEY);
+  useEffect(() => {
+    reloadUserSession();
+  }, [reloadUserSession]);
 
-      if (jsonString) {
-        const userData: UserModel = JSON.parse(jsonString);
-        setUser(userData);
-      }
-    } catch (error) {
-      console.error('❌ Lỗi lấy user session:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  /**
-   * Lưu thông tin user session vào AsyncStorage
-   */
-  const saveUserSession = async (userData: UserModel): Promise<void> => {
+  const saveUserSession = async (userData: SessionUser) => {
+    setLoading(true);
     try {
-      setLoading(true);
-      const jsonString = JSON.stringify(userData);
-      await AsyncStorage.setItem(USER_SESSION_KEY, jsonString);
+      await persistUserSession(userData);
       setUser(userData);
-    } catch (error) {
-      console.error('❌ Lỗi lưu user session:', error);
-      throw error;
     } finally {
       setLoading(false);
     }
   };
 
-  /**
-   * Xóa user session khỏi AsyncStorage
-   */
-  const clearUserSession = async (): Promise<void> => {
+  const clearUserSession = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      await AsyncStorage.removeItem(USER_SESSION_KEY);
+      await removeStoredSession();
       setUser(null);
-    } catch (error) {
-      console.error('❌ Lỗi xóa user session:', error);
-      throw error;
     } finally {
       setLoading(false);
     }
@@ -86,5 +59,6 @@ export const useUserSession = (): UseUserSessionReturn => {
     loading,
     saveUserSession,
     clearUserSession,
+    reloadUserSession,
   };
 };

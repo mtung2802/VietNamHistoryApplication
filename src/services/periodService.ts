@@ -34,9 +34,9 @@ export const getPeriods = async (): Promise<Period[]> => {
 
     querySnapshot.forEach((d) => {
       periods.push({
+        ...d.data(),
         id: d.id,
         slug: d.id,   // document ID = slug
-        ...d.data(),
       } as Period);
     });
 
@@ -70,9 +70,9 @@ export const getPeriodById = async (id: string): Promise<Period | null> => {
     }
 
     return {
+      ...snap.data(),
       id: snap.id,
       slug: snap.id,
-      ...snap.data(),
     } as Period;
   } catch (error) {
     console.error('❌ Lỗi lấy thời kỳ theo ID:', error);

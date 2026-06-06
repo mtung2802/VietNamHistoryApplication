@@ -53,7 +53,7 @@ export default function ArticleListScreen() {
     try {
       if (isRefresh) setRefreshing(true); else setLoading(true);
       const snap = await getDocs(query(collection(db, 'articles'), orderBy('sortOrder', 'asc')));
-      setArticles(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Article)));
+      setArticles(snap.docs.map((d) => ({ ...d.data(), id: d.id } as Article)));
     } catch (e) {
       console.error('❌ Load articles error:', e);
     } finally {

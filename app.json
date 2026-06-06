@@ -35,6 +35,12 @@
           }
         }
       ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Cho phép ứng dụng truy cập thư viện để chọn ảnh đại diện."
+        }
+      ],
       "expo-web-browser"
     ],
     "experiments": {

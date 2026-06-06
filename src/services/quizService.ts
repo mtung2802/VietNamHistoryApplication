@@ -15,7 +15,7 @@ export const getQuizzes = async (): Promise<QuizItem[]> => {
   try {
     const q = query(collection(db, 'games', QUIZ_DOC, 'quizzes'));
     const snap = await getDocs(q);
-    return snap.docs.map((d) => ({ id: d.id, ...d.data() } as QuizItem));
+    return snap.docs.map((d) => ({ ...d.data(), id: d.id } as QuizItem));
   } catch (e) {
     console.error('❌ Lỗi getQuizzes:', e);
     throw e;

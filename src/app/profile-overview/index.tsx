@@ -1,108 +1,303 @@
-/**
- * Trang hồ sơ sau khi đăng nhập
- * Route: /profile-overview
- * Tương đương: ProfileOverviewFragment.java
- */
-
-import React, { useEffect, useState } from 'react';
-import { Alert, Image, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
-import { collection, getDocs, query, where, doc, getDoc } from 'firebase/firestore';
+import { Ionicons } from '@expo/vector-icons';
+import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/services/firebase';
-import { BORDER_RADIUS, COLORS, FONT_SIZES, FONT_WEIGHTS, SHADOWS, SPACING } from '@/constants/theme';
+import {
+  clearUserSession,
+  getUserSession,
+  saveUserSession,
+  SessionUser,
+} from '@/services/userSession';
+import { BORDER_RADIUS, FONT_SIZES, FONT_WEIGHTS, SHADOWS, SPACING } from '@/constants/theme';
+import { useThemeColors } from '@/contexts/ThemeContext';
+import { AppHeader, Screen } from '@/components/ui';
 
-// Simple in-memory session (replace with AsyncStorage / Context as needed)
-import AsyncStorage from '@react-native-async-storage/async-storage';
+interface MenuItemProps {
+  icon: React.ComponentProps<typeof Ionicons>['name'];
+  label: string;
+  danger?: boolean;
+  onPress: () => void;
+}
 
-export default function ProfileOverviewScreen() {
+interface ProfileOverviewProps {
+  embeddedInTab?: boolean;
+  onLoggedOut?: () => void;
+}
+
+export function ProfileOverviewContent({
+  embeddedInTab = false,
+  onLoggedOut,
+}: ProfileOverviewProps) {
   const router = useRouter();
-  const [user, setUser] = useState<{ name?: string; email?: string; photo?: string; username?: string } | null>(null);
+  const colors = useThemeColors();
+  const [user, setUser] = useState<SessionUser | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    AsyncStorage.getItem('currentUser').then((raw) => {
-      if (raw) setUser(JSON.parse(raw));
-    });
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
 
-  const handleLogout = async () => {
-    await AsyncStorage.removeItem('currentUser');
-    router.replace('/(tabs)/profile');
+      const loadUser = async () => {
+        try {
+          setLoading(true);
+          const session = await getUserSession();
+          if (!session) {
+            if (embeddedInTab) {
+              onLoggedOut?.();
+            } else {
+              router.replace('/(tabs)/profile');
+            }
+            return;
+          }
+
+          if (active) setUser(session);
+          const snapshot = await getDoc(doc(db, 'users', session.id));
+          const remoteData = snapshot.exists() ? snapshot.data() : {};
+          const resolvedAvatar =
+            typeof remoteData.avatar === 'string' && remoteData.avatar
+              ? remoteData.avatar
+              : typeof remoteData.photo === 'string' && remoteData.photo
+                ? remoteData.photo
+                : session.avatar || session.photo;
+          const mergedUser: SessionUser = {
+            ...session,
+            ...remoteData,
+            id: session.id,
+            name:
+              typeof remoteData.name === 'string'
+                ? remoteData.name
+                : typeof remoteData.displayName === 'string'
+                  ? remoteData.displayName
+                  : session.name,
+            avatar: resolvedAvatar,
+            photo: resolvedAvatar ? undefined : session.photo,
+          };
+
+          await saveUserSession(mergedUser);
+          if (active) setUser(mergedUser);
+        } catch (error) {
+          console.error('Unable to load profile:', error);
+          if (active) Alert.alert('Lỗi', 'Không thể tải thông tin hồ sơ.');
+        } finally {
+          if (active) setLoading(false);
+        }
+      };
+
+      loadUser();
+      return () => {
+        active = false;
+      };
+    }, [router]),
+  );
+
+  const handleLogout = () => {
+    Alert.alert('Đăng xuất', 'Bạn có chắc muốn đăng xuất?', [
+      { text: 'Hủy', style: 'cancel' },
+      {
+        text: 'Đăng xuất',
+        style: 'destructive',
+        onPress: async () => {
+          await clearUserSession();
+          if (embeddedInTab) {
+            onLoggedOut?.();
+          } else {
+            router.replace('/(tabs)/profile');
+          }
+        },
+      },
+    ]);
   };
 
-  const MenuItem = ({ emoji, label, onPress }: { emoji: string; label: string; onPress: () => void }) => (
-    <TouchableOpacity style={styles.menuItem} onPress={onPress} activeOpacity={0.8}>
-      <Text style={styles.menuEmoji}>{emoji}</Text>
-      <Text style={styles.menuLabel}>{label}</Text>
-      <Text style={styles.menuArrow}>›</Text>
+  const MenuItem = ({ icon, label, danger, onPress }: MenuItemProps) => (
+    <TouchableOpacity
+      style={[
+        styles.menuItem,
+        {
+          backgroundColor: colors.surface,
+          borderColor: colors.border,
+        },
+      ]}
+      onPress={onPress}
+      activeOpacity={0.8}
+    >
+      <View
+        style={[
+          styles.menuIcon,
+          { backgroundColor: danger ? `${colors.error}18` : colors.primaryDim },
+        ]}
+      >
+        <Ionicons
+          name={icon}
+          size={21}
+          color={danger ? colors.error : colors.primary}
+        />
+      </View>
+      <Text style={[styles.menuLabel, { color: danger ? colors.error : colors.text }]}>
+        {label}
+      </Text>
+      <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
     </TouchableOpacity>
   );
 
+  const avatarUri = user?.avatar || user?.photo;
+  const displayName = user?.name || user?.displayName || user?.username || 'Người dùng';
+
   return (
-    <View style={styles.root}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
-      <ScrollView showsVerticalScrollIndicator={false}>
+    <Screen>
+      <AppHeader title="Hồ sơ" showBack={false} />
 
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Text style={styles.backBtnText}>‹</Text>
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Hồ Sơ</Text>
-          <View style={{ width: 40 }} />
+      {loading ? (
+        <View style={styles.centered}>
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
-        <View style={styles.accent} />
-
-        {/* Avatar + info */}
-        <View style={styles.profileSection}>
-          <View style={styles.avatarWrapper}>
-            {user?.photo ? (
-              <Image source={{ uri: user.photo }} style={styles.avatar} />
-            ) : (
-              <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                <Text style={{ fontSize: 40 }}>👤</Text>
-              </View>
+      ) : (
+        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+          <View style={styles.profileSection}>
+            <View
+              style={[
+                styles.avatarFrame,
+                { borderColor: colors.primary, backgroundColor: colors.surface },
+              ]}
+            >
+              {avatarUri ? (
+                <Image source={{ uri: avatarUri }} style={styles.avatar} />
+              ) : (
+                <Ionicons name="person" size={52} color={colors.textMuted} />
+              )}
+            </View>
+            <Text style={[styles.userName, { color: colors.text }]}>{displayName}</Text>
+            {!!user?.username && (
+              <Text style={[styles.username, { color: colors.textSecondary }]}>
+                @{user.username}
+              </Text>
+            )}
+            {!!user?.email && (
+              <Text style={[styles.email, { color: colors.textMuted }]}>{user.email}</Text>
+            )}
+            {!!user?.bio && (
+              <Text style={[styles.bio, { color: colors.textSecondary }]}>{user.bio}</Text>
             )}
           </View>
-          <Text style={styles.userName}>{user?.name ?? user?.username ?? 'Người dùng'}</Text>
-          {!!user?.email && <Text style={styles.userEmail}>{user.email}</Text>}
-        </View>
 
-        {/* Menu items */}
-        <View style={styles.menuSection}>
-          <MenuItem emoji="✏️" label="Chỉnh sửa hồ sơ" onPress={() => router.push('/edit-profile')} />
-          <MenuItem emoji="💬" label="Diễn đàn" onPress={() => router.push('/forum')} />
-          <MenuItem emoji="🚪" label="Đăng xuất" onPress={handleLogout} />
-        </View>
-      </ScrollView>
-    </View>
+          <View style={styles.statsRow}>
+            <View
+              style={[styles.statCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+            >
+              <Text style={[styles.statValue, { color: colors.primary }]}>
+                {Number(user?.totalScore ?? 0)}
+              </Text>
+              <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Tổng điểm</Text>
+            </View>
+            <View
+              style={[styles.statCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+            >
+              <Text style={[styles.statValue, { color: colors.primary }]}>
+                {Number(user?.level ?? 1)}
+              </Text>
+              <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Cấp độ</Text>
+            </View>
+          </View>
+
+          <View style={styles.menuSection}>
+            <MenuItem
+              icon="create-outline"
+              label="Chỉnh sửa hồ sơ"
+              onPress={() => router.push('/edit-profile')}
+            />
+            <MenuItem
+              icon="chatbubbles-outline"
+              label="Diễn đàn"
+              onPress={() => router.push('/forum')}
+            />
+            <MenuItem
+              icon="log-out-outline"
+              label="Đăng xuất"
+              danger
+              onPress={handleLogout}
+            />
+          </View>
+        </ScrollView>
+      )}
+    </Screen>
   );
 }
 
+export default function ProfileOverviewScreen() {
+  return <ProfileOverviewContent />;
+}
+
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: COLORS.lightBg },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: COLORS.primary, paddingTop: 52, paddingBottom: 12, paddingHorizontal: 16,
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  content: { padding: SPACING[5], paddingBottom: SPACING[10] },
+  profileSection: { alignItems: 'center' },
+  avatarFrame: {
+    width: 112,
+    height: 112,
+    borderRadius: 56,
+    borderWidth: 3,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    ...SHADOWS.md,
   },
-  accent: { height: 4, backgroundColor: COLORS.accent },
-  backBtn: { width: 40, alignItems: 'center' },
-  backBtnText: { color: COLORS.white, fontSize: 30, fontWeight: FONT_WEIGHTS.bold, lineHeight: 34 },
-  headerTitle: { flex: 1, color: COLORS.white, fontSize: FONT_SIZES.lg, fontWeight: FONT_WEIGHTS.bold, textAlign: 'center' },
-
-  profileSection: { alignItems: 'center', paddingVertical: SPACING[6] },
-  avatarWrapper: { marginBottom: SPACING[3] },
-  avatar: { width: 96, height: 96, borderRadius: 48, borderWidth: 3, borderColor: COLORS.accent },
-  avatarPlaceholder: { backgroundColor: '#fce8e8', alignItems: 'center', justifyContent: 'center' },
-  userName: { fontSize: FONT_SIZES.xl, fontWeight: FONT_WEIGHTS.bold, color: COLORS.gray900 },
-  userEmail: { fontSize: FONT_SIZES.sm, color: COLORS.gray500, marginTop: 4 },
-
-  menuSection: { marginHorizontal: SPACING[4], gap: SPACING[2] },
+  avatar: { width: '100%', height: '100%' },
+  userName: {
+    fontSize: FONT_SIZES['2xl'],
+    fontWeight: FONT_WEIGHTS.bold,
+    marginTop: SPACING[4],
+    textAlign: 'center',
+  },
+  username: { fontSize: FONT_SIZES.sm, marginTop: 3 },
+  email: { fontSize: FONT_SIZES.sm, marginTop: 3 },
+  bio: {
+    fontSize: FONT_SIZES.sm,
+    lineHeight: 20,
+    textAlign: 'center',
+    marginTop: SPACING[3],
+    maxWidth: 320,
+  },
+  statsRow: { flexDirection: 'row', gap: SPACING[3], marginTop: SPACING[6] },
+  statCard: {
+    flex: 1,
+    borderRadius: BORDER_RADIUS.xl,
+    borderWidth: 1,
+    paddingVertical: SPACING[4],
+    alignItems: 'center',
+  },
+  statValue: { fontSize: FONT_SIZES.xl, fontWeight: FONT_WEIGHTS.bold },
+  statLabel: { fontSize: FONT_SIZES.xs, marginTop: 3 },
+  menuSection: { gap: SPACING[3], marginTop: SPACING[6] },
   menuItem: {
-    flexDirection: 'row', alignItems: 'center', gap: SPACING[3],
-    backgroundColor: COLORS.white, borderRadius: BORDER_RADIUS.xl,
-    padding: SPACING[4], ...SHADOWS.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: BORDER_RADIUS.xl,
+    borderWidth: 1,
+    padding: SPACING[3],
+    ...SHADOWS.sm,
   },
-  menuEmoji: { fontSize: 22 },
-  menuLabel: { flex: 1, fontSize: FONT_SIZES.base, color: COLORS.gray800, fontWeight: FONT_WEIGHTS.medium },
-  menuArrow: { color: COLORS.primary, fontSize: 22 },
+  menuIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  menuLabel: {
+    flex: 1,
+    marginLeft: SPACING[3],
+    fontSize: FONT_SIZES.base,
+    fontWeight: FONT_WEIGHTS.semibold,
+  },
 });

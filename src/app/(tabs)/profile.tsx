@@ -1,13 +1,6 @@
-/**
- * Tab Hồ Sơ — Login / Register
- * Tương đương: ProfileFragment.java + RegisterFragment.java
- *
- * Login: query Firestore "users" where username == input, check password
- * (Google Sign-In + session sẽ được bổ sung ở Phase 4)
- */
-
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Platform,
@@ -18,13 +11,16 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { addDoc, collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '@/services/firebase';
+import { getUserSession, saveUserSession, SessionUser } from '@/services/userSession';
 import { BORDER_RADIUS, FONT_SIZES, FONT_WEIGHTS, SPACING } from '@/constants/theme';
 import { useThemeColors } from '@/contexts/ThemeContext';
 import { Screen, AppHeader, Button } from '@/components/ui';
+import { ProfileOverviewContent } from '@/app/profile-overview';
 
 type Mode = 'login' | 'register';
 
@@ -37,28 +33,85 @@ export default function ProfileScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(false);
+  const [sessionLoading, setSessionLoading] = useState(true);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+
+      setSessionLoading(true);
+      getUserSession()
+        .then((user) => {
+          if (active) setIsLoggedIn(!!user);
+        })
+        .finally(() => {
+          if (active) setSessionLoading(false);
+        });
+
+      return () => {
+        active = false;
+      };
+    }, [router]),
+  );
+
+  const createSession = (
+    id: string,
+    data: Record<string, unknown>,
+  ): SessionUser => ({
+    ...data,
+    id,
+    uid: typeof data.uid === 'string' ? data.uid : id,
+    name:
+      typeof data.name === 'string'
+        ? data.name
+        : typeof data.displayName === 'string'
+          ? data.displayName
+          : '',
+    avatar:
+      typeof data.avatar === 'string'
+        ? data.avatar
+        : typeof data.photo === 'string'
+          ? data.photo
+          : '',
+    photo:
+      typeof data.photo === 'string'
+        ? data.photo
+        : '',
+  });
 
   const handleLogin = async () => {
-    if (!username.trim() || !password.trim()) {
+    const normalizedUsername = username.trim();
+    if (!normalizedUsername || !password) {
       Alert.alert('Lỗi', 'Vui lòng nhập tên đăng nhập và mật khẩu');
       return;
     }
+
     try {
       setLoading(true);
-      const q = query(collection(db, 'users'), where('username', '==', username.trim()));
-      const snap = await getDocs(q);
-      if (snap.empty) {
+      const userQuery = query(
+        collection(db, 'users'),
+        where('username', '==', normalizedUsername),
+      );
+      const snapshot = await getDocs(userQuery);
+
+      if (snapshot.empty) {
         Alert.alert('Lỗi', 'Tên đăng nhập không tồn tại');
         return;
       }
-      const data = snap.docs[0].data();
+
+      const userDocument = snapshot.docs[0];
+      const data = userDocument.data();
       if (data.password !== password) {
         Alert.alert('Lỗi', 'Mật khẩu không đúng');
         return;
       }
-      router.replace('/profile-overview');
-    } catch (e) {
-      console.error(e);
+
+      await saveUserSession(createSession(userDocument.id, data));
+      setIsLoggedIn(true);
+      router.replace('/(tabs)/period');
+    } catch (error) {
+      console.error('Login failed:', error);
       Alert.alert('Lỗi', 'Đăng nhập thất bại. Vui lòng thử lại.');
     } finally {
       setLoading(false);
@@ -66,7 +119,10 @@ export default function ProfileScreen() {
   };
 
   const handleRegister = async () => {
-    if (!username.trim() || !password.trim() || !fullName.trim()) {
+    const normalizedUsername = username.trim();
+    const normalizedName = fullName.trim();
+
+    if (!normalizedUsername || !password || !normalizedName) {
       Alert.alert('Lỗi', 'Vui lòng điền đầy đủ thông tin');
       return;
     }
@@ -74,26 +130,41 @@ export default function ProfileScreen() {
       Alert.alert('Lỗi', 'Mật khẩu xác nhận không khớp');
       return;
     }
+
     try {
       setLoading(true);
-      const q = query(collection(db, 'users'), where('username', '==', username.trim()));
-      const snap = await getDocs(q);
-      if (!snap.empty) {
+      const userQuery = query(
+        collection(db, 'users'),
+        where('username', '==', normalizedUsername),
+      );
+      const snapshot = await getDocs(userQuery);
+
+      if (!snapshot.empty) {
         Alert.alert('Lỗi', 'Tên đăng nhập đã tồn tại');
         return;
       }
-      await addDoc(collection(db, 'users'), {
-        username: username.trim(),
+
+      const userData = {
+        username: normalizedUsername,
         password,
-        name: fullName.trim(),
+        name: normalizedName,
+        displayName: normalizedName,
+        email: '',
+        bio: '',
+        avatar: '',
+        photo: '',
+        totalScore: 0,
+        level: 1,
         createdAt: new Date().toISOString(),
-      });
-      Alert.alert('Thành công', 'Đăng ký thành công! Vui lòng đăng nhập.', [
-        { text: 'OK', onPress: () => setMode('login') },
-      ]);
-    } catch (e) {
-      console.error(e);
-      Alert.alert('Lỗi', 'Đăng ký thất bại.');
+      };
+      const userRef = await addDoc(collection(db, 'users'), userData);
+
+      await saveUserSession(createSession(userRef.id, userData));
+      setIsLoggedIn(true);
+      router.replace('/(tabs)/period');
+    } catch (error) {
+      console.error('Registration failed:', error);
+      Alert.alert('Lỗi', 'Đăng ký thất bại. Vui lòng thử lại.');
     } finally {
       setLoading(false);
     }
@@ -108,17 +179,38 @@ export default function ProfileScreen() {
     },
   ];
 
+  if (sessionLoading) {
+    return (
+      <Screen style={styles.centered}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </Screen>
+    );
+  }
+
+  if (isLoggedIn) {
+    return (
+      <ProfileOverviewContent
+        embeddedInTab
+        onLoggedOut={() => setIsLoggedIn(false)}
+      />
+    );
+  }
+
   return (
     <Screen>
-      <AppHeader title="Hồ Sơ" showBack={false} />
+      <AppHeader title="Hồ sơ" showBack={false} />
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-          {/* Hero */}
           <View style={styles.hero}>
-            <View style={[styles.logoCircle, { backgroundColor: colors.primaryDim, borderColor: colors.primary }]}>
+            <View
+              style={[
+                styles.logoCircle,
+                { backgroundColor: colors.primaryDim, borderColor: colors.primary },
+              ]}
+            >
               <Ionicons name="flag" size={40} color={colors.secondary} />
             </View>
             <Text style={[styles.appName, { color: colors.primary }]}>Lịch Sử Việt Nam</Text>
@@ -127,15 +219,22 @@ export default function ProfileScreen() {
             </Text>
           </View>
 
-          {/* Segmented control */}
-          <View style={[styles.tabRow, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            {(['login', 'register'] as Mode[]).map((m) => {
-              const active = mode === m;
+          <View
+            style={[
+              styles.tabRow,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+            ]}
+          >
+            {(['login', 'register'] as Mode[]).map((item) => {
+              const active = mode === item;
               return (
                 <TouchableOpacity
-                  key={m}
-                  style={[styles.tab, { backgroundColor: active ? colors.primary : 'transparent' }]}
-                  onPress={() => setMode(m)}
+                  key={item}
+                  style={[
+                    styles.tab,
+                    { backgroundColor: active ? colors.primary : 'transparent' },
+                  ]}
+                  onPress={() => setMode(item)}
                   activeOpacity={0.85}
                 >
                   <Text
@@ -144,14 +243,13 @@ export default function ProfileScreen() {
                       { color: active ? colors.onPrimary : colors.textSecondary },
                     ]}
                   >
-                    {m === 'login' ? 'Đăng nhập' : 'Đăng ký'}
+                    {item === 'login' ? 'Đăng nhập' : 'Đăng ký'}
                   </Text>
                 </TouchableOpacity>
               );
             })}
           </View>
 
-          {/* Form */}
           <View style={styles.form}>
             {mode === 'register' && (
               <TextInput
@@ -206,6 +304,7 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
+  centered: { alignItems: 'center', justifyContent: 'center' },
   scroll: { flexGrow: 1, paddingBottom: SPACING[8] },
   hero: { alignItems: 'center', paddingTop: SPACING[6], paddingBottom: SPACING[5] },
   logoCircle: {
@@ -217,9 +316,12 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     marginBottom: SPACING[3],
   },
-  appName: { fontSize: FONT_SIZES['2xl'], fontWeight: FONT_WEIGHTS.bold, letterSpacing: 0.3 },
+  appName: {
+    fontSize: FONT_SIZES['2xl'],
+    fontWeight: FONT_WEIGHTS.bold,
+    letterSpacing: 0.3,
+  },
   tagline: { fontSize: FONT_SIZES.sm, marginTop: 4 },
-
   tabRow: {
     flexDirection: 'row',
     marginHorizontal: SPACING[5],
@@ -228,9 +330,13 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     gap: 4,
   },
-  tab: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: BORDER_RADIUS.full },
+  tab: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderRadius: BORDER_RADIUS.full,
+  },
   tabText: { fontSize: FONT_SIZES.sm, fontWeight: FONT_WEIGHTS.bold },
-
   form: { padding: SPACING[5], gap: SPACING[3] },
   input: {
     borderRadius: BORDER_RADIUS.lg,

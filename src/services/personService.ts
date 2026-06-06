@@ -16,7 +16,7 @@ export const getPersonPeriods = async (): Promise<PersonPeriodItem[]> => {
   try {
     const q = query(collection(db, 'periods_person'), orderBy('sortOrder', 'asc'));
     const snap = await getDocs(q);
-    return snap.docs.map((d) => ({ id: d.id, slug: d.id, ...d.data() } as PersonPeriodItem));
+    return snap.docs.map((d) => ({ ...d.data(), id: d.id, slug: d.id } as PersonPeriodItem));
   } catch (e) {
     console.error('❌ Lỗi getPersonPeriods:', e);
     throw e;
@@ -31,7 +31,7 @@ export const getPersonsByPeriod = async (periodSlug: string): Promise<PersonList
       orderBy('sortOrder', 'asc'),
     );
     const snap = await getDocs(q);
-    return snap.docs.map((d) => ({ id: d.id, slug: d.id, ...d.data() } as PersonListItem));
+    return snap.docs.map((d) => ({ ...d.data(), id: d.id, slug: d.id } as PersonListItem));
   } catch (e) {
     console.error('❌ Lỗi getPersonsByPeriod:', e);
     throw e;
@@ -46,7 +46,7 @@ export const getPersonDetail = async (
   try {
     const snap = await getDoc(doc(db, 'periods_person', periodSlug, 'persons', personSlug));
     if (!snap.exists()) return null;
-    return { id: snap.id, slug: snap.id, ...snap.data() } as PersonDetail;
+    return { ...snap.data(), id: snap.id, slug: snap.id } as PersonDetail;
   } catch (e) {
     console.error('❌ Lỗi getPersonDetail:', e);
     throw e;
@@ -62,7 +62,7 @@ export const getPersonEvents = async (
     const snap = await getDocs(
       collection(db, 'periods_person', periodSlug, 'persons', personSlug, 'events'),
     );
-    return snap.docs.map((d) => ({ id: d.id, slug: d.id, ...d.data() } as PersonEvent));
+    return snap.docs.map((d) => ({ ...d.data(), id: d.id, slug: d.id } as PersonEvent));
   } catch (e) {
     console.error('❌ Lỗi getPersonEvents:', e);
     throw e;
@@ -80,7 +80,7 @@ export const getPersonEventDetail = async (
       doc(db, 'periods_person', periodSlug, 'persons', personSlug, 'events', eventSlug),
     );
     if (!snap.exists()) return null;
-    return { id: snap.id, slug: snap.id, ...snap.data() } as PersonEvent;
+    return { ...snap.data(), id: snap.id, slug: snap.id } as PersonEvent;
   } catch (e) {
     console.error('❌ Lỗi getPersonEventDetail:', e);
     throw e;

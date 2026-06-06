@@ -8,7 +8,6 @@ export { app, auth, db, firebaseConfig } from './firebase';
 // Authentication services
 export {
   loginWithUsername,
-  loginWithGoogle,
   register,
   logout,
 } from './authService';
@@ -62,4 +61,12 @@ export {
   addFinishedQuiz,
   addUserBadge,
   updateLastLogin,
+  uploadUserAvatar,
 } from './userService';
+
+export {
+  getUserSession,
+  saveUserSession,
+  clearUserSession,
+  USER_SESSION_KEY,
+} from './userSession';

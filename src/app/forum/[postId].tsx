@@ -59,11 +59,12 @@ export default function ForumDetailScreen() {
       setSubmitting(true);
       const raw = await AsyncStorage.getItem('currentUser');
       const user = raw ? JSON.parse(raw) : null;
+      const avatar = user?.avatar ?? user?.photo;
       await addReply(postId!, {
         content: replyText.trim(),
         authorId: user?.id ?? 'anonymous',
         authorName: user?.name ?? user?.username ?? 'Ẩn danh',
-        authorPhoto: user?.photo,
+        authorPhoto: avatar?.startsWith('data:') ? undefined : avatar,
       });
       setReplyText('');
       await load();
@@ -95,7 +96,7 @@ export default function ForumDetailScreen() {
 
       <FlatList
         data={replies}
-        keyExtractor={(r, i) => (r as any).id ?? String(i)}
+        keyExtractor={(reply, index) => reply.id || `reply-${index}`}
         renderItem={({ item }: ListRenderItemInfo<Reply>) => <ReplyCard item={item} />}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}

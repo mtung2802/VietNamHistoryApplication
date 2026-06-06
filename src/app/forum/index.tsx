@@ -70,7 +70,7 @@ export default function ForumScreen() {
       ) : (
         <FlatList
           data={posts}
-          keyExtractor={(p) => p.postId ?? ''}
+          keyExtractor={(post, index) => post.postId || `post-${index}`}
           renderItem={({ item }: ListRenderItemInfo<ForumPost>) => (
             <PostCard item={item} onPress={() => router.push({ pathname: '/forum/[postId]', params: { postId: item.postId } })} />
           )}

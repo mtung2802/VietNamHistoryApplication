@@ -34,9 +34,9 @@ export const getStagesByPeriod = async (periodSlug: string): Promise<Stage[]> =>
 
     snapshot.forEach((d) => {
       stages.push({
+        ...d.data(),
         id: d.id,
         periodSlug,
-        ...d.data(),
       } as Stage);
     });
 
@@ -65,7 +65,7 @@ export const getStageById = async (
       return null;
     }
 
-    return { id: snap.id, periodSlug, ...snap.data() } as Stage;
+    return { ...snap.data(), id: snap.id, periodSlug } as Stage;
   } catch (error) {
     console.error('❌ Lỗi lấy giai đoạn:', error);
     throw error;
@@ -91,10 +91,10 @@ export const getEventsByStage = async (
 
     snapshot.forEach((d) => {
       events.push({
+        ...d.data(),
         id: d.id,
         periodSlug,
         stageSlug,
-        ...d.data(),
       } as Event);
     });
 

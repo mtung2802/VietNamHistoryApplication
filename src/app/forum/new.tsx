@@ -29,12 +29,13 @@ export default function NewPostScreen() {
       setLoading(true);
       const raw = await AsyncStorage.getItem('currentUser');
       const user = raw ? JSON.parse(raw) : null;
+      const avatar = user?.avatar ?? user?.photo;
       await createPost({
         title: title.trim(),
         content: content.trim(),
         authorId: user?.id ?? 'anonymous',
         authorName: user?.name ?? user?.username ?? 'Ẩn danh',
-        authorPhoto: user?.photo,
+        authorPhoto: avatar?.startsWith('data:') ? undefined : avatar,
       });
       Alert.alert('Thành công', 'Đăng bài thành công!', [{ text: 'OK', onPress: () => router.back() }]);
     } catch (e) {
