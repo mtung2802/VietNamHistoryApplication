@@ -13,8 +13,6 @@ export interface SessionUser {
   phone?: string;
   avatar?: string;
   photo?: string;
-  totalScore?: number;
-  level?: number;
   [key: string]: unknown;
 }
 

@@ -13,8 +13,6 @@ export interface UserModel {
   dateOfBirth?: Date; // Ngày sinh
   gender?: 'male' | 'female' | 'other'; // Giới tính
   isVerified: boolean; // Đã xác minh email
-  totalScore: number; // Tổng điểm đạt được
-  level: number; // Cấp độ người dùng (1-10)
   badges?: string[]; // Danh sách badge đạt được
   finishedQuizzes?: string[]; // Danh sách quiz đã hoàn thành
   preferences?: {

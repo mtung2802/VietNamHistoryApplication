@@ -191,24 +191,6 @@ export function ProfileOverviewContent({
             )}
           </View>
 
-          <View style={styles.statsRow}>
-            <View
-              style={[styles.statCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
-            >
-              <Text style={[styles.statValue, { color: colors.primary }]}>
-                {Number(user?.totalScore ?? 0)}
-              </Text>
-              <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Tổng điểm</Text>
-            </View>
-            <View
-              style={[styles.statCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
-            >
-              <Text style={[styles.statValue, { color: colors.primary }]}>
-                {Number(user?.level ?? 1)}
-              </Text>
-              <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Cấp độ</Text>
-            </View>
-          </View>
 
           <View style={styles.menuSection}>
             <MenuItem
@@ -268,16 +250,6 @@ const styles = StyleSheet.create({
     marginTop: SPACING[3],
     maxWidth: 320,
   },
-  statsRow: { flexDirection: 'row', gap: SPACING[3], marginTop: SPACING[6] },
-  statCard: {
-    flex: 1,
-    borderRadius: BORDER_RADIUS.xl,
-    borderWidth: 1,
-    paddingVertical: SPACING[4],
-    alignItems: 'center',
-  },
-  statValue: { fontSize: FONT_SIZES.xl, fontWeight: FONT_WEIGHTS.bold },
-  statLabel: { fontSize: FONT_SIZES.xs, marginTop: 3 },
   menuSection: { gap: SPACING[3], marginTop: SPACING[6] },
   menuItem: {
     flexDirection: 'row',

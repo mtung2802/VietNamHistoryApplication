@@ -4,13 +4,15 @@
  */
 
 export interface ForumPost {
-  postId: string;       // = document ID
+  postId: string;
   authorId: string;
   authorName?: string;
   authorPhoto?: string;
   title: string;
   content: string;
   replyCount: number;
-  createdAt?: any;      // Firestore Timestamp
-  updatedAt?: any;
+  likeCount: number;
+  likes: string[];
+  createdAt?: unknown;
+  updatedAt?: unknown;
 }

@@ -43,8 +43,6 @@ export const register = async (userData: {
     displayName: userData.displayName || '',
     username: userData.username || '',
     isVerified: false,
-    totalScore: 0,
-    level: 1,
     badges: [],
     finishedQuizzes: [],
     createdAt: new Date(),

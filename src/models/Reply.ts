@@ -9,5 +9,7 @@ export interface Reply {
   authorName?: string;
   authorPhoto?: string;
   content: string;
-  createdAt?: any; // Firestore Timestamp
+  likeCount?: number;
+  likes?: string[];
+  createdAt?: unknown;
 }

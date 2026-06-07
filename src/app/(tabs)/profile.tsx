@@ -153,8 +153,6 @@ export default function ProfileScreen() {
         bio: '',
         avatar: '',
         photo: '',
-        totalScore: 0,
-        level: 1,
         createdAt: new Date().toISOString(),
       };
       const userRef = await addDoc(collection(db, 'users'), userData);

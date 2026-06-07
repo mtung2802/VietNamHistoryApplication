@@ -49,15 +49,17 @@ export {
   getPosts,
   getPostById,
   createPost,
+  updatePost,
   deletePost,
+  togglePostLike,
   getReplies,
+  subscribeToReplies,
   addReply,
 } from './forumService';
 
 export {
   getUserById,
   updateUser,
-  addUserPoints,
   addFinishedQuiz,
   addUserBadge,
   updateLastLogin,

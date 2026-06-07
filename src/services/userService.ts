@@ -105,39 +105,6 @@ export const updateUser = async (
 };
 
 /**
- * Cập nhật điểm của người dùng
- * @param uid - Firebase UID
- * @param points - Số điểm cần thêm
- */
-export const addUserPoints = async (uid: string, points: number): Promise<void> => {
-  try {
-    if (!uid) {
-      throw new Error('UID không được để trống');
-    }
-
-    if (typeof points !== 'number' || points < 0) {
-      throw new Error('Points phải là số dương');
-    }
-
-    const userRef = doc(db, 'users', uid);
-    const userDoc = await getDoc(userRef);
-
-    if (!userDoc.exists()) {
-      throw new Error('Người dùng không tồn tại');
-    }
-
-    const currentScore = userDoc.data().totalScore || 0;
-    await updateDoc(userRef, {
-      totalScore: currentScore + points,
-      updatedAt: new Date(),
-    });
-  } catch (error) {
-    console.error('❌ Lỗi cập nhật điểm người dùng:', error);
-    throw error;
-  }
-};
-
-/**
  * Thêm quiz vào danh sách quiz đã hoàn thành của người dùng
  * @param uid - Firebase UID
  * @param quizId - ID của quiz
