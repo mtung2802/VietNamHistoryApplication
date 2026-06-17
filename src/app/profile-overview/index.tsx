@@ -191,17 +191,11 @@ export function ProfileOverviewContent({
             )}
           </View>
 
-
           <View style={styles.menuSection}>
             <MenuItem
               icon="create-outline"
               label="Chỉnh sửa hồ sơ"
               onPress={() => router.push('/edit-profile')}
-            />
-            <MenuItem
-              icon="chatbubbles-outline"
-              label="Diễn đàn"
-              onPress={() => router.push('/forum')}
             />
             <MenuItem
               icon="log-out-outline"

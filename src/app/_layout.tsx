@@ -31,13 +31,9 @@ function RootNavigator() {
         <Stack.Screen name="person/[periodSlug]/[personSlug]" />
         <Stack.Screen name="person-event/[periodSlug]/[personSlug]/[eventSlug]" />
 
-        {/* ── Hồ Sơ & Forum ─────────────────────────────────── */}
+        {/* ── Hồ Sơ ─────────────────────────────────────────── */}
         <Stack.Screen name="profile-overview/index" />
         <Stack.Screen name="edit-profile/index" />
-        <Stack.Screen name="forum/index" />
-        <Stack.Screen name="forum/[postId]" />
-        <Stack.Screen name="forum/new" />
-        <Stack.Screen name="forum/edit/[postId]" />
 
         {/* ── Game ──────────────────────────────────────────── */}
         <Stack.Screen name="quiz/[quizSlug]/index" />

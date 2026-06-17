@@ -10,6 +10,7 @@ export {
   loginWithUsername,
   register,
   logout,
+  resetPassword,
 } from './authService';
 
 // Data services
@@ -44,18 +45,7 @@ export {
   getQuestionsByQuiz,
 } from './quizService';
 
-export {
-  subscribeToForum,
-  getPosts,
-  getPostById,
-  createPost,
-  updatePost,
-  deletePost,
-  togglePostLike,
-  getReplies,
-  subscribeToReplies,
-  addReply,
-} from './forumService';
+
 
 export {
   getUserById,

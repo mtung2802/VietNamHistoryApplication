@@ -14,27 +14,29 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { addDoc, collection, getDocs, query, where } from 'firebase/firestore';
-import { db } from '@/services/firebase';
+import { loginWithUsername, register, resetPassword } from '@/services/authService';
+import { getUserById } from '@/services/userService';
 import { getUserSession, saveUserSession, SessionUser } from '@/services/userSession';
 import { BORDER_RADIUS, FONT_SIZES, FONT_WEIGHTS, SPACING } from '@/constants/theme';
 import { useThemeColors } from '@/contexts/ThemeContext';
 import { Screen, AppHeader, Button } from '@/components/ui';
 import { ProfileOverviewContent } from '@/app/profile-overview';
 
-type Mode = 'login' | 'register';
+type Mode = 'login' | 'register' | 'forgot';
 
 export default function ProfileScreen() {
   const router = useRouter();
   const colors = useThemeColors();
   const [mode, setMode] = useState<Mode>('login');
+  const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(false);
   const [sessionLoading, setSessionLoading] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -55,75 +57,78 @@ export default function ProfileScreen() {
     }, [router]),
   );
 
-  const createSession = (
-    id: string,
-    data: Record<string, unknown>,
-  ): SessionUser => ({
-    ...data,
-    id,
-    uid: typeof data.uid === 'string' ? data.uid : id,
-    name:
-      typeof data.name === 'string'
-        ? data.name
-        : typeof data.displayName === 'string'
-          ? data.displayName
-          : '',
-    avatar:
-      typeof data.avatar === 'string'
-        ? data.avatar
-        : typeof data.photo === 'string'
-          ? data.photo
-          : '',
-    photo:
-      typeof data.photo === 'string'
-        ? data.photo
-        : '',
-  });
+  const clearForm = () => {
+    setEmail('');
+    setUsername('');
+    setPassword('');
+    setConfirmPassword('');
+    setShowPassword(false);
+    setShowConfirmPassword(false);
+  };
 
+  const switchMode = (newMode: Mode) => {
+    clearForm();
+    setMode(newMode);
+  };
+
+  /* ────── Đăng nhập ────── */
   const handleLogin = async () => {
-    const normalizedUsername = username.trim();
-    if (!normalizedUsername || !password) {
-      Alert.alert('Lỗi', 'Vui lòng nhập tên đăng nhập và mật khẩu');
+    const trimmedEmail = email.trim().toLowerCase();
+    if (!trimmedEmail || !password) {
+      Alert.alert('Lỗi', 'Vui lòng nhập email và mật khẩu');
       return;
     }
 
     try {
       setLoading(true);
-      const userQuery = query(
-        collection(db, 'users'),
-        where('username', '==', normalizedUsername),
-      );
-      const snapshot = await getDocs(userQuery);
+      const firebaseUser = await loginWithUsername(trimmedEmail, password);
 
-      if (snapshot.empty) {
-        Alert.alert('Lỗi', 'Tên đăng nhập không tồn tại');
-        return;
-      }
+      // Lấy thông tin user từ Firestore
+      const userData = await getUserById(firebaseUser.uid);
 
-      const userDocument = snapshot.docs[0];
-      const data = userDocument.data();
-      if (data.password !== password) {
-        Alert.alert('Lỗi', 'Mật khẩu không đúng');
-        return;
-      }
+      const session: SessionUser = {
+        id: firebaseUser.uid,
+        uid: firebaseUser.uid,
+        email: firebaseUser.email || trimmedEmail,
+        username: userData?.username || '',
+        name: userData?.displayName || '',
+        displayName: userData?.displayName || '',
+        avatar: userData?.avatar || '',
+        photo: userData?.avatar || '',
+      };
 
-      await saveUserSession(createSession(userDocument.id, data));
+      await saveUserSession(session);
       setIsLoggedIn(true);
+      clearForm();
       router.replace('/(tabs)/period');
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Login failed:', error);
-      Alert.alert('Lỗi', 'Đăng nhập thất bại. Vui lòng thử lại.');
+      const code = (error as { code?: string })?.code;
+      let message = 'Đăng nhập thất bại. Vui lòng thử lại.';
+      if (code === 'auth/user-not-found' || code === 'auth/invalid-credential') {
+        message = 'Email hoặc mật khẩu không đúng';
+      } else if (code === 'auth/invalid-email') {
+        message = 'Địa chỉ email không hợp lệ';
+      } else if (code === 'auth/too-many-requests') {
+        message = 'Quá nhiều lần thử. Vui lòng thử lại sau.';
+      }
+      Alert.alert('Lỗi', message);
     } finally {
       setLoading(false);
     }
   };
 
+  /* ────── Đăng ký ────── */
   const handleRegister = async () => {
-    const normalizedUsername = username.trim();
-    const normalizedName = fullName.trim();
+    const trimmedEmail = email.trim().toLowerCase();
+    const trimmedUsername = username.trim();
 
-    if (!normalizedUsername || !password || !normalizedName) {
+    if (!trimmedEmail || !trimmedUsername || !password) {
       Alert.alert('Lỗi', 'Vui lòng điền đầy đủ thông tin');
+      return;
+    }
+    if (password.length < 6) {
+      Alert.alert('Lỗi', 'Mật khẩu phải có ít nhất 6 ký tự');
       return;
     }
     if (password !== confirmPassword) {
@@ -133,41 +138,68 @@ export default function ProfileScreen() {
 
     try {
       setLoading(true);
-      const userQuery = query(
-        collection(db, 'users'),
-        where('username', '==', normalizedUsername),
-      );
-      const snapshot = await getDocs(userQuery);
-
-      if (!snapshot.empty) {
-        Alert.alert('Lỗi', 'Tên đăng nhập đã tồn tại');
-        return;
-      }
-
-      const userData = {
-        username: normalizedUsername,
+      await register({
+        email: trimmedEmail,
         password,
-        name: normalizedName,
-        displayName: normalizedName,
-        email: '',
-        bio: '',
-        avatar: '',
-        photo: '',
-        createdAt: new Date().toISOString(),
-      };
-      const userRef = await addDoc(collection(db, 'users'), userData);
+        username: trimmedUsername,
+      });
 
-      await saveUserSession(createSession(userRef.id, userData));
-      setIsLoggedIn(true);
-      router.replace('/(tabs)/period');
-    } catch (error) {
+      Alert.alert(
+        'Đăng ký thành công! 🎉',
+        'Tài khoản đã được tạo. Vui lòng đăng nhập để tiếp tục.',
+        [{ text: 'Đăng nhập ngay', onPress: () => switchMode('login') }],
+      );
+    } catch (error: unknown) {
       console.error('Registration failed:', error);
-      Alert.alert('Lỗi', 'Đăng ký thất bại. Vui lòng thử lại.');
+      const code = (error as { code?: string })?.code;
+      let message = 'Đăng ký thất bại. Vui lòng thử lại.';
+      if (code === 'auth/email-already-in-use') {
+        message = 'Email này đã được sử dụng';
+      } else if (code === 'auth/invalid-email') {
+        message = 'Địa chỉ email không hợp lệ';
+      } else if (code === 'auth/weak-password') {
+        message = 'Mật khẩu quá yếu. Vui lòng chọn mật khẩu mạnh hơn.';
+      }
+      Alert.alert('Lỗi', message);
     } finally {
       setLoading(false);
     }
   };
 
+  /* ────── Quên mật khẩu ────── */
+  const handleForgotPassword = async () => {
+    const trimmedEmail = email.trim().toLowerCase();
+    if (!trimmedEmail) {
+      Alert.alert('Lỗi', 'Vui lòng nhập email');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await resetPassword(trimmedEmail);
+      Alert.alert(
+        'Thành công',
+        'Đã gửi email đặt lại mật khẩu. Vui lòng kiểm tra hộp thư của bạn (bao gồm cả thư rác).',
+        [{ text: 'OK', onPress: () => switchMode('login') }],
+      );
+    } catch (error: unknown) {
+      console.error('Reset password failed:', error);
+      const code = (error as { code?: string })?.code;
+      let message = 'Gửi email thất bại. Vui lòng thử lại.';
+      if (code === 'auth/user-not-found') {
+        message = 'Không tìm thấy tài khoản với email này';
+      } else if (code === 'auth/invalid-email') {
+        message = 'Địa chỉ email không hợp lệ';
+      } else if (code === 'auth/too-many-requests') {
+        message = 'Quá nhiều lần thử. Vui lòng thử lại sau.';
+      }
+      Alert.alert('Lỗi', message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /* ────── Styles ────── */
   const inputStyle = [
     styles.input,
     {
@@ -177,6 +209,7 @@ export default function ProfileScreen() {
     },
   ];
 
+  /* ────── Loading session ────── */
   if (sessionLoading) {
     return (
       <Screen style={styles.centered}>
@@ -185,6 +218,7 @@ export default function ProfileScreen() {
     );
   }
 
+  /* ────── Đã đăng nhập ────── */
   if (isLoggedIn) {
     return (
       <ProfileOverviewContent
@@ -194,6 +228,7 @@ export default function ProfileScreen() {
     );
   }
 
+  /* ────── Render Form ────── */
   return (
     <Screen>
       <AppHeader title="Hồ sơ" showBack={false} />
@@ -202,6 +237,7 @@ export default function ProfileScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+          {/* Hero */}
           <View style={styles.hero}>
             <View
               style={[
@@ -209,90 +245,280 @@ export default function ProfileScreen() {
                 { backgroundColor: colors.primaryDim, borderColor: colors.primary },
               ]}
             >
-              <Ionicons name="flag" size={40} color={colors.secondary} />
+              <Ionicons
+                name={mode === 'forgot' ? 'key' : 'flag'}
+                size={40}
+                color={colors.secondary}
+              />
             </View>
             <Text style={[styles.appName, { color: colors.primary }]}>Lịch Sử Việt Nam</Text>
             <Text style={[styles.tagline, { color: colors.textSecondary }]}>
-              {mode === 'login' ? 'Đăng nhập để tiếp tục' : 'Tạo tài khoản mới'}
+              {mode === 'login'
+                ? 'Đăng nhập để tiếp tục'
+                : mode === 'register'
+                  ? 'Tạo tài khoản mới'
+                  : 'Khôi phục mật khẩu'}
             </Text>
           </View>
 
-          <View
-            style={[
-              styles.tabRow,
-              { backgroundColor: colors.surface, borderColor: colors.border },
-            ]}
-          >
-            {(['login', 'register'] as Mode[]).map((item) => {
-              const active = mode === item;
-              return (
-                <TouchableOpacity
-                  key={item}
-                  style={[
-                    styles.tab,
-                    { backgroundColor: active ? colors.primary : 'transparent' },
-                  ]}
-                  onPress={() => setMode(item)}
-                  activeOpacity={0.85}
-                >
-                  <Text
+          {/* Tab Login / Register (ẩn khi ở mode forgot) */}
+          {mode !== 'forgot' && (
+            <View
+              style={[
+                styles.tabRow,
+                { backgroundColor: colors.surface, borderColor: colors.border },
+              ]}
+            >
+              {(['login', 'register'] as Mode[]).map((item) => {
+                const active = mode === item;
+                return (
+                  <TouchableOpacity
+                    key={item}
                     style={[
-                      styles.tabText,
-                      { color: active ? colors.onPrimary : colors.textSecondary },
+                      styles.tab,
+                      { backgroundColor: active ? colors.primary : 'transparent' },
                     ]}
+                    onPress={() => switchMode(item)}
+                    activeOpacity={0.85}
                   >
-                    {item === 'login' ? 'Đăng nhập' : 'Đăng ký'}
+                    <Text
+                      style={[
+                        styles.tabText,
+                        { color: active ? colors.onPrimary : colors.textSecondary },
+                      ]}
+                    >
+                      {item === 'login' ? 'Đăng nhập' : 'Đăng ký'}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
+
+          {/* Form */}
+          <View style={styles.form}>
+            {/* === MODE: LOGIN === */}
+            {mode === 'login' && (
+              <>
+                <View style={styles.inputWrapper}>
+                  <Ionicons
+                    name="mail-outline"
+                    size={20}
+                    color={colors.textMuted}
+                    style={styles.inputIcon}
+                  />
+                  <TextInput
+                    style={[inputStyle, styles.inputWithIcon]}
+                    placeholder="Email"
+                    placeholderTextColor={colors.textMuted}
+                    autoCapitalize="none"
+                    keyboardType="email-address"
+                    value={email}
+                    onChangeText={setEmail}
+                  />
+                </View>
+
+                <View style={styles.inputWrapper}>
+                  <Ionicons
+                    name="lock-closed-outline"
+                    size={20}
+                    color={colors.textMuted}
+                    style={styles.inputIcon}
+                  />
+                  <TextInput
+                    style={[inputStyle, styles.inputWithIcon]}
+                    placeholder="Mật khẩu"
+                    placeholderTextColor={colors.textMuted}
+                    secureTextEntry={!showPassword}
+                    value={password}
+                    onChangeText={setPassword}
+                  />
+                  <TouchableOpacity
+                    style={styles.eyeIcon}
+                    onPress={() => setShowPassword(!showPassword)}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Ionicons
+                      name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                      size={20}
+                      color={colors.textMuted}
+                    />
+                  </TouchableOpacity>
+                </View>
+
+                <TouchableOpacity
+                  onPress={() => switchMode('forgot')}
+                  style={styles.forgotLink}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.linkText, { color: colors.primary }]}>
+                    Quên mật khẩu?
                   </Text>
                 </TouchableOpacity>
-              );
-            })}
-          </View>
 
-          <View style={styles.form}>
-            {mode === 'register' && (
-              <TextInput
-                style={inputStyle}
-                placeholder="Họ và tên"
-                placeholderTextColor={colors.textMuted}
-                value={fullName}
-                onChangeText={setFullName}
-              />
-            )}
-            <TextInput
-              style={inputStyle}
-              placeholder="Tên đăng nhập"
-              placeholderTextColor={colors.textMuted}
-              autoCapitalize="none"
-              value={username}
-              onChangeText={setUsername}
-            />
-            <TextInput
-              style={inputStyle}
-              placeholder="Mật khẩu"
-              placeholderTextColor={colors.textMuted}
-              secureTextEntry
-              value={password}
-              onChangeText={setPassword}
-            />
-            {mode === 'register' && (
-              <TextInput
-                style={inputStyle}
-                placeholder="Xác nhận mật khẩu"
-                placeholderTextColor={colors.textMuted}
-                secureTextEntry
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-              />
+                <Button
+                  label="Đăng nhập"
+                  icon="log-in-outline"
+                  loading={loading}
+                  onPress={handleLogin}
+                  size="lg"
+                  style={{ marginTop: SPACING[1] }}
+                />
+              </>
             )}
 
-            <Button
-              label={mode === 'login' ? 'Đăng nhập' : 'Đăng ký'}
-              icon={mode === 'login' ? 'log-in-outline' : 'person-add-outline'}
-              loading={loading}
-              onPress={mode === 'login' ? handleLogin : handleRegister}
-              size="lg"
-              style={{ marginTop: SPACING[2] }}
-            />
+            {/* === MODE: REGISTER === */}
+            {mode === 'register' && (
+              <>
+                <View style={styles.inputWrapper}>
+                  <Ionicons
+                    name="mail-outline"
+                    size={20}
+                    color={colors.textMuted}
+                    style={styles.inputIcon}
+                  />
+                  <TextInput
+                    style={[inputStyle, styles.inputWithIcon]}
+                    placeholder="Email"
+                    placeholderTextColor={colors.textMuted}
+                    autoCapitalize="none"
+                    keyboardType="email-address"
+                    value={email}
+                    onChangeText={setEmail}
+                  />
+                </View>
+
+                <View style={styles.inputWrapper}>
+                  <Ionicons
+                    name="person-outline"
+                    size={20}
+                    color={colors.textMuted}
+                    style={styles.inputIcon}
+                  />
+                  <TextInput
+                    style={[inputStyle, styles.inputWithIcon]}
+                    placeholder="Tên đăng nhập"
+                    placeholderTextColor={colors.textMuted}
+                    autoCapitalize="none"
+                    value={username}
+                    onChangeText={setUsername}
+                  />
+                </View>
+
+                <View style={styles.inputWrapper}>
+                  <Ionicons
+                    name="lock-closed-outline"
+                    size={20}
+                    color={colors.textMuted}
+                    style={styles.inputIcon}
+                  />
+                  <TextInput
+                    style={[inputStyle, styles.inputWithIcon]}
+                    placeholder="Mật khẩu"
+                    placeholderTextColor={colors.textMuted}
+                    secureTextEntry={!showPassword}
+                    value={password}
+                    onChangeText={setPassword}
+                  />
+                  <TouchableOpacity
+                    style={styles.eyeIcon}
+                    onPress={() => setShowPassword(!showPassword)}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Ionicons
+                      name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                      size={20}
+                      color={colors.textMuted}
+                    />
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.inputWrapper}>
+                  <Ionicons
+                    name="shield-checkmark-outline"
+                    size={20}
+                    color={colors.textMuted}
+                    style={styles.inputIcon}
+                  />
+                  <TextInput
+                    style={[inputStyle, styles.inputWithIcon]}
+                    placeholder="Xác nhận mật khẩu"
+                    placeholderTextColor={colors.textMuted}
+                    secureTextEntry={!showConfirmPassword}
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
+                  />
+                  <TouchableOpacity
+                    style={styles.eyeIcon}
+                    onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Ionicons
+                      name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'}
+                      size={20}
+                      color={colors.textMuted}
+                    />
+                  </TouchableOpacity>
+                </View>
+
+                <Button
+                  label="Đăng ký"
+                  icon="person-add-outline"
+                  loading={loading}
+                  onPress={handleRegister}
+                  size="lg"
+                  style={{ marginTop: SPACING[2] }}
+                />
+              </>
+            )}
+
+            {/* === MODE: FORGOT PASSWORD === */}
+            {mode === 'forgot' && (
+              <>
+                <Text style={[styles.forgotDesc, { color: colors.textSecondary }]}>
+                  Nhập email bạn đã đăng ký. Chúng tôi sẽ gửi link đặt lại mật khẩu về hộp thư
+                  của bạn.
+                </Text>
+
+                <View style={styles.inputWrapper}>
+                  <Ionicons
+                    name="mail-outline"
+                    size={20}
+                    color={colors.textMuted}
+                    style={styles.inputIcon}
+                  />
+                  <TextInput
+                    style={[inputStyle, styles.inputWithIcon]}
+                    placeholder="Email"
+                    placeholderTextColor={colors.textMuted}
+                    autoCapitalize="none"
+                    keyboardType="email-address"
+                    value={email}
+                    onChangeText={setEmail}
+                  />
+                </View>
+
+                <Button
+                  label="Gửi email đặt lại mật khẩu"
+                  icon="send-outline"
+                  loading={loading}
+                  onPress={handleForgotPassword}
+                  size="lg"
+                  style={{ marginTop: SPACING[2] }}
+                />
+
+                <TouchableOpacity
+                  onPress={() => switchMode('login')}
+                  style={styles.backLink}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="arrow-back" size={16} color={colors.primary} />
+                  <Text style={[styles.linkText, { color: colors.primary, marginLeft: 4 }]}>
+                    Quay lại đăng nhập
+                  </Text>
+                </TouchableOpacity>
+              </>
+            )}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -336,11 +562,50 @@ const styles = StyleSheet.create({
   },
   tabText: { fontSize: FONT_SIZES.sm, fontWeight: FONT_WEIGHTS.bold },
   form: { padding: SPACING[5], gap: SPACING[3] },
+  inputWrapper: {
+    position: 'relative',
+    justifyContent: 'center',
+  },
+  inputIcon: {
+    position: 'absolute',
+    left: SPACING[3],
+    zIndex: 1,
+  },
+  inputWithIcon: {
+    paddingLeft: SPACING[3] + 28,
+  },
+  eyeIcon: {
+    position: 'absolute',
+    right: SPACING[3],
+    zIndex: 1,
+  },
   input: {
     borderRadius: BORDER_RADIUS.lg,
     paddingHorizontal: SPACING[4],
     paddingVertical: 14,
     fontSize: FONT_SIZES.base,
     borderWidth: 1,
+  },
+  forgotLink: {
+    alignSelf: 'flex-end',
+    paddingVertical: 2,
+  },
+  linkText: {
+    fontSize: FONT_SIZES.sm,
+    fontWeight: FONT_WEIGHTS.semibold,
+  },
+  forgotDesc: {
+    fontSize: FONT_SIZES.sm,
+    lineHeight: 22,
+    textAlign: 'center',
+    marginBottom: SPACING[2],
+    paddingHorizontal: SPACING[2],
+  },
+  backLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: SPACING[2],
+    marginTop: SPACING[1],
   },
 });

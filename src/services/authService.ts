@@ -2,10 +2,10 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut as firebaseSignOut,
+  sendPasswordResetEmail,
   User,
 } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
-import { UserModel } from '@/models/UserModel';
 import { auth, db } from '@/services/firebase';
 
 export const loginWithUsername = async (
@@ -23,11 +23,13 @@ export const loginWithUsername = async (
 export const register = async (userData: {
   email: string;
   password: string;
-  displayName?: string;
-  username?: string;
+  username: string;
 }): Promise<User> => {
   if (!userData.email || !userData.password) {
     throw new Error('Email và mật khẩu không được để trống');
+  }
+  if (!userData.username) {
+    throw new Error('Tên đăng nhập không được để trống');
   }
 
   const userCredential = await createUserWithEmailAndPassword(
@@ -37,19 +39,28 @@ export const register = async (userData: {
   );
 
   const userRef = doc(db, 'users', userCredential.user.uid);
-  const newUser: UserModel = {
+  const newUser = {
     uid: userCredential.user.uid,
     email: userData.email,
-    displayName: userData.displayName || '',
-    username: userData.username || '',
-    isVerified: false,
-    badges: [],
-    finishedQuizzes: [],
+    username: userData.username,
+    displayName: userData.username,
     createdAt: new Date(),
   };
 
   await setDoc(userRef, newUser);
   return userCredential.user;
+};
+
+/**
+ * Gửi email đặt lại mật khẩu qua Firebase Auth
+ * @param email - Email người dùng đã đăng ký
+ */
+export const resetPassword = async (email: string): Promise<void> => {
+  if (!email) {
+    throw new Error('Email không được để trống');
+  }
+
+  await sendPasswordResetEmail(auth, email);
 };
 
 export const logout = async (): Promise<void> => {
