@@ -190,7 +190,7 @@ import { extractYoutubeId } from '@/utils/youtube';
 | **P0** | Theme infra (Light/Dark toggle) | `constants/theme.ts`, `contexts/ThemeContext.tsx`, `app/_layout.tsx` | — | ✅ Xong |
 | **P1** | Component lib + redesign 5 tab + splash | `components/ui/`, `app/(tabs)/*.tsx`, `app/index.tsx` | — | ✅ Xong |
 | **P2a** | Event detail + Stage detail (multimedia, YouTube, 2 cột) | `app/event/.../index.tsx`, `app/stage-detail/.../index.tsx` | | ⏳ Cần làm |
-| **P2b** | Person list + Person detail (section mở rộng + video) | `app/person-list/.../index.tsx`, `app/person/.../index.tsx` | | ⏳ Cần làm |
+| **P2b** | Person list + Person detail (section mở rộng + video) | `app/person-list/.../index.tsx`, `app/person/.../index.tsx` | | ✅ Xong |
 | **P2c** | Forum detail/reply/like + Explore article/museum | `app/forum/[postId].tsx`, `app/forum/new.tsx`, `app/explore/` | | ⏳ Cần làm |
 | **P3a** | Quiz gameplay (chấm điểm, đếm giờ, màn kết quả) | `app/quiz/[quizSlug]/play.tsx` (mới), `services/quizService.ts` | | 📋 Pending |
 | **P3b** | Timeline puzzle (kéo-thả, HP bar, dialog thắng/thua) | `app/timeline/[eraId]/play.tsx` (mới) | | 📋 Pending |

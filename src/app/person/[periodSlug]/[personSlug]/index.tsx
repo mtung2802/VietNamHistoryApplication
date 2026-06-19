@@ -1,64 +1,155 @@
 /**
- * Chi tiết nhân vật
- * Route: /person/[periodSlug]/[personSlug]
- * Tương đương: PersonDetailActivity.java
- *
- * Sections (accordion): Thành tựu, Tóm tắt cuộc đời, Sự kiện tham gia
+ * Chi tiết nhân vật.
+ * Port từ PersonDetailActivity.java.
  */
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  ActivityIndicator, Animated, Image, ScrollView, StatusBar,
-  StyleSheet, Text, TouchableOpacity, View,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  useWindowDimensions,
+  View,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import YoutubePlayer from 'react-native-youtube-iframe';
+import { BORDER_RADIUS, FONT_SIZES, FONT_WEIGHTS, SPACING } from '@/constants/theme';
+import { useThemeColors } from '@/contexts/ThemeContext';
 import { PersonDetail, PersonEvent } from '@/models/Person';
 import { getPersonDetail, getPersonEvents } from '@/services/personService';
-import { BORDER_RADIUS, COLORS, FONT_SIZES, FONT_WEIGHTS, SHADOWS, SPACING } from '@/constants/theme';
+import { extractYoutubeId } from '@/utils/youtube';
+import {
+  AppHeader,
+  Badge,
+  Card,
+  ErrorState,
+  HistoryImage,
+  LoadingState,
+  Screen,
+} from '@/components/ui';
 
-// ── Accordion Section ────────────────────────────────────────────────────────
-function AccordionSection({
-  title, children, defaultOpen = false,
-}: { title: string; children: React.ReactNode; defaultOpen?: boolean }) {
-  const [open, setOpen] = useState(defaultOpen);
-  return (
-    <View style={accStyles.container}>
-      <TouchableOpacity style={accStyles.header} onPress={() => setOpen(!open)} activeOpacity={0.8}>
-        <Text style={accStyles.title}>{title}</Text>
-        <Text style={[accStyles.arrow, open && accStyles.arrowOpen]}>›</Text>
-      </TouchableOpacity>
-      {open && <View style={accStyles.body}>{children}</View>}
-    </View>
-  );
+function normalizeTextList(items?: string[]) {
+  return Array.isArray(items) ? items.filter((item) => !!item?.trim()) : [];
 }
 
-const accStyles = StyleSheet.create({
-  container: { backgroundColor: COLORS.white, borderRadius: BORDER_RADIUS.xl, overflow: 'hidden', ...SHADOWS.sm },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: SPACING[4] },
-  title: { fontSize: FONT_SIZES.base, fontWeight: FONT_WEIGHTS.bold, color: COLORS.gray800 },
-  arrow: { fontSize: 24, color: COLORS.primary, transform: [{ rotate: '0deg' }] },
-  arrowOpen: { transform: [{ rotate: '90deg' }] },
-  body: { paddingHorizontal: SPACING[4], paddingBottom: SPACING[4], gap: 8 },
-});
+function buildOverview(person: PersonDetail) {
+  if (person.overview?.trim()) return person.overview.trim();
 
-// ── Bullet list ────────────────────────────────────────────────────────────
-function BulletList({ items }: { items: string[] }) {
+  const birth = person.birth_year ? `sinh ${person.birth_year}` : '';
+  const death = person.death_year ? `mất ${person.death_year}` : '';
+  const life = [birth, death].filter(Boolean).join(' - ');
+
+  if (person.hometown && life) return `${person.hometown}, ${life}`;
+  if (person.hometown) return person.hometown;
+  if (life) return life;
+  return 'Không có thông tin';
+}
+
+function BulletList({ items, fallback }: { items: string[]; fallback: string }) {
+  const colors = useThemeColors();
+
+  if (!items.length) {
+    return <Text style={[styles.mutedText, { color: colors.textMuted }]}>{fallback}</Text>;
+  }
+
   return (
-    <View style={{ gap: 6 }}>
-      {items.map((item, i) => (
-        <View key={i} style={styles.bulletRow}>
-          <View style={styles.bulletDot} />
-          <Text style={styles.bulletText}>{item}</Text>
+    <View style={styles.bulletList}>
+      {items.map((item, index) => (
+        <View key={`${item}-${index}`} style={styles.bulletRow}>
+          <View style={[styles.bulletDot, { backgroundColor: colors.primary }]} />
+          <Text style={[styles.bulletText, { color: colors.textSecondary }]}>{item}</Text>
         </View>
       ))}
     </View>
   );
 }
 
-// ── Main Screen ─────────────────────────────────────────────────────────────
+function AccordionSection({
+  title,
+  icon,
+  defaultOpen = false,
+  children,
+}: {
+  title: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}) {
+  const colors = useThemeColors();
+  const [open, setOpen] = useState(defaultOpen);
+
+  return (
+    <Card noPadding highlighted={open}>
+      <TouchableOpacity
+        activeOpacity={0.82}
+        onPress={() => setOpen((value) => !value)}
+        style={styles.accordionHeader}
+      >
+        <View style={styles.accordionTitleRow}>
+          <View style={[styles.sectionIcon, { backgroundColor: colors.primaryDim }]}>
+            <Ionicons name={icon} size={18} color={colors.primary} />
+          </View>
+          <Text style={[styles.accordionTitle, { color: colors.text }]}>{title}</Text>
+        </View>
+        <Ionicons
+          name={open ? 'chevron-up' : 'chevron-down'}
+          size={22}
+          color={colors.primary}
+        />
+      </TouchableOpacity>
+      {open && <View style={[styles.accordionBody, { borderTopColor: colors.border }]}>{children}</View>}
+    </Card>
+  );
+}
+
+function EventList({
+  events,
+  onPress,
+}: {
+  events: PersonEvent[];
+  onPress: (event: PersonEvent) => void;
+}) {
+  const colors = useThemeColors();
+
+  if (!events.length) {
+    return <Text style={[styles.mutedText, { color: colors.textMuted }]}>Không có sự kiện nào.</Text>;
+  }
+
+  return (
+    <View style={styles.eventList}>
+      <Text style={[styles.eventHint, { color: colors.textMuted }]}>
+        Chọn một sự kiện để xem vai trò của nhân vật.
+      </Text>
+      {events.map((event) => (
+        <TouchableOpacity
+          key={event.id}
+          activeOpacity={0.78}
+          onPress={() => onPress(event)}
+          style={[styles.eventRow, { borderColor: colors.border, backgroundColor: colors.primaryDim }]}
+        >
+          <View style={[styles.eventDot, { backgroundColor: colors.secondary }]} />
+          <Text style={[styles.eventTitle, { color: colors.text }]} numberOfLines={2}>
+            {event.title || event.id}
+          </Text>
+          <Ionicons name="chevron-forward" size={18} color={colors.primary} />
+        </TouchableOpacity>
+      ))}
+    </View>
+  );
+}
+
 export default function PersonDetailScreen() {
-  const { periodSlug, personSlug } = useLocalSearchParams<{ periodSlug: string; personSlug: string }>();
+  const { periodSlug, personSlug } = useLocalSearchParams<{
+    periodSlug?: string;
+    personSlug?: string;
+  }>();
+  const periodId = useMemo(() => (typeof periodSlug === 'string' ? periodSlug : ''), [periodSlug]);
+  const personId = useMemo(() => (typeof personSlug === 'string' ? personSlug : ''), [personSlug]);
   const router = useRouter();
+  const colors = useThemeColors();
+  const { width } = useWindowDimensions();
 
   const [person, setPerson] = useState<PersonDetail | null>(null);
   const [events, setEvents] = useState<PersonEvent[]>([]);
@@ -66,160 +157,282 @@ export default function PersonDetailScreen() {
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    if (!periodSlug || !personSlug) return;
+    if (!periodId || !personId) {
+      setError('Không tìm thấy dữ liệu nhân vật.');
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
-      const [p, evs] = await Promise.all([
-        getPersonDetail(periodSlug, personSlug),
-        getPersonEvents(periodSlug, personSlug),
+      const [personData, personEvents] = await Promise.all([
+        getPersonDetail(periodId, personId),
+        getPersonEvents(periodId, personId),
       ]);
-      setPerson(p);
-      setEvents(evs);
+      setPerson(personData);
+      setEvents(personEvents);
     } catch {
       setError('Không thể tải thông tin nhân vật.');
     } finally {
       setLoading(false);
     }
-  }, [periodSlug, personSlug]);
+  }, [periodId, personId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
-  if (loading) return (
-    <View style={styles.centered}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
-      <ActivityIndicator size="large" color={COLORS.primary} />
-    </View>
-  );
-
-  if (error || !person) return (
-    <View style={styles.centered}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
-      <Text style={{ fontSize: 48 }}>⚠️</Text>
-      <Text style={styles.errorText}>{error ?? 'Không tìm thấy nhân vật'}</Text>
-      <TouchableOpacity style={styles.retryBtn} onPress={load}>
-        <Text style={styles.retryText}>Thử lại</Text>
-      </TouchableOpacity>
-    </View>
-  );
-
-  const imageUri = person.horizontalImage || person.coverMediaRef;
+  const achievements = normalizeTextList(person?.achievements);
+  const lifetime = normalizeTextList(person?.lifetime);
+  const videoId = extractYoutubeId(person?.video?.link);
+  const playerWidth = Math.min(width - SPACING[8], 720);
+  const playerHeight = Math.round(playerWidth * 0.5625);
 
   return (
-    <View style={styles.root}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
-      <ScrollView showsVerticalScrollIndicator={false} stickyHeaderIndices={[0]}>
+    <Screen>
+      <AppHeader title={person?.name || 'Nhân vật'} subtitle={person?.title} centerTitle />
 
-        {/* Header */}
-        <View style={styles.headerBar}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Text style={styles.backBtnText}>‹</Text>
-          </TouchableOpacity>
-          <Text style={styles.headerBarTitle} numberOfLines={1}>{person.name}</Text>
-          <View style={{ width: 40 }} />
-        </View>
-
-        {/* Banner image */}
-        {imageUri ? (
-          <Image source={{ uri: imageUri }} style={styles.banner} resizeMode="cover" />
-        ) : (
-          <View style={[styles.banner, styles.bannerPlaceholder]}>
-            <Text style={{ fontSize: 72 }}>👑</Text>
-          </View>
-        )}
-
-        <View style={styles.content}>
-          {/* Name + title */}
-          <Text style={styles.name}>{person.name}</Text>
-          {!!person.title && <Text style={styles.personTitle}>{person.title}</Text>}
-          {(person.birth_year || person.death_year) && (
-            <Text style={styles.lifespan}>
-              {person.birth_year ?? '?'} – {person.death_year ?? '?'}
-              {person.hometown ? ` · ${person.hometown}` : ''}
-            </Text>
-          )}
-
-          {/* Overview */}
-          {!!person.overview && (
-            <View style={styles.overviewCard}>
-              <Text style={styles.overviewText}>{person.overview}</Text>
+      {loading ? (
+        <LoadingState />
+      ) : error || !person ? (
+        <ErrorState message={error ?? 'Không tìm thấy nhân vật.'} onRetry={load} />
+      ) : (
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+          <View style={styles.hero}>
+            <HistoryImage
+              uri={person.horizontalImage || person.coverMediaRef}
+              style={styles.banner}
+              fallbackIcon="person-outline"
+            />
+            <View style={[styles.heroOverlay, { backgroundColor: colors.overlay }]} />
+            <View style={styles.heroTextBox}>
+              <Text style={[styles.name, { color: colors.white }]}>{person.name || 'Không có tên'}</Text>
+              {!!person.title && (
+                <Text style={[styles.personTitle, { color: colors.primaryBright }]}>{person.title}</Text>
+              )}
             </View>
-          )}
+          </View>
 
-          {/* Accordion: Thành tựu */}
-          {person.achievements?.length ? (
-            <AccordionSection title="🏆 Thành tựu">
-              <BulletList items={person.achievements} />
+          <View style={styles.content}>
+            <View style={styles.metaRow}>
+              {(person.birth_year || person.death_year) && (
+                <Badge
+                  label={`${person.birth_year || '?'} - ${person.death_year || '?'}`}
+                  tone="gold"
+                />
+              )}
+              {!!person.hometown && <Badge label={person.hometown} tone="neutral" />}
+            </View>
+
+            <Card highlighted>
+              <Text style={[styles.overviewText, { color: colors.textSecondary }]}>
+                {buildOverview(person)}
+              </Text>
+            </Card>
+
+            <AccordionSection title="Thành tựu" icon="trophy-outline">
+              <BulletList items={achievements} fallback="Không có thành tựu" />
             </AccordionSection>
-          ) : null}
 
-          {/* Accordion: Tóm tắt cuộc đời */}
-          {person.lifetime?.length ? (
-            <AccordionSection title="📖 Tóm tắt cuộc đời">
-              <BulletList items={person.lifetime} />
+            <AccordionSection title="Tóm tắt cuộc đời" icon="book-outline">
+              <BulletList items={lifetime} fallback="Không có thông tin" />
             </AccordionSection>
-          ) : null}
 
-          {/* Accordion: Sự kiện tham gia */}
-          <AccordionSection title={`⚔️ Sự kiện tham gia (${events.length})`}>
-            {events.length === 0 ? (
-              <Text style={styles.emptyText}>Không có sự kiện nào.</Text>
-            ) : (
-              events.map((ev) => (
-                <TouchableOpacity
-                  key={ev.id}
-                  style={styles.eventRow}
-                  onPress={() => router.push({
-                    pathname: '/person-event/[periodSlug]/[personSlug]/[eventSlug]',
-                    params: { periodSlug, personSlug, eventSlug: ev.id },
-                  })}
-                  activeOpacity={0.75}
-                >
-                  <View style={styles.eventDot} />
-                  <Text style={styles.eventTitle}>{ev.title ?? ev.id}</Text>
-                  <Text style={styles.eventArrow}>›</Text>
-                </TouchableOpacity>
-              ))
+            {!!person.video?.link && (
+              <Card style={styles.videoCard}>
+                <View style={styles.videoHeader}>
+                  <View style={[styles.sectionIcon, { backgroundColor: colors.primaryDim }]}>
+                    <Ionicons name="logo-youtube" size={18} color={colors.secondary} />
+                  </View>
+                  <Text style={[styles.videoTitle, { color: colors.text }]}>Tư liệu video</Text>
+                </View>
+                {videoId ? (
+                  <View style={[styles.playerWrap, { borderColor: colors.border }]}>
+                    <YoutubePlayer height={playerHeight} videoId={videoId} play={false} />
+                  </View>
+                ) : (
+                  <Text style={[styles.mutedText, { color: colors.textMuted }]}>
+                    Không thể phát video từ liên kết này.
+                  </Text>
+                )}
+                {!!person.video.content && (
+                  <Text style={[styles.videoContent, { color: colors.textSecondary }]}>
+                    {person.video.content}
+                  </Text>
+                )}
+              </Card>
             )}
-          </AccordionSection>
-        </View>
-      </ScrollView>
-    </View>
+
+            <AccordionSection
+              title={`Sự kiện tham gia (${events.length})`}
+              icon="flag-outline"
+            >
+              <EventList
+                events={events}
+                onPress={(event) =>
+                  router.push({
+                    pathname: '/person-event/[periodSlug]/[personSlug]/[eventSlug]',
+                    params: { periodSlug: periodId, personSlug: personId, eventSlug: event.id },
+                  })
+                }
+              />
+            </AccordionSection>
+          </View>
+        </ScrollView>
+      )}
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: COLORS.lightBg },
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, padding: 24, backgroundColor: COLORS.lightBg },
-  errorText: { color: COLORS.gray600, textAlign: 'center', fontSize: FONT_SIZES.base },
-  retryBtn: { backgroundColor: COLORS.primary, paddingHorizontal: 32, paddingVertical: 12, borderRadius: BORDER_RADIUS.full },
-  retryText: { color: COLORS.white, fontWeight: FONT_WEIGHTS.bold },
-
-  headerBar: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: COLORS.primary, paddingTop: 52, paddingBottom: 12, paddingHorizontal: 16,
+  scrollContent: {
+    paddingBottom: SPACING[8],
   },
-  backBtn: { width: 40, alignItems: 'center' },
-  backBtnText: { color: COLORS.white, fontSize: 30, fontWeight: FONT_WEIGHTS.bold, lineHeight: 34 },
-  headerBarTitle: { flex: 1, color: COLORS.white, fontSize: FONT_SIZES.base, fontWeight: FONT_WEIGHTS.bold, textAlign: 'center' },
-
-  banner: { width: '100%', height: 240 },
-  bannerPlaceholder: { backgroundColor: '#fce8e8', alignItems: 'center', justifyContent: 'center' },
-
-  content: { padding: SPACING[4], gap: SPACING[3] },
-  name: { fontSize: FONT_SIZES['2xl'], fontWeight: FONT_WEIGHTS.bold, color: COLORS.gray900 },
-  personTitle: { fontSize: FONT_SIZES.base, color: COLORS.primary, fontWeight: FONT_WEIGHTS.semibold },
-  lifespan: { fontSize: FONT_SIZES.sm, color: COLORS.gray500 },
-  overviewCard: { backgroundColor: COLORS.white, borderRadius: BORDER_RADIUS.xl, padding: SPACING[4], ...SHADOWS.sm, borderLeftWidth: 4, borderLeftColor: COLORS.accent },
-  overviewText: { fontSize: FONT_SIZES.sm, color: COLORS.gray700, lineHeight: 22 },
-
-  bulletRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
-  bulletDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: COLORS.primary, marginTop: 7 },
-  bulletText: { flex: 1, fontSize: FONT_SIZES.sm, color: COLORS.gray700, lineHeight: 22 },
-
-  eventRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: COLORS.gray100 },
-  eventDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: COLORS.accent },
-  eventTitle: { flex: 1, fontSize: FONT_SIZES.sm, color: COLORS.gray800 },
-  eventArrow: { color: COLORS.primary, fontSize: 20 },
-  emptyText: { color: COLORS.gray400, fontSize: FONT_SIZES.sm },
+  hero: {
+    height: 260,
+    position: 'relative',
+  },
+  banner: {
+    width: '100%',
+    height: '100%',
+  },
+  heroOverlay: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  heroTextBox: {
+    position: 'absolute',
+    left: SPACING[4],
+    right: SPACING[4],
+    bottom: SPACING[4],
+    gap: SPACING[1],
+  },
+  name: {
+    fontSize: FONT_SIZES['3xl'],
+    fontWeight: FONT_WEIGHTS.bold,
+    lineHeight: 36,
+  },
+  personTitle: {
+    fontSize: FONT_SIZES.base,
+    fontWeight: FONT_WEIGHTS.semibold,
+    lineHeight: 22,
+  },
+  content: {
+    padding: SPACING[4],
+    gap: SPACING[4],
+  },
+  metaRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: SPACING[2],
+  },
+  overviewText: {
+    fontSize: FONT_SIZES.sm,
+    lineHeight: 23,
+  },
+  accordionHeader: {
+    minHeight: 58,
+    paddingHorizontal: SPACING[4],
+    paddingVertical: SPACING[3],
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: SPACING[3],
+  },
+  accordionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING[3],
+    flex: 1,
+    minWidth: 0,
+  },
+  sectionIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: BORDER_RADIUS.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  accordionTitle: {
+    flex: 1,
+    fontSize: FONT_SIZES.base,
+    fontWeight: FONT_WEIGHTS.bold,
+  },
+  accordionBody: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    padding: SPACING[4],
+  },
+  bulletList: {
+    gap: SPACING[2],
+  },
+  bulletRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: SPACING[2],
+  },
+  bulletDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginTop: 8,
+  },
+  bulletText: {
+    flex: 1,
+    fontSize: FONT_SIZES.sm,
+    lineHeight: 23,
+  },
+  mutedText: {
+    fontSize: FONT_SIZES.sm,
+    lineHeight: 22,
+  },
+  videoCard: {
+    gap: SPACING[3],
+  },
+  videoHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING[3],
+  },
+  videoTitle: {
+    fontSize: FONT_SIZES.base,
+    fontWeight: FONT_WEIGHTS.bold,
+  },
+  playerWrap: {
+    overflow: 'hidden',
+    borderRadius: BORDER_RADIUS.md,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  videoContent: {
+    fontSize: FONT_SIZES.sm,
+    lineHeight: 23,
+  },
+  eventList: {
+    gap: SPACING[2],
+  },
+  eventHint: {
+    fontSize: FONT_SIZES.xs,
+    lineHeight: 18,
+    marginBottom: SPACING[1],
+  },
+  eventRow: {
+    minHeight: 48,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: BORDER_RADIUS.md,
+    paddingHorizontal: SPACING[3],
+    paddingVertical: SPACING[2],
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING[2],
+  },
+  eventDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  eventTitle: {
+    flex: 1,
+    fontSize: FONT_SIZES.sm,
+    fontWeight: FONT_WEIGHTS.semibold,
+    lineHeight: 20,
+  },
 });

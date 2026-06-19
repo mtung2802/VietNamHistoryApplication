@@ -11,12 +11,33 @@ import { collection, query, orderBy, getDocs, doc, getDoc } from 'firebase/fires
 import { db } from '@/services/firebase';
 import { PersonPeriodItem, PersonListItem, PersonDetail, PersonEvent } from '@/models/Person';
 
+function toIso(value: unknown): string | undefined {
+  if (!value) return undefined;
+  if (typeof value === 'string') return value;
+
+  if (typeof value === 'object' && value !== null && 'toDate' in value) {
+    const date = (value as { toDate: () => Date }).toDate();
+    return date instanceof Date && !Number.isNaN(date.getTime()) ? date.toISOString() : undefined;
+  }
+
+  return undefined;
+}
+
 /** Lấy danh sách thời kỳ nhân vật (tab Person) */
 export const getPersonPeriods = async (): Promise<PersonPeriodItem[]> => {
   try {
     const q = query(collection(db, 'periods_person'), orderBy('sortOrder', 'asc'));
     const snap = await getDocs(q);
-    return snap.docs.map((d) => ({ id: d.id, slug: d.id, ...d.data() } as PersonPeriodItem));
+    return snap.docs.map((d) => {
+      const data = d.data();
+      return {
+        id: d.id,
+        slug: d.id,
+        ...data,
+        startDate: toIso(data.startDate),
+        endDate: toIso(data.endDate),
+      } as PersonPeriodItem;
+    });
   } catch (e) {
     console.error('❌ Lỗi getPersonPeriods:', e);
     throw e;

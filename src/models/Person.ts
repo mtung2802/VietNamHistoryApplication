@@ -11,10 +11,10 @@ export interface PersonPeriodItem {
   id: string;        // = document ID = slug
   slug: string;
   title: string;
-  startDate: string; // ISO string
-  endDate: string;   // ISO string
-  coverMediaRef: string;
-  sortOrder: number;
+  startDate?: string; // ISO string
+  endDate?: string;   // ISO string
+  coverMediaRef?: string;
+  sortOrder?: number;
 }
 
 /** Item trong danh sách nhân vật của 1 thời kỳ */
@@ -25,8 +25,11 @@ export interface PersonListItem {
   title: string;     // chức vụ / danh hiệu
   birthDate?: string;
   deathDate?: string;
-  coverMediaRef: string;
-  sortOrder: number;
+  birth_year?: string;
+  death_year?: string;
+  coverMediaRef?: string;
+  horizontalImage?: string;
+  sortOrder?: number;
 }
 
 /** Video model */
