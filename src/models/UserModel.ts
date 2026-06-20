@@ -20,6 +20,14 @@ export interface UserModel {
     notifications?: boolean; // Bật/tắt thông báo
     theme?: 'light' | 'dark'; // Chế độ sáng/tối
   };
+  // Gamification fields (merge-safe, optional)
+  totalXP?: number;
+  currentRank?: string;
+  currentStreak?: number;
+  longestStreak?: number;
+  lastPlayedDate?: string | null; // "YYYY-MM-DD"
+  totalSessions?: number;
+  highestScore?: number;
   createdAt?: Date;
   updatedAt?: Date;
   lastLoginAt?: Date;

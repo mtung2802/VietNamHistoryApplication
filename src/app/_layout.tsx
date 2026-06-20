@@ -3,6 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { ThemeProvider, useThemeContext } from '@/contexts/ThemeContext';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { GamificationProvider } from '@/contexts/GamificationContext';
 
 function RootNavigator() {
   const { colors, isDark } = useThemeContext();
@@ -58,7 +59,9 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider>
         <AuthProvider>
-          <RootNavigator />
+          <GamificationProvider>
+            <RootNavigator />
+          </GamificationProvider>
         </AuthProvider>
       </ThemeProvider>
     </GestureHandlerRootView>

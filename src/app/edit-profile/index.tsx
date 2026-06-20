@@ -34,7 +34,6 @@ export default function EditProfileScreen() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [bio, setBio] = useState('');
-  const [phone, setPhone] = useState('');
   const [avatarUri, setAvatarUri] = useState('');
   const [newAvatarUri, setNewAvatarUri] = useState('');
   const [loadingProfile, setLoadingProfile] = useState(true);
@@ -55,7 +54,6 @@ export default function EditProfileScreen() {
         setName(session.name || session.displayName || '');
         setEmail(session.email || '');
         setBio(session.bio || '');
-        setPhone(session.phone || '');
         setAvatarUri(session.avatar || session.photo || '');
       })
       .catch(() => Alert.alert('Lỗi', 'Không thể tải thông tin hồ sơ.'))
@@ -119,7 +117,6 @@ export default function EditProfileScreen() {
         displayName: normalizedName,
         email: normalizedEmail,
         bio: bio.trim(),
-        phone: phone.trim(),
         avatar: uploadedAvatar,
         updatedAt: new Date().toISOString(),
       };
@@ -212,17 +209,7 @@ export default function EditProfileScreen() {
               />
             </View>
 
-            <View style={styles.field}>
-              <Text style={[styles.label, { color: colors.textSecondary }]}>Số điện thoại</Text>
-              <TextInput
-                style={inputStyle}
-                value={phone}
-                onChangeText={setPhone}
-                placeholder="Nhập số điện thoại"
-                placeholderTextColor={colors.textMuted}
-                keyboardType="phone-pad"
-              />
-            </View>
+
 
             <View style={styles.field}>
               <Text style={[styles.label, { color: colors.textSecondary }]}>Giới thiệu</Text>

@@ -22,6 +22,10 @@ import {
 } from '@/services/userSession';
 import { BORDER_RADIUS, FONT_SIZES, FONT_WEIGHTS, SHADOWS, SPACING } from '@/constants/theme';
 import { useThemeColors } from '@/contexts/ThemeContext';
+import { useGamification } from '@/contexts/GamificationContext';
+import { BADGE_DEFINITIONS } from '@/services/badgeService';
+import { getRankTier } from '@/services/rankService';
+import { DisplaySession } from '@/models/GamificationModels';
 import { AppHeader, Screen } from '@/components/ui';
 
 interface MenuItemProps {
@@ -42,6 +46,7 @@ export function ProfileOverviewContent({
 }: ProfileOverviewProps) {
   const router = useRouter();
   const colors = useThemeColors();
+  const { profile, loading: gamificationLoading } = useGamification();
   const [user, setUser] = useState<SessionUser | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -154,6 +159,9 @@ export function ProfileOverviewContent({
   const avatarUri = user?.avatar || user?.photo;
   const displayName = user?.name || user?.displayName || user?.username || 'Người dùng';
 
+  // Rank info
+  const rankTier = profile ? getRankTier(profile.currentRank) : null;
+
   return (
     <Screen>
       <AppHeader title="Hồ sơ" showBack={false} />
@@ -164,11 +172,12 @@ export function ProfileOverviewContent({
         </View>
       ) : (
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+          {/* ═══ Avatar + Name + Rank ═══ */}
           <View style={styles.profileSection}>
             <View
               style={[
                 styles.avatarFrame,
-                { borderColor: colors.primary, backgroundColor: colors.surface },
+                { borderColor: rankTier?.color ?? colors.primary, backgroundColor: colors.surface },
               ]}
             >
               {avatarUri ? (
@@ -178,20 +187,153 @@ export function ProfileOverviewContent({
               )}
             </View>
             <Text style={[styles.userName, { color: colors.text }]}>{displayName}</Text>
-            {!!user?.username && (
-              <Text style={[styles.username, { color: colors.textSecondary }]}>
-                @{user.username}
-              </Text>
-            )}
-            {!!user?.email && (
-              <Text style={[styles.email, { color: colors.textMuted }]}>{user.email}</Text>
-            )}
-            {!!user?.bio && (
-              <Text style={[styles.bio, { color: colors.textSecondary }]}>{user.bio}</Text>
+
+            {/* Rank badge */}
+            {rankTier && (
+              <View style={[styles.rankBadge, { backgroundColor: `${rankTier.color}22` }]}>
+                <Ionicons
+                  name={rankTier.icon as keyof typeof Ionicons.glyphMap}
+                  size={16}
+                  color={rankTier.color}
+                />
+                <Text style={[styles.rankLabel, { color: rankTier.color }]}>
+                  {profile!.currentRank}
+                </Text>
+              </View>
             )}
           </View>
 
+          {/* ═══ XP Progress Bar ═══ */}
+          {profile && (
+            <View
+              style={[styles.xpSection, { backgroundColor: colors.surface, borderColor: colors.border }]}
+            >
+              <View style={styles.xpHeader}>
+                <Text style={[styles.xpLabel, { color: colors.text }]}>
+                  <Ionicons name="sparkles" size={14} color={colors.primary} /> {profile.totalXP} XP
+                </Text>
+                {profile.nextRank ? (
+                  <Text style={[styles.xpToNext, { color: colors.textSecondary }]}>
+                    {profile.xpToNextRank} XP → {profile.nextRank}
+                  </Text>
+                ) : (
+                  <Text style={[styles.xpToNext, { color: colors.primary }]}>
+                    MAX RANK! 🏆
+                  </Text>
+                )}
+              </View>
+              <View style={[styles.progressTrack, { backgroundColor: colors.border }]}>
+                <View
+                  style={[
+                    styles.progressFill,
+                    {
+                      backgroundColor: rankTier?.color ?? colors.primary,
+                      width: `${Math.max(2, profile.xpProgress * 100)}%`,
+                    },
+                  ]}
+                />
+              </View>
+            </View>
+          )}
+
+          {/* ═══ Stats Row ═══ */}
+          {profile && (
+            <View style={styles.statsRow}>
+              <StatCard
+                icon="game-controller-outline"
+                value={String(profile.totalSessions)}
+                label="Lượt chơi"
+                color={colors}
+              />
+              <StatCard
+                icon="trophy-outline"
+                value={String(profile.highestScore)}
+                label="Điểm cao nhất"
+                color={colors}
+              />
+              <StatCard
+                icon="flame-outline"
+                value={String(profile.currentStreak)}
+                label="Chuỗi"
+                color={colors}
+              />
+              <StatCard
+                icon="trending-up-outline"
+                value={String(profile.longestStreak)}
+                label="Chuỗi max"
+                color={colors}
+              />
+            </View>
+          )}
+
+          {/* ═══ Badges Grid ═══ */}
+          <View style={styles.sectionHeader}>
+            <Ionicons name="medal-outline" size={18} color={colors.primary} />
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Huy hiệu</Text>
+          </View>
+
+          <View style={styles.badgesGrid}>
+            {BADGE_DEFINITIONS.map((def) => {
+              const earned = profile?.badges.find((b) => b.badgeId === def.id);
+              const isEarned = !!earned;
+              return (
+                <View
+                  key={def.id}
+                  style={[
+                    styles.badgeCell,
+                    {
+                      backgroundColor: isEarned ? colors.primaryDim : colors.surface,
+                      borderColor: isEarned ? colors.primary : colors.border,
+                    },
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.badgeIconCircle,
+                      {
+                        backgroundColor: isEarned
+                          ? `${colors.primary}30`
+                          : `${colors.textMuted}15`,
+                      },
+                    ]}
+                  >
+                    <Ionicons
+                      name={def.icon as keyof typeof Ionicons.glyphMap}
+                      size={24}
+                      color={isEarned ? colors.primary : colors.textMuted}
+                    />
+                  </View>
+                  <Text
+                    style={[
+                      styles.badgeCellName,
+                      { color: isEarned ? colors.text : colors.textMuted },
+                    ]}
+                    numberOfLines={2}
+                  >
+                    {def.name}
+                  </Text>
+                  {isEarned && earned?.earnedAt && (
+                    <Text style={[styles.badgeDate, { color: colors.textSecondary }]}>
+                      {earned.earnedAt.toDate?.()
+                        ? earned.earnedAt.toDate().toLocaleDateString('vi-VN')
+                        : ''}
+                    </Text>
+                  )}
+                  {!isEarned && (
+                    <Ionicons name="lock-closed" size={10} color={colors.textMuted} />
+                  )}
+                </View>
+              );
+            })}
+          </View>
+
+          {/* ═══ Menu ═══ */}
           <View style={styles.menuSection}>
+            <MenuItem
+              icon="time-outline"
+              label="Lịch sử chơi"
+              onPress={() => router.push('/play-history' as any)}
+            />
             <MenuItem
               icon="create-outline"
               label="Chỉnh sửa hồ sơ"
@@ -210,6 +352,27 @@ export function ProfileOverviewContent({
   );
 }
 
+/** Stat card mini component */
+function StatCard({
+  icon,
+  value,
+  label,
+  color,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  value: string;
+  label: string;
+  color: ReturnType<typeof useThemeColors>;
+}) {
+  return (
+    <View style={[styles.statCard, { backgroundColor: color.surface, borderColor: color.border }]}>
+      <Ionicons name={icon} size={18} color={color.primary} />
+      <Text style={[styles.statValue, { color: color.text }]}>{value}</Text>
+      <Text style={[styles.statLabel, { color: color.textMuted }]}>{label}</Text>
+    </View>
+  );
+}
+
 export default function ProfileOverviewScreen() {
   return <ProfileOverviewContent />;
 }
@@ -217,6 +380,8 @@ export default function ProfileOverviewScreen() {
 const styles = StyleSheet.create({
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   content: { padding: SPACING[5], paddingBottom: SPACING[10] },
+
+  // Profile section
   profileSection: { alignItems: 'center' },
   avatarFrame: {
     width: 112,
@@ -236,14 +401,120 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   username: { fontSize: FONT_SIZES.sm, marginTop: 3 },
-  email: { fontSize: FONT_SIZES.sm, marginTop: 3 },
-  bio: {
-    fontSize: FONT_SIZES.sm,
-    lineHeight: 20,
-    textAlign: 'center',
-    marginTop: SPACING[3],
-    maxWidth: 320,
+  rankBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING[1],
+    marginTop: SPACING[2],
+    paddingHorizontal: SPACING[3],
+    paddingVertical: SPACING[1],
+    borderRadius: BORDER_RADIUS.full,
   },
+  rankLabel: {
+    fontSize: FONT_SIZES.sm,
+    fontWeight: FONT_WEIGHTS.bold,
+  },
+
+  // XP Section
+  xpSection: {
+    marginTop: SPACING[4],
+    borderRadius: BORDER_RADIUS.xl,
+    borderWidth: 1,
+    padding: SPACING[4],
+    gap: SPACING[2],
+  },
+  xpHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  xpLabel: {
+    fontSize: FONT_SIZES.base,
+    fontWeight: FONT_WEIGHTS.bold,
+  },
+  xpToNext: {
+    fontSize: FONT_SIZES.xs,
+  },
+  progressTrack: {
+    height: 8,
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+
+  // Stats Row
+  statsRow: {
+    flexDirection: 'row',
+    gap: SPACING[2],
+    marginTop: SPACING[4],
+  },
+  statCard: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: SPACING[3],
+    borderRadius: BORDER_RADIUS.lg,
+    borderWidth: 1,
+  },
+  statValue: {
+    fontSize: FONT_SIZES.lg,
+    fontWeight: FONT_WEIGHTS.black,
+  },
+  statLabel: {
+    fontSize: 10,
+    fontWeight: FONT_WEIGHTS.semibold,
+  },
+
+  // Section header
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING[2],
+    marginTop: SPACING[6],
+    marginBottom: SPACING[3],
+  },
+  sectionTitle: {
+    fontSize: FONT_SIZES.lg,
+    fontWeight: FONT_WEIGHTS.bold,
+  },
+
+  // Badges grid
+  badgesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: SPACING[2],
+  },
+  badgeCell: {
+    width: '31%',
+    alignItems: 'center',
+    gap: 4,
+    padding: SPACING[3],
+    borderRadius: BORDER_RADIUS.lg,
+    borderWidth: 1,
+  },
+  badgeIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badgeCellName: {
+    fontSize: 10,
+    fontWeight: FONT_WEIGHTS.bold,
+    textAlign: 'center',
+    lineHeight: 14,
+  },
+  badgeDate: {
+    fontSize: 9,
+  },
+
+
+
+  // Menu
   menuSection: { gap: SPACING[3], marginTop: SPACING[6] },
   menuItem: {
     flexDirection: 'row',

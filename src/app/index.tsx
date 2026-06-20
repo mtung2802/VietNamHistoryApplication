@@ -82,7 +82,7 @@ const styles = StyleSheet.create({
     height: 120,
     borderRadius: 60,
     alignItems: 'center',
-    justify: 'center',
+    justifyContent: 'center',
     borderWidth: 2,
     marginBottom: SPACING[6],
   },

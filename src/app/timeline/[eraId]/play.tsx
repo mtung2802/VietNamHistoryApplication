@@ -19,9 +19,13 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { getEraById } from '@/services/timelinePuzzleService';
 import { Era, TimelineEvent } from '@/models/Era';
+import { SessionResult, BadgeDefinition } from '@/models/GamificationModels';
 import { BORDER_RADIUS, FONT_SIZES, FONT_WEIGHTS, SPACING } from '@/constants/theme';
 import { useThemeColors } from '@/contexts/ThemeContext';
-import { Button, Card, ErrorState, LoadingState, Screen, useTopInset } from '@/components/ui';
+import { useAuth } from '@/contexts/AuthContext';
+import { useGamification } from '@/contexts/GamificationContext';
+import { getRankTier } from '@/services/rankService';
+import { Button, Card, ErrorState, LoadingState, Screen, AppHeader, useTopInset } from '@/components/ui';
 
 const MAX_WRONG_MOVES = 5;
 const MAX_ATTACKS = 3;
@@ -128,13 +132,18 @@ function EventCard({
 }
 
 export default function TimelinePlayScreen() {
-  const { eraId } = useLocalSearchParams<{ eraId: string }>();
+  const params = useLocalSearchParams<{ eraId: string, isReviewMode?: string, timelineItems?: string, xpGained?: string }>();
+  const eraId = params.eraId;
+  const isReviewMode = params.isReviewMode === 'true';
+
   const router = useRouter();
   const topInset = useTopInset();
   const colors = useThemeColors();
+  const { user } = useAuth();
+  const { submitSession, profile } = useGamification();
 
   const [era, setEra] = useState<Era | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!isReviewMode);
   const [error, setError] = useState<string | null>(null);
 
   const [sortedEvents, setSortedEvents] = useState<TimelineEvent[]>([]);
@@ -143,11 +152,16 @@ export default function TimelinePlayScreen() {
   const [currentStep, setCurrentStep] = useState(0);
   const [wrongMoves, setWrongMoves] = useState(0);
   const [attacks, setAttacks] = useState(0);
-  const [status, setStatus] = useState<Status>('playing');
+  const [status, setStatus] = useState<Status>(isReviewMode ? 'won' : 'playing');
   const [isProcessing, setIsProcessing] = useState(false);
   const [stageWidth, setStageWidth] = useState(360);
   const [warriorMode, setWarriorMode] = useState<WarriorMode>('idle');
   const [shakeKey, setShakeKey] = useState<string | null>(null);
+
+  // Gamification state
+  const [sessionResult, setSessionResult] = useState<SessionResult | null>(null);
+  const totalTimeRef = useRef(0);
+  const submittedRef = useRef(false);
 
   const enemyProgress = useRef(new Animated.Value(0)).current;
   const shakeX = useRef(new Animated.Value(0)).current;
@@ -177,6 +191,9 @@ export default function TimelinePlayScreen() {
       setStatus('playing');
       setIsProcessing(false);
       setWarriorMode('idle');
+      setSessionResult(null);
+      submittedRef.current = false;
+      totalTimeRef.current = 0;
       enemyProgress.setValue(0);
       turretScale.setValue(1);
     },
@@ -203,8 +220,67 @@ export default function TimelinePlayScreen() {
   }, [eraId, setupGame]);
 
   useEffect(() => {
-    load();
-  }, [load]);
+    if (isReviewMode) {
+      if (params.timelineItems) {
+        try {
+          const items = JSON.parse(params.timelineItems);
+          setSortedEvents(items.map((it: any) => ({ year: Number(it.year), name: it.event, order: 0 } as TimelineEvent)));
+        } catch {}
+      }
+      setSessionResult({
+        xpGained: Number(params.xpGained ?? 0),
+        totalXP: profile?.totalXP ?? 0,
+        currentRank: profile?.currentRank ?? 'Newcomer',
+        previousRank: profile?.currentRank ?? 'Newcomer',
+        rankChanged: false,
+        newBadges: [],
+      });
+      return;
+    }
+    if (!era) {
+      load();
+    }
+  }, [load, isReviewMode, params.timelineItems, params.xpGained, profile, era]);
+
+  // Timer tổng thời gian chơi
+  useEffect(() => {
+    if (loading || error || status !== 'playing') return;
+    const id = setInterval(() => {
+      totalTimeRef.current += 1;
+    }, 1000);
+    return () => clearInterval(id);
+  }, [loading, error, status]);
+
+  // Submit gamification session khi game kết thúc
+  useEffect(() => {
+    if (isReviewMode || status === 'playing' || submittedRef.current || !user?.id) return;
+    submittedRef.current = true;
+
+    const doSubmit = async () => {
+      try {
+        const totalQ = sortedEvents.length;
+        const correctAns = status === 'won' ? totalQ : currentStep;
+        const gameScore = status === 'won' ? totalQ : currentStep;
+
+        const result = await submitSession({
+          userId: user.id,
+          type: 'game',
+          gameId: eraId ?? null,
+          gameTitle: era?.name ?? 'Ghép nối Niên đại',
+          score: gameScore,
+          totalQuestions: totalQ,
+          correctAnswers: correctAns,
+          timeTaken: totalTimeRef.current,
+          timelineItems: sortedEvents.map(e => ({ year: String(e.year), event: e.name })),
+        });
+        setSessionResult(result);
+      } catch (err) {
+        console.error('❌ Lỗi submit timeline session:', err);
+      }
+    };
+
+    doSubmit();
+  }, [status, user?.id]);
 
   const triggerCardShake = (key: string) => {
     setShakeKey(key);
@@ -286,8 +362,48 @@ export default function TimelinePlayScreen() {
     playAttack(nextAttacks);
   };
 
-  if (loading) return <LoadingState message="Đang tải trò chơi..." />;
+  if (loading) return <LoadingState message="Đang tải kỷ nguyên..." />;
   if (error) return <ErrorState message={error} onRetry={load} />;
+
+  if (isReviewMode) {
+    return (
+      <Screen>
+        <AppHeader title="Xem lại kết quả" showThemeToggle={false} />
+        <View style={[styles.overlay, { backgroundColor: colors.background, position: 'relative', flex: 1 }]}>
+          <Card highlighted style={styles.modal}>
+            <Ionicons name="trophy" size={56} color={colors.primary} />
+            <Text style={[styles.modalTitle, { color: colors.primary }]}>
+              Hoàn thành!
+            </Text>
+
+            {/* XP Notification */}
+            {sessionResult && (
+              <View style={[styles.xpBanner, { backgroundColor: colors.primaryDim, borderColor: colors.primary }]}>
+                <View style={styles.xpBannerRow}>
+                  <Ionicons name="sparkles" size={20} color={colors.primary} />
+                  <Text style={[styles.xpBannerText, { color: colors.primary }]}>
+                    +{sessionResult.xpGained} XP
+                  </Text>
+                  <Text style={[styles.xpBannerDetail, { color: colors.textSecondary }]}>
+                    Tổng: {sessionResult.totalXP} • Hạng: {sessionResult.currentRank}
+                  </Text>
+                </View>
+              </View>
+            )}
+
+            <ScrollView style={styles.modalTimeline} showsVerticalScrollIndicator={false}>
+              {sortedEvents.map((event, idx) => (
+                <View key={idx} style={styles.modalRow}>
+                  <Text style={[styles.modalYear, { color: colors.primary }]}>{event.year}</Text>
+                  <Text style={[styles.modalName, { color: colors.text }]}>{event.name}</Text>
+                </View>
+              ))}
+            </ScrollView>
+          </Card>
+        </View>
+      </Screen>
+    );
+  }
 
   return (
     <Screen style={styles.screen}>
@@ -407,6 +523,48 @@ export default function TimelinePlayScreen() {
             >
               {status === 'won' ? 'Hoàn thành!' : 'Thua mất rồi!'}
             </Text>
+
+            {/* XP Notification */}
+            {sessionResult && (
+              <View
+                style={[
+                  styles.xpBanner,
+                  { backgroundColor: colors.primaryDim, borderColor: colors.primary },
+                ]}
+              >
+                <View style={styles.xpBannerRow}>
+                  <Ionicons name="sparkles" size={20} color={colors.primary} />
+                  <Text style={[styles.xpBannerText, { color: colors.primary }]}>
+                    +{sessionResult.xpGained} XP
+                  </Text>
+                  <Text style={[styles.xpBannerDetail, { color: colors.textSecondary }]}>
+                    Tổng: {sessionResult.totalXP} • {sessionResult.currentRank}
+                  </Text>
+                </View>
+                {sessionResult.rankChanged && (
+                  <Text style={[styles.xpRankUp, { color: colors.success }]}>
+                    🎉 Thăng hạng: {sessionResult.previousRank} → {sessionResult.currentRank}!
+                  </Text>
+                )}
+                {sessionResult.newBadges.length > 0 && (
+                  <View style={styles.xpBadgesRow}>
+                    {sessionResult.newBadges.map((badge: BadgeDefinition) => (
+                      <View key={badge.id} style={[styles.xpBadgeChip, { backgroundColor: colors.surface }]}>
+                        <Ionicons
+                          name={badge.icon as keyof typeof Ionicons.glyphMap}
+                          size={14}
+                          color={colors.primary}
+                        />
+                        <Text style={[styles.xpBadgeLabel, { color: colors.text }]}>
+                          {badge.name}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </View>
+            )}
+
             <ScrollView style={styles.modalTimeline} showsVerticalScrollIndicator={false}>
               {sortedEvents.map((event) => (
                 <View key={`${event.order}-${event.name}`} style={styles.modalRow}>
@@ -712,5 +870,48 @@ const styles = StyleSheet.create({
   modalActions: {
     alignSelf: 'stretch',
     gap: SPACING[3],
+  },
+  // Gamification XP banner in modal
+  xpBanner: {
+    alignSelf: 'stretch',
+    borderRadius: BORDER_RADIUS.lg,
+    borderWidth: 1,
+    padding: SPACING[3],
+    gap: SPACING[1],
+  },
+  xpBannerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING[2],
+    flexWrap: 'wrap',
+  },
+  xpBannerText: {
+    fontSize: FONT_SIZES.lg,
+    fontWeight: FONT_WEIGHTS.black,
+  },
+  xpBannerDetail: {
+    fontSize: FONT_SIZES.xs,
+  },
+  xpRankUp: {
+    fontSize: FONT_SIZES.xs,
+    fontWeight: FONT_WEIGHTS.bold,
+  },
+  xpBadgesRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: SPACING[1],
+    marginTop: SPACING[1],
+  },
+  xpBadgeChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: SPACING[2],
+    paddingVertical: 3,
+    borderRadius: BORDER_RADIUS.full,
+  },
+  xpBadgeLabel: {
+    fontSize: 10,
+    fontWeight: FONT_WEIGHTS.bold,
   },
 });
