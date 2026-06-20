@@ -2,6 +2,7 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { ThemeProvider, useThemeContext } from '@/contexts/ThemeContext';
+import { AuthProvider } from '@/contexts/AuthContext';
 
 function RootNavigator() {
   const { colors, isDark } = useThemeContext();
@@ -18,6 +19,8 @@ function RootNavigator() {
       >
         {/* Splash */}
         <Stack.Screen name="index" />
+        {/* Đăng nhập / Đăng ký */}
+        <Stack.Screen name="auth" options={{ animation: 'fade' }} />
         {/* Tab navigator */}
         <Stack.Screen name="(tabs)" />
 
@@ -54,7 +57,9 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider>
-        <RootNavigator />
+        <AuthProvider>
+          <RootNavigator />
+        </AuthProvider>
       </ThemeProvider>
     </GestureHandlerRootView>
   );

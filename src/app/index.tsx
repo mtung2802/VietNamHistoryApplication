@@ -1,18 +1,34 @@
 /**
  * Màn splash / chào mừng.
- * Tông charcoal premium + điểm nhấn gold.
+ * Kiểm tra trạng thái đăng nhập khi ấn nút:
+ * - Đã đăng nhập → vào app (tabs)
+ * - Chưa đăng nhập → màn đăng nhập (auth)
  */
 
+import { useEffect } from 'react';
 import { useRouter } from 'expo-router';
-import { StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { FONT_SIZES, FONT_WEIGHTS, SPACING } from '@/constants/theme';
 import { useThemeColors } from '@/contexts/ThemeContext';
-import { Screen, Button } from '@/components/ui';
+import { Screen } from '@/components/ui';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function SplashScreen() {
   const router = useRouter();
   const colors = useThemeColors();
+  const { user, isLoading } = useAuth();
+
+  // Hàm xử lý khi người dùng chủ động ấn nút "Khám phá ngay"
+  const handleNavigate = () => {
+    if (isLoading) return; // Đợi load xong auth data nếu chưa xong
+
+    if (user) {
+      router.replace('/(tabs)/period');
+    } else {
+      router.replace('/auth');
+    }
+  };
 
   return (
     <Screen style={styles.container}>
@@ -34,12 +50,25 @@ export default function SplashScreen() {
       </View>
 
       <View style={styles.footer}>
-        <Button
-          label="Bắt đầu khám phá"
-          icon="arrow-forward"
-          size="lg"
-          onPress={() => router.replace('/(tabs)/period')}
-        />
+        {isLoading ? (
+          // Hiển thị loading nếu hệ thống đang kiểm tra trạng thái đăng nhập
+          <View style={{ alignItems: 'center', gap: SPACING[2] }}>
+            <ActivityIndicator size="small" color={colors.primary} />
+            <Text style={[styles.loadingText, { color: colors.textMuted }]}>
+              Đang tải dữ liệu...
+            </Text>
+          </View>
+        ) : (
+          // Hiển thị nút bấm khi đã sẵn sàng
+          <TouchableOpacity
+            style={[styles.button, { backgroundColor: colors.primary }]}
+            onPress={handleNavigate}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.buttonText, { color: '#FFFFFF' }]}>Khám Phá Ngay</Text>
+            <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+          </TouchableOpacity>
+        )}
       </View>
     </Screen>
   );
@@ -53,7 +82,7 @@ const styles = StyleSheet.create({
     height: 120,
     borderRadius: 60,
     alignItems: 'center',
-    justifyContent: 'center',
+    justify: 'center',
     borderWidth: 2,
     marginBottom: SPACING[6],
   },
@@ -75,5 +104,33 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     lineHeight: 24,
   },
-  footer: { width: '100%', paddingHorizontal: SPACING[6] },
+  footer: {
+    width: '100%',
+    paddingHorizontal: SPACING[6],
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: FONT_SIZES.sm,
+  },
+  // Thêm style cho nút bấm mới
+  button: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: SPACING[3],
+    paddingHorizontal: SPACING[6],
+    borderRadius: 25,
+    gap: SPACING[2],
+    width: '80%', // Hoặc tùy chỉnh độ rộng theo thiết kế của bạn
+    // Đổ bóng nhẹ cho nút
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  buttonText: {
+    fontSize: FONT_SIZES.base,
+    fontWeight: FONT_WEIGHTS.bold,
+  },
 });

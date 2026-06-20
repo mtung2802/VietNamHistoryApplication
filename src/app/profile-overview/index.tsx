@@ -57,7 +57,7 @@ export function ProfileOverviewContent({
             if (embeddedInTab) {
               onLoggedOut?.();
             } else {
-              router.replace('/(tabs)/profile');
+              router.replace('/auth');
             }
             return;
           }
@@ -113,7 +113,7 @@ export function ProfileOverviewContent({
           if (embeddedInTab) {
             onLoggedOut?.();
           } else {
-            router.replace('/(tabs)/profile');
+            router.replace('/auth');
           }
         },
       },
