@@ -43,9 +43,10 @@ import { calculateStreak } from '@/services/streakService';
  * @returns UserGamification object đầy đủ
  */
 function extractGamification(data: Record<string, unknown>): UserGamification {
+  const totalXP = typeof data.totalXP === 'number' ? data.totalXP : DEFAULT_GAMIFICATION.totalXP;
   return {
-    totalXP: typeof data.totalXP === 'number' ? data.totalXP : DEFAULT_GAMIFICATION.totalXP,
-    currentRank: typeof data.currentRank === 'string' ? data.currentRank : DEFAULT_GAMIFICATION.currentRank,
+    totalXP,
+    currentRank: getRankForXP(totalXP),
     currentStreak: typeof data.currentStreak === 'number' ? data.currentStreak : DEFAULT_GAMIFICATION.currentStreak,
     longestStreak: typeof data.longestStreak === 'number' ? data.longestStreak : DEFAULT_GAMIFICATION.longestStreak,
     lastPlayedDate: typeof data.lastPlayedDate === 'string' ? data.lastPlayedDate : DEFAULT_GAMIFICATION.lastPlayedDate,
@@ -246,9 +247,13 @@ export async function getUserGamificationProfile(
   const { checkNewBadges } = require('./badgeService');
   const missedBadges = checkNewBadges({
     totalSessions: gamification.totalSessions,
-    highestScore: gamification.highestScore,
-    longestStreak: gamification.longestStreak,
-    currentRank: gamification.currentRank,
+    currentStreak: gamification.currentStreak,
+    correctAnswers: 0,
+    totalQuestions: 0,
+    timeTaken: 0,
+    score: 0,
+    newRank: gamification.currentRank,
+    rankChanged: true,
     existingBadgeIds,
   });
   if (missedBadges.length > 0) {

@@ -251,7 +251,12 @@ export default function ForumDetailScreen() {
   // ── Render ─────────────────────────────────────────────────────────────
 
   const renderReply = ({ item }: { item: ForumReply }) => {
-    const rankTier = getRankTier(item.authorRank);
+    const isMe = item.authorId === user?.id;
+    const authorRank = isMe && profile ? profile.currentRank : item.authorRank;
+    const authorName = isMe && user ? (user.name || user.displayName || user.username || 'Ẩn danh') : (item.authorName || 'Ẩn danh');
+    const authorPhoto = isMe && user ? (user.avatar || user.photo || '') : item.authorPhoto;
+
+    const rankTier = getRankTier(authorRank);
     return (
       <View style={[styles.replyCard, { borderBottomColor: colors.border }]}>
         <TouchableOpacity
@@ -259,11 +264,11 @@ export default function ForumDetailScreen() {
           onPress={() => router.push(`/user-profile/${item.authorId}` as any)}
         >
           <AvatarView
-            uri={item.authorPhoto}
-            name={item.authorName}
+            uri={authorPhoto}
+            name={authorName}
             size={34}
             primaryColor={colors.primary}
-            rankName={item.authorRank}
+            rankName={authorRank}
           />
         </TouchableOpacity>
         <View style={styles.replyBody}>
@@ -274,7 +279,7 @@ export default function ForumDetailScreen() {
               onPress={() => router.push(`/user-profile/${item.authorId}` as any)}
             >
               <Text style={[styles.replyAuthor, { color: colors.text }]} numberOfLines={1}>
-                {item.authorName || 'Ẩn danh'}
+                {authorName}
               </Text>
               <View style={[styles.rankBadge, { backgroundColor: `${rankTier.color}22` }]}>
                 <Ionicons
@@ -283,7 +288,7 @@ export default function ForumDetailScreen() {
                   color={rankTier.color}
                 />
                 <Text style={[styles.rankText, { color: rankTier.color }]}>
-                  {item.authorRank}
+                  {authorRank}
                 </Text>
               </View>
             </TouchableOpacity>
@@ -302,6 +307,12 @@ export default function ForumDetailScreen() {
   const renderHeader = () => {
     if (!post) return null;
 
+    const isMe = post.authorId === user?.id;
+    const authorRank = isMe && profile ? profile.currentRank : post.authorRank;
+    const authorName = isMe && user ? (user.name || user.displayName || user.username || 'Ẩn danh') : (post.authorName || 'Ẩn danh');
+    const authorPhoto = isMe && user ? (user.avatar || user.photo || '') : post.authorPhoto;
+    const rankTier = getRankTier(authorRank);
+
     return (
       <View style={styles.headerContent}>
         {/* Post full content */}
@@ -312,26 +323,26 @@ export default function ForumDetailScreen() {
             onPress={() => router.push(`/user-profile/${post.authorId}` as any)}
           >
             <AvatarView
-              uri={post.authorPhoto}
-              name={post.authorName}
+              uri={authorPhoto}
+              name={authorName}
               size={44}
               primaryColor={colors.primary}
-              rankName={post.authorRank}
+              rankName={authorRank}
             />
             <View style={styles.authorInfo}>
               <View style={styles.nameRow}>
                 <Text style={[styles.authorName, { color: colors.text }]}>
-                  {post.authorName || 'Ẩn danh'}
+                  {authorName}
                 </Text>
-                {post.authorRank && (
-                  <View style={[styles.rankBadge, { backgroundColor: `${getRankTier(post.authorRank).color}22` }]}>
+                {authorRank && (
+                  <View style={[styles.rankBadge, { backgroundColor: `${rankTier.color}22` }]}>
                     <Ionicons
-                      name={getRankTier(post.authorRank).icon as keyof typeof Ionicons.glyphMap}
+                      name={rankTier.icon as keyof typeof Ionicons.glyphMap}
                       size={10}
-                      color={getRankTier(post.authorRank).color}
+                      color={rankTier.color}
                     />
-                    <Text style={[styles.rankText, { color: getRankTier(post.authorRank).color }]}>
-                      {post.authorRank}
+                    <Text style={[styles.rankText, { color: rankTier.color }]}>
+                      {authorRank}
                     </Text>
                   </View>
                 )}

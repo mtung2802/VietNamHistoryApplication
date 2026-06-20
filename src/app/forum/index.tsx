@@ -22,7 +22,8 @@ import { AppHeader, Screen } from '@/components/ui';
 import { BORDER_RADIUS, FONT_SIZES, FONT_WEIGHTS, SHADOWS, SPACING } from '@/constants/theme';
 import { useThemeColors } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { getForumPosts, ForumPost } from '@/services/forumService';
+import { useGamification } from '@/contexts/GamificationContext';
+import { ForumPost, getForumPosts } from '@/services/forumService';
 import { getRankTier } from '@/services/rankService';
 import { useFocusEffect } from '@react-navigation/native';
 
@@ -66,6 +67,7 @@ export default function ForumScreen() {
   const router = useRouter();
   const colors = useThemeColors();
   const { user } = useAuth();
+  const { profile } = useGamification();
 
   const [posts, setPosts] = useState<ForumPost[]>([]);
   const [loading, setLoading] = useState(true);
@@ -113,7 +115,12 @@ export default function ForumScreen() {
   };
 
   const renderPost = ({ item }: { item: ForumPost }) => {
-    const rankTier = getRankTier(item.authorRank);
+    const isMe = item.authorId === user?.id;
+    const authorRank = isMe && profile ? profile.currentRank : item.authorRank;
+    const authorName = isMe && user ? (user.name || user.displayName || user.username || 'Ẩn danh') : (item.authorName || 'Ẩn danh');
+    const authorPhoto = isMe && user ? (user.avatar || user.photo || '') : item.authorPhoto;
+
+    const rankTier = getRankTier(authorRank);
 
     return (
       <TouchableOpacity
@@ -133,18 +140,18 @@ export default function ForumScreen() {
           onPress={() => router.push(`/user-profile/${item.authorId}` as any)}
         >
           <View style={[styles.avatarFrame, { borderColor: rankTier.color }]}>
-            {item.authorPhoto ? (
-              <Image source={{ uri: item.authorPhoto }} style={styles.avatarImg} />
+            {authorPhoto ? (
+              <Image source={{ uri: authorPhoto }} style={styles.avatarImg} />
             ) : (
               <View style={[styles.avatarFallback, { backgroundColor: rankTier.color }]}>
-                <Text style={styles.avatarInitials}>{getInitials(item.authorName)}</Text>
+                <Text style={styles.avatarInitials}>{getInitials(authorName)}</Text>
               </View>
             )}
           </View>
           <View style={styles.authorInfo}>
             <View style={styles.nameRow}>
               <Text style={[styles.authorName, { color: colors.text }]} numberOfLines={1}>
-                {item.authorName || 'Ẩn danh'}
+                {authorName}
               </Text>
               <View style={[styles.rankBadge, { backgroundColor: `${rankTier.color}22` }]}>
                 <Ionicons
@@ -153,7 +160,7 @@ export default function ForumScreen() {
                   color={rankTier.color}
                 />
                 <Text style={[styles.rankText, { color: rankTier.color }]}>
-                  {item.authorRank}
+                  {authorRank}
                 </Text>
               </View>
             </View>
