@@ -38,6 +38,12 @@ function RootNavigator() {
         {/* ── Hồ Sơ ─────────────────────────────────────────── */}
         <Stack.Screen name="profile-overview/index" />
         <Stack.Screen name="edit-profile/index" />
+        <Stack.Screen name="user-profile/[userId]" />
+
+        {/* ── Diễn đàn ────────────────────────────────────────── */}
+        <Stack.Screen name="forum/index" />
+        <Stack.Screen name="forum/[postId]" />
+        <Stack.Screen name="forum/create" />
 
         {/* ── Game ──────────────────────────────────────────── */}
         <Stack.Screen name="quiz/[quizSlug]/index" />

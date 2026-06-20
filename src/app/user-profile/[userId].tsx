@@ -1,4 +1,11 @@
-import React, { useCallback, useState } from 'react';
+/**
+ * UserProfileScreen — Trang thông tin cá nhân public của một người dùng
+ * Route: /user-profile/[userId]
+ *
+ * Hiển thị avatar, tên, rank, XP, stats, và danh sách huy hiệu.
+ */
+
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -6,176 +13,103 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
+  TouchableOpacity,
 } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { doc, getDoc } from 'firebase/firestore';
+
 import { db } from '@/services/firebase';
-import {
-  clearUserSession,
-  getUserSession,
-  saveUserSession,
-  SessionUser,
-} from '@/services/userSession';
 import { BORDER_RADIUS, FONT_SIZES, FONT_WEIGHTS, SHADOWS, SPACING } from '@/constants/theme';
 import { useThemeColors } from '@/contexts/ThemeContext';
-import { useGamification } from '@/contexts/GamificationContext';
 import { BADGE_DEFINITIONS } from '@/services/badgeService';
 import { getRankTier } from '@/services/rankService';
-import { DisplaySession } from '@/models/GamificationModels';
+import { getUserGamificationProfile } from '@/services/gamificationService';
+import { GamificationProfile } from '@/models/GamificationModels';
 import { AppHeader, Screen } from '@/components/ui';
 import { BadgeModal } from '@/components/ui/BadgeModal';
 import { RankModal } from '@/components/ui/RankModal';
 
-interface MenuItemProps {
-  icon: React.ComponentProps<typeof Ionicons>['name'];
-  label: string;
-  danger?: boolean;
-  onPress: () => void;
-}
-
-interface ProfileOverviewProps {
-  embeddedInTab?: boolean;
-  onLoggedOut?: () => void;
-}
-
-export function ProfileOverviewContent({
-  embeddedInTab = false,
-  onLoggedOut,
-}: ProfileOverviewProps) {
+export default function UserProfileScreen() {
   const router = useRouter();
+  const { userId } = useLocalSearchParams<{ userId: string }>();
   const colors = useThemeColors();
-  const { profile, loading: gamificationLoading } = useGamification();
-  const [user, setUser] = useState<SessionUser | null>(null);
-  const [loading, setLoading] = useState(true);
 
+  const [loading, setLoading] = useState(true);
+  const [profile, setProfile] = useState<GamificationProfile | null>(null);
+  const [displayName, setDisplayName] = useState<string>('Người dùng');
+  const [avatarUri, setAvatarUri] = useState<string | undefined>();
   const [showRankModal, setShowRankModal] = useState(false);
   const [selectedBadge, setSelectedBadge] = useState<typeof BADGE_DEFINITIONS[0] | null>(null);
 
-  useFocusEffect(
-    useCallback(() => {
-      let active = true;
+  useEffect(() => {
+    let active = true;
 
-      const loadUser = async () => {
-        try {
-          setLoading(true);
-          const session = await getUserSession();
-          if (!session) {
-            if (embeddedInTab) {
-              onLoggedOut?.();
-            } else {
-              router.replace('/auth');
-            }
-            return;
-          }
+    const loadUserData = async () => {
+      if (!userId) {
+        if (active) setLoading(false);
+        return;
+      }
 
-          if (active) setUser(session);
-          const snapshot = await getDoc(doc(db, 'users', session.id));
-          const remoteData = snapshot.exists() ? snapshot.data() : {};
+      try {
+        setLoading(true);
+
+        // Fetch user data (for name/avatar)
+        const userDoc = await getDoc(doc(db, 'users', userId));
+        if (userDoc.exists()) {
+          const data = userDoc.data();
           const resolvedAvatar =
-            typeof remoteData.avatar === 'string' && remoteData.avatar
-              ? remoteData.avatar
-              : typeof remoteData.photo === 'string' && remoteData.photo
-                ? remoteData.photo
-                : session.avatar || session.photo;
-          const mergedUser: SessionUser = {
-            ...session,
-            ...remoteData,
-            id: session.id,
-            name:
-              typeof remoteData.name === 'string'
-                ? remoteData.name
-                : typeof remoteData.displayName === 'string'
-                  ? remoteData.displayName
-                  : session.name,
-            avatar: resolvedAvatar,
-            photo: resolvedAvatar ? undefined : session.photo,
-          };
-
-          await saveUserSession(mergedUser);
-          if (active) setUser(mergedUser);
-        } catch (error) {
-          console.error('Unable to load profile:', error);
-          if (active) Alert.alert('Lỗi', 'Không thể tải thông tin hồ sơ.');
-        } finally {
-          if (active) setLoading(false);
-        }
-      };
-
-      loadUser();
-      return () => {
-        active = false;
-      };
-    }, [router]),
-  );
-
-  const handleLogout = () => {
-    Alert.alert('Đăng xuất', 'Bạn có chắc muốn đăng xuất?', [
-      { text: 'Hủy', style: 'cancel' },
-      {
-        text: 'Đăng xuất',
-        style: 'destructive',
-        onPress: async () => {
-          await clearUserSession();
-          if (embeddedInTab) {
-            onLoggedOut?.();
-          } else {
-            router.replace('/auth');
+            typeof data.avatar === 'string' && data.avatar
+              ? data.avatar
+              : typeof data.photo === 'string' && data.photo
+                ? data.photo
+                : undefined;
+          
+          if (active) {
+            setAvatarUri(resolvedAvatar);
+            setDisplayName(
+              typeof data.name === 'string'
+                ? data.name
+                : typeof data.displayName === 'string'
+                  ? data.displayName
+                  : 'Người dùng'
+            );
           }
-        },
-      },
-    ]);
-  };
+        }
 
-  const MenuItem = ({ icon, label, danger, onPress }: MenuItemProps) => (
-    <TouchableOpacity
-      style={[
-        styles.menuItem,
-        {
-          backgroundColor: colors.surface,
-          borderColor: colors.border,
-        },
-      ]}
-      onPress={onPress}
-      activeOpacity={0.8}
-    >
-      <View
-        style={[
-          styles.menuIcon,
-          { backgroundColor: danger ? `${colors.error}18` : colors.primaryDim },
-        ]}
-      >
-        <Ionicons
-          name={icon}
-          size={21}
-          color={danger ? colors.error : colors.primary}
-        />
-      </View>
-      <Text style={[styles.menuLabel, { color: danger ? colors.error : colors.text }]}>
-        {label}
-      </Text>
-      <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
-    </TouchableOpacity>
-  );
+        // Fetch gamification profile
+        const gamificationData = await getUserGamificationProfile(userId);
+        if (active) {
+          setProfile(gamificationData);
+        }
 
-  const avatarUri = user?.avatar || user?.photo;
-  const displayName = user?.name || user?.displayName || user?.username || 'Người dùng';
+      } catch (error) {
+        console.error('Lỗi khi tải hồ sơ người dùng:', error);
+        if (active) Alert.alert('Lỗi', 'Không thể tải thông tin hồ sơ.');
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
 
-  // Rank info
+    loadUserData();
+
+    return () => {
+      active = false;
+    };
+  }, [userId]);
+
   const rankTier = profile ? getRankTier(profile.currentRank) : null;
 
   return (
     <Screen>
-      <AppHeader title="Hồ sơ" showBack={false} />
+      <AppHeader title="Hồ sơ người chơi" showBack />
 
       {loading ? (
         <View style={styles.centered}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
-      ) : (
+      ) : profile ? (
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           {/* ═══ Avatar + Name + Rank ═══ */}
           <View style={styles.profileSection}>
@@ -202,76 +136,72 @@ export function ProfileOverviewContent({
                   color={rankTier.color}
                 />
                 <Text style={[styles.rankLabel, { color: rankTier.color }]}>
-                  {profile!.currentRank}
+                  {profile.currentRank}
                 </Text>
               </View>
             )}
           </View>
 
           {/* ═══ XP Progress Bar ═══ */}
-          {profile && (
-            <TouchableOpacity
-              style={[styles.xpSection, { backgroundColor: colors.surface, borderColor: colors.border }]}
-              onPress={() => setShowRankModal(true)}
-              activeOpacity={0.7}
-            >
-              <View style={styles.xpHeader}>
-                <Text style={[styles.xpLabel, { color: colors.text }]}>
-                  <Ionicons name="sparkles" size={14} color={colors.primary} /> {profile.totalXP} XP
+          <TouchableOpacity
+            style={[styles.xpSection, { backgroundColor: colors.surface, borderColor: colors.border }]}
+            onPress={() => setShowRankModal(true)}
+            activeOpacity={0.7}
+          >
+            <View style={styles.xpHeader}>
+              <Text style={[styles.xpLabel, { color: colors.text }]}>
+                <Ionicons name="sparkles" size={14} color={colors.primary} /> {profile.totalXP} XP
+              </Text>
+              {profile.nextRank ? (
+                <Text style={[styles.xpToNext, { color: colors.textSecondary }]}>
+                  {profile.xpToNextRank} XP → {profile.nextRank}
                 </Text>
-                {profile.nextRank ? (
-                  <Text style={[styles.xpToNext, { color: colors.textSecondary }]}>
-                    {profile.xpToNextRank} XP → {profile.nextRank}
-                  </Text>
-                ) : (
-                  <Text style={[styles.xpToNext, { color: colors.primary }]}>
-                    MAX RANK! 🏆
-                  </Text>
-                )}
-              </View>
-              <View style={[styles.progressTrack, { backgroundColor: colors.border }]}>
-                <View
-                  style={[
-                    styles.progressFill,
-                    {
-                      backgroundColor: rankTier?.color ?? colors.primary,
-                      width: `${Math.max(2, profile.xpProgress * 100)}%`,
-                    },
-                  ]}
-                />
-              </View>
-            </TouchableOpacity>
-          )}
-
-          {/* ═══ Stats Row ═══ */}
-          {profile && (
-            <View style={styles.statsRow}>
-              <StatCard
-                icon="game-controller-outline"
-                value={String(profile.totalSessions)}
-                label="Lượt chơi"
-                color={colors}
-              />
-              <StatCard
-                icon="trophy-outline"
-                value={String(profile.highestScore * 10)}
-                label="Điểm cao nhất"
-                color={colors}
-              />
-              <StatCard
-                icon="flame-outline"
-                value={String(profile.currentStreak)}
-                label="Chuỗi"
-                color={colors}
-              />
-              <StatCard
-                icon="trending-up-outline"
-                value={String(profile.longestStreak)}
-                label="Chuỗi max"
-                color={colors}
+              ) : (
+                <Text style={[styles.xpToNext, { color: colors.primary }]}>
+                  MAX RANK! 🏆
+                </Text>
+              )}
+            </View>
+            <View style={[styles.progressTrack, { backgroundColor: colors.border }]}>
+              <View
+                style={[
+                  styles.progressFill,
+                  {
+                    backgroundColor: rankTier?.color ?? colors.primary,
+                    width: `${Math.max(2, profile.xpProgress * 100)}%`,
+                  },
+                ]}
               />
             </View>
-          )}
+          </TouchableOpacity>
+
+          {/* ═══ Stats Row ═══ */}
+          <View style={styles.statsRow}>
+            <StatCard
+              icon="game-controller-outline"
+              value={String(profile.totalSessions)}
+              label="Lượt chơi"
+              color={colors}
+            />
+            <StatCard
+              icon="trophy-outline"
+              value={String(profile.highestScore * 10)}
+              label="Điểm cao nhất"
+              color={colors}
+            />
+            <StatCard
+              icon="flame-outline"
+              value={String(profile.currentStreak)}
+              label="Chuỗi"
+              color={colors}
+            />
+            <StatCard
+              icon="trending-up-outline"
+              value={String(profile.longestStreak)}
+              label="Chuỗi max"
+              color={colors}
+            />
+          </View>
 
           {/* ═══ Badges Grid ═══ */}
           <View style={styles.sectionHeader}>
@@ -281,7 +211,7 @@ export function ProfileOverviewContent({
 
           <View style={styles.badgesGrid}>
             {BADGE_DEFINITIONS.map((def) => {
-              const earned = profile?.badges.find((b) => b.badgeId === def.id);
+              const earned = profile.badges.find((b) => b.badgeId === def.id);
               const isEarned = !!earned;
               return (
                 <TouchableOpacity
@@ -336,31 +266,11 @@ export function ProfileOverviewContent({
             })}
           </View>
 
-          {/* ═══ Menu ═══ */}
-          <View style={styles.menuSection}>
-            <MenuItem
-              icon="time-outline"
-              label="Lịch sử chơi"
-              onPress={() => router.push('/play-history' as any)}
-            />
-            <MenuItem
-              icon="chatbubbles-outline"
-              label="Diễn đàn"
-              onPress={() => router.push('/forum' as any)}
-            />
-            <MenuItem
-              icon="create-outline"
-              label="Chỉnh sửa hồ sơ"
-              onPress={() => router.push('/edit-profile')}
-            />
-            <MenuItem
-              icon="log-out-outline"
-              label="Đăng xuất"
-              danger
-              onPress={handleLogout}
-            />
-          </View>
         </ScrollView>
+      ) : (
+        <View style={styles.centered}>
+          <Text style={{ color: colors.textMuted }}>Không tìm thấy thông tin</Text>
+        </View>
       )}
 
       {/* Modals */}
@@ -374,8 +284,8 @@ export function ProfileOverviewContent({
         visible={!!selectedBadge} 
         badge={selectedBadge ? {
           ...selectedBadge,
-          isEarned: !!(profile?.badges.find(b => b.badgeId === selectedBadge.id)),
-          earnedAt: profile?.badges.find(b => b.badgeId === selectedBadge.id)?.earnedAt?.toDate?.()
+          isEarned: !!(profile?.badges?.find(b => b.badgeId === selectedBadge.id)),
+          earnedAt: profile?.badges?.find(b => b.badgeId === selectedBadge.id)?.earnedAt?.toDate?.()
         } : null} 
         onClose={() => setSelectedBadge(null)} 
       />
@@ -404,10 +314,6 @@ function StatCard({
   );
 }
 
-export default function ProfileOverviewScreen() {
-  return <ProfileOverviewContent />;
-}
-
 const styles = StyleSheet.create({
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   content: { padding: SPACING[5], paddingBottom: SPACING[10] },
@@ -431,7 +337,6 @@ const styles = StyleSheet.create({
     marginTop: SPACING[4],
     textAlign: 'center',
   },
-  username: { fontSize: FONT_SIZES.sm, marginTop: 3 },
   rankBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -544,31 +449,5 @@ const styles = StyleSheet.create({
   },
   badgeDate: {
     fontSize: 9,
-  },
-
-
-
-  // Menu
-  menuSection: { gap: SPACING[3], marginTop: SPACING[6] },
-  menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: BORDER_RADIUS.xl,
-    borderWidth: 1,
-    padding: SPACING[3],
-    ...SHADOWS.sm,
-  },
-  menuIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  menuLabel: {
-    flex: 1,
-    marginLeft: SPACING[3],
-    fontSize: FONT_SIZES.base,
-    fontWeight: FONT_WEIGHTS.semibold,
   },
 });

@@ -7,17 +7,17 @@
  */
 
 import {
-  doc,
   collection,
-  addDoc,
+  doc,
   getDoc,
   getDocs,
-  setDoc,
-  query,
-  orderBy,
   limit,
-  Timestamp,
+  orderBy,
+  query,
   runTransaction,
+  Timestamp,
+  writeBatch,
+  serverTimestamp,
 } from 'firebase/firestore';
 import { db } from '@/services/firebase';
 import {
@@ -240,6 +240,37 @@ export async function getUserGamificationProfile(
       earnedAt: data.earnedAt,
     } as UserBadge;
   });
+
+  // Retroactive badge sync
+  const existingBadgeIds = badges.map(b => b.badgeId);
+  const { checkNewBadges } = require('./badgeService');
+  const missedBadges = checkNewBadges({
+    totalSessions: gamification.totalSessions,
+    highestScore: gamification.highestScore,
+    longestStreak: gamification.longestStreak,
+    currentRank: gamification.currentRank,
+    existingBadgeIds,
+  });
+  if (missedBadges.length > 0) {
+    const batch = writeBatch(db);
+    missedBadges.forEach((badge: any) => {
+      const badgeRef = doc(collection(db, 'users', userId, 'badges'));
+      batch.set(badgeRef, {
+        badgeId: badge.id,
+        name: badge.name,
+        description: badge.description,
+        earnedAt: serverTimestamp(),
+      });
+      badges.push({
+        badgeId: badge.id,
+        name: badge.name,
+        description: badge.description,
+        earnedAt: Timestamp.fromDate(new Date()), // Local temp
+      });
+    });
+    // Add fire-and-forget sync
+    batch.commit().catch((e: any) => console.error('Failed to sync missed badges', e));
+  }
 
   // Parse recent sessions
   const recentSessions: DisplaySession[] = sessionsSnap.docs.map((d) => {

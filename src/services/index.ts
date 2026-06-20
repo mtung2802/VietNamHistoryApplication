@@ -75,3 +75,13 @@ export {
 export { BADGE_DEFINITIONS, getBadgeDefinition, checkNewBadges } from './badgeService';
 export { calculateStreak, getTodayVietnam } from './streakService';
 export { logGameSession, getUserGamificationProfile, getUserPlayHistory } from './gamificationService';
+
+// Forum services
+export {
+  getForumPosts,
+  getForumPost,
+  toggleLike,
+  subscribeToReplies,
+  addReply,
+  createPost,
+} from './forumService';

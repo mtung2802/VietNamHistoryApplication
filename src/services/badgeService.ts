@@ -152,11 +152,14 @@ export function checkNewBadges(params: BadgeCheckParams): BadgeDefinition[] {
     tryAward('speed_demon');
   }
 
-  // Rank-up badges
-  if (rankChanged) {
-    if (newRank === 'Gold') tryAward('rank_gold');
-    if (newRank === 'Legend') tryAward('rank_legend');
-  }
+  // Rank badges (Trao cho Rank hiện tại và tất cả Rank thấp hơn)
+  const rankLevels: Record<string, number> = {
+    'Newcomer': 0, 'Bronze': 1, 'Silver': 2, 'Gold': 3, 'Platinum': 4, 'Legend': 5
+  };
+  const currentLevel = rankLevels[newRank] || 0;
+
+  if (currentLevel >= 3) tryAward('rank_gold'); // Gold or higher
+  if (currentLevel >= 5) tryAward('rank_legend'); // Legend
 
   return newBadges;
 }
