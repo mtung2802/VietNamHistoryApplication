@@ -247,7 +247,7 @@ export function ProfileOverviewContent({
               />
               <StatCard
                 icon="trophy-outline"
-                value={String(profile.highestScore)}
+                value={String(profile.highestScore * 10)}
                 label="Điểm cao nhất"
                 color={colors}
               />
