@@ -11,3 +11,5 @@ export { Badge } from './Badge';
 export { SectionTitle } from './SectionTitle';
 export { HistoryImage } from './HistoryImage';
 export { LoadingState, ErrorState, EmptyState } from './StateViews';
+export { BadgeModal } from './BadgeModal';
+export { RankModal } from './RankModal';

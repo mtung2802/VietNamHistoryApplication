@@ -29,8 +29,8 @@ export const getArticles = async () => {
 
     querySnapshot.forEach((doc) => {
       articles.push({
-        id: doc.id,
         ...doc.data(),
+        id: doc.id,
       });
     });
 
@@ -57,8 +57,8 @@ export const getArticleById = async (articleId: string) => {
 
     if (docSnap.exists()) {
       return {
-        id: docSnap.id,
         ...docSnap.data(),
+        id: docSnap.id,
       };
     }
     return null;
@@ -93,8 +93,8 @@ export const searchArticles = async (keyword: string) => {
         data.description?.toLowerCase().includes(keyword.toLowerCase())
       ) {
         articles.push({
-          id: doc.id,
           ...data,
+          id: doc.id,
         });
       }
     });

@@ -62,7 +62,7 @@ export default function MuseumScreen() {
     try {
       if (isRefresh) setRefreshing(true); else setLoading(true);
       const snap = await getDocs(query(collection(db, 'museums'), orderBy('sortOrder', 'asc')));
-      setMuseums(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Museum)));
+      setMuseums(snap.docs.map((d) => ({ ...d.data(), id: d.id } as Museum)));
     } catch (e) {
       console.error('❌ Load museums error:', e);
     } finally {

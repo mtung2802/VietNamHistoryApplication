@@ -16,5 +16,4 @@ export type {
 export type { QuizItem } from './QuizzItem';
 export type { QuestionItem } from './QuestionItem';
 export type { UserModel } from './UserModel';
-export type { ForumPost } from './ForumPost';
-export type { Reply } from './Reply';
+

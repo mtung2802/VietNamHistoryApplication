@@ -27,6 +27,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { Screen } from '@/components/ui';
+import { useAuth } from '@/contexts/AuthContext';
 
 const onboardingAssets = {
   flagStreet: require('../../assets/onboarding/flag-street.png'),
@@ -37,9 +38,6 @@ const onboardingAssets = {
   lotus: require('../../assets/onboarding/lotus-flowers.png'),
   brownPaper: require('../../assets/onboarding/parchment-strip.png'),
 };
-
-const BASE_WIDTH = 750;
-const BASE_HEIGHT = 1320;
 
 // Chỉnh nhanh motion ở đây.
 const ARROW_PULSE_SCALE = 1.08;
@@ -287,6 +285,7 @@ function CollageBackground() {
 export default function SplashScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { user, isLoading } = useAuth();
 
   const arrowProgress = useSharedValue(0);
   const arrowPulse = useSharedValue(1);
@@ -319,6 +318,10 @@ export default function SplashScreen() {
   }, [arrowProgress, arrowPulse]);
 
   const handleStart = () => {
+    if (isLoading) {
+      return;
+    }
+
     // Press feedback: icon nhún, mũi tên lướt phải rồi chuyển màn.
     pressScale.value = withSequence(
       withTiming(ARROW_PRESS_SCALE, { duration: 90, easing: Easing.out(Easing.quad) }),
@@ -333,7 +336,7 @@ export default function SplashScreen() {
     );
 
     setTimeout(() => {
-      router.replace('/(tabs)/period');
+      router.replace(user ? '/(tabs)/period' : '/auth');
     }, 250);
   };
 

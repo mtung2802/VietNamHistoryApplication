@@ -2,6 +2,8 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { ThemeProvider, useThemeContext } from '@/contexts/ThemeContext';
+import { AuthProvider } from '@/contexts/AuthContext';
+import { GamificationProvider } from '@/contexts/GamificationContext';
 
 function RootNavigator() {
   const { colors, isDark } = useThemeContext();
@@ -18,6 +20,8 @@ function RootNavigator() {
       >
         {/* Splash */}
         <Stack.Screen name="index" />
+        {/* Đăng nhập / Đăng ký */}
+        <Stack.Screen name="auth" options={{ animation: 'fade' }} />
         {/* Tab navigator */}
         <Stack.Screen name="(tabs)" />
 
@@ -32,16 +36,22 @@ function RootNavigator() {
         <Stack.Screen name="person/[periodSlug]/[personSlug]/index" />
         <Stack.Screen name="person-event/[periodSlug]/[personSlug]/[eventSlug]/index" />
 
-        {/* ── Hồ Sơ & Forum ─────────────────────────────────── */}
+        {/* ── Hồ Sơ ─────────────────────────────────────────── */}
         <Stack.Screen name="profile-overview/index" />
         <Stack.Screen name="edit-profile/index" />
+        <Stack.Screen name="user-profile/[userId]" />
+
+        {/* ── Diễn đàn ────────────────────────────────────────── */}
         <Stack.Screen name="forum/index" />
         <Stack.Screen name="forum/[postId]" />
-        <Stack.Screen name="forum/new" />
+        <Stack.Screen name="forum/create" />
 
         {/* ── Game ──────────────────────────────────────────── */}
         <Stack.Screen name="quiz/[quizSlug]/index" />
+        <Stack.Screen name="quiz/[quizSlug]/play" />
+        <Stack.Screen name="quiz/[quizSlug]/result" />
         <Stack.Screen name="timeline/[eraId]/index" />
+        <Stack.Screen name="timeline/[eraId]/play" />
 
         {/* ── Khám Phá ──────────────────────────────────────── */}
         <Stack.Screen name="explore/article/index" />
@@ -55,7 +65,11 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider>
-        <RootNavigator />
+        <AuthProvider>
+          <GamificationProvider>
+            <RootNavigator />
+          </GamificationProvider>
+        </AuthProvider>
       </ThemeProvider>
     </GestureHandlerRootView>
   );

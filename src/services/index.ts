@@ -8,9 +8,9 @@ export { app, auth, db, firebaseConfig } from './firebase';
 // Authentication services
 export {
   loginWithUsername,
-  loginWithGoogle,
   register,
   logout,
+  resetPassword,
 } from './authService';
 
 // Data services
@@ -42,23 +42,46 @@ export {
 export {
   getQuizzes,
   getQuizById,
+  getQuestionsByQuiz,
 } from './quizService';
 
-export {
-  subscribeToForum,
-  getPosts,
-  getPostById,
-  createPost,
-  deletePost,
-  getReplies,
-  addReply,
-} from './forumService';
+
 
 export {
   getUserById,
   updateUser,
-  addUserPoints,
   addFinishedQuiz,
   addUserBadge,
   updateLastLogin,
+  uploadUserAvatar,
 } from './userService';
+
+export {
+  getUserSession,
+  saveUserSession,
+  clearUserSession,
+  USER_SESSION_KEY,
+} from './userSession';
+
+// Gamification services
+export { calculateXP } from './xpService';
+export {
+  RANK_TIERS,
+  getRankForXP,
+  getRankTier,
+  getNextRankInfo,
+  getRankProgress,
+} from './rankService';
+export { BADGE_DEFINITIONS, getBadgeDefinition, checkNewBadges } from './badgeService';
+export { calculateStreak, getTodayVietnam } from './streakService';
+export { logGameSession, getUserGamificationProfile, getUserPlayHistory } from './gamificationService';
+
+// Forum services
+export {
+  getForumPosts,
+  getForumPost,
+  toggleLike,
+  subscribeToReplies,
+  addReply,
+  createPost,
+} from './forumService';

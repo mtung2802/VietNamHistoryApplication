@@ -1,113 +1,201 @@
 /**
- * Chi tiết Kỷ Nguyên Timeline Puzzle
+ * Màn thông tin Kỷ Nguyên (trước khi chơi Timeline Puzzle)
  * Route: /timeline/[eraId]
- * Tương đương: TimeLinePuzzleDetail.java (màn hình thông tin era)
+ * Tương đương: TimeLinePuzzleDetail.java
  */
 
 import React, { useCallback, useEffect, useState } from 'react';
-import {
-  ActivityIndicator, ScrollView, StatusBar,
-  StyleSheet, Text, TouchableOpacity, View,
-} from 'react-native';
+import { ImageBackground, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { Era } from '@/models/Era';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '@/services/firebase';
-import { BORDER_RADIUS, COLORS, FONT_SIZES, FONT_WEIGHTS, SHADOWS, SPACING } from '@/constants/theme';
+import { getEraById } from '@/services/timelinePuzzleService';
+import { BORDER_RADIUS, FONT_SIZES, FONT_WEIGHTS, SPACING } from '@/constants/theme';
+import { useThemeColors } from '@/contexts/ThemeContext';
+import {
+  Screen,
+  AppHeader,
+  Card,
+  Button,
+  LoadingState,
+  ErrorState,
+} from '@/components/ui';
 
 export default function TimelineDetailScreen() {
   const { eraId } = useLocalSearchParams<{ eraId: string }>();
   const router = useRouter();
+  const colors = useThemeColors();
   const [era, setEra] = useState<Era | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!eraId) return;
     try {
       setLoading(true);
-      const snap = await getDoc(doc(db, 'games', 'timelinepuzzle', 'eras', eraId));
-      setEra(snap.exists() ? ({ eraId: snap.id, ...snap.data() } as Era) : null);
-    } catch (e) { console.error(e); }
-    finally { setLoading(false); }
+      setError(null);
+      const data = await getEraById(eraId);
+      if (!data) {
+        setError('Không tìm thấy kỷ nguyên.');
+        return;
+      }
+      setEra(data);
+    } catch {
+      setError('Không thể tải kỷ nguyên.');
+    } finally {
+      setLoading(false);
+    }
   }, [eraId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
-  if (loading) return (
-    <View style={styles.centered}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
-      <ActivityIndicator size="large" color={COLORS.primary} />
-    </View>
-  );
+  if (loading) {
+    return (
+      <Screen>
+        <AppHeader title="Ghép Niên Đại" showThemeToggle={false} />
+        <LoadingState />
+      </Screen>
+    );
+  }
 
-  if (!era) return (
-    <View style={styles.centered}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
-      <Text style={{ fontSize: 48 }}>❓</Text>
-      <Text style={styles.errorText}>Không tìm thấy kỷ nguyên</Text>
-      <TouchableOpacity style={styles.retryBtn} onPress={() => router.back()}>
-        <Text style={styles.retryText}>Quay lại</Text>
-      </TouchableOpacity>
-    </View>
-  );
+  if (error || !era) {
+    return (
+      <Screen>
+        <AppHeader title="Ghép Niên Đại" showThemeToggle={false} />
+        <ErrorState message={error ?? 'Không tìm thấy kỷ nguyên.'} onRetry={load} />
+      </Screen>
+    );
+  }
+
+  const eventCount = era.events?.length ?? 0;
+  const heroImage = era.coverMediaRef ?? era.thumbnailUrl;
 
   return (
-    <View style={styles.root}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-          <Text style={styles.backBtnText}>‹</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle} numberOfLines={1}>{era.title}</Text>
-        <View style={{ width: 40 }} />
-      </View>
-      <View style={styles.accent} />
-
+    <Screen>
+      <AppHeader title={era.title} showThemeToggle={false} />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.heroCard}>
-          <Text style={styles.heroEmoji}>🗓️</Text>
-          <Text style={styles.heroTitle}>{era.title}</Text>
-          {!!era.description && <Text style={styles.heroDesc}>{era.description}</Text>}
-        </View>
+        <Card highlighted style={styles.heroCard}>
+          {heroImage ? (
+            <ImageBackground
+              source={{ uri: heroImage }}
+              resizeMode="cover"
+              style={styles.heroImage}
+              imageStyle={styles.heroImageRadius}
+            >
+              <View style={styles.heroImageOverlay} />
+              <View style={[styles.heroIconSmall, { backgroundColor: colors.primary }]}>
+                <Ionicons name="time" size={26} color={colors.onPrimary} />
+              </View>
+            </ImageBackground>
+          ) : (
+            <View style={[styles.heroIcon, { backgroundColor: colors.primaryDim }]}>
+              <Ionicons name="time" size={48} color={colors.primary} />
+            </View>
+          )}
+          <Text style={[styles.heroTitle, { color: colors.text }]}>{era.title}</Text>
+          {!!era.description && (
+            <Text style={[styles.heroDesc, { color: colors.textSecondary }]}>
+              {era.description}
+            </Text>
+          )}
+          {eventCount > 0 && (
+            <View style={[styles.countChip, { backgroundColor: colors.primaryDim }]}>
+              <Ionicons name="albums-outline" size={16} color={colors.primary} />
+              <Text style={[styles.countText, { color: colors.primary }]}>
+                {eventCount} sự kiện
+              </Text>
+            </View>
+          )}
+        </Card>
 
-        <TouchableOpacity style={styles.startBtn} activeOpacity={0.85}>
-          <Text style={styles.startBtnText}>🧩 Bắt đầu ghép niên đại</Text>
-        </TouchableOpacity>
+        {/* Luật chơi ngắn gọn */}
+        <Card style={styles.rulesCard}>
+          <Text style={[styles.rulesTitle, { color: colors.text }]}>Cách chơi</Text>
+          <View style={styles.ruleRow}>
+            <Ionicons name="hand-left-outline" size={18} color={colors.primary} />
+            <Text style={[styles.ruleText, { color: colors.textSecondary }]}>
+              Chọn thẻ sự kiện theo thứ tự thời gian từ sớm đến muộn để ghép lên bàn.
+            </Text>
+          </View>
+          <View style={styles.ruleRow}>
+            <Ionicons name="heart-outline" size={18} color={colors.primary} />
+            <Text style={[styles.ruleText, { color: colors.textSecondary }]}>
+              Chọn sai thì kẻ xâm lược tiến gần pháo đài; khi áp sát, mỗi đòn tấn công làm mất 1 máu.
+            </Text>
+          </View>
+          <View style={styles.ruleRow}>
+            <Ionicons name="trophy-outline" size={18} color={colors.primary} />
+            <Text style={[styles.ruleText, { color: colors.textSecondary }]}>
+              Ghép đủ toàn bộ sự kiện trước khi pháo đài hết máu để chiến thắng.
+            </Text>
+          </View>
+        </Card>
 
-        <Text style={styles.comingSoon}>
-          * Tính năng ghép niên đại sẽ được cập nhật trong phiên bản tiếp theo
-        </Text>
+        <Button
+          label="Bắt đầu ghép niên đại"
+          icon="extension-puzzle"
+          size="lg"
+          onPress={() =>
+            router.push({
+              pathname: '/timeline/[eraId]/play',
+              params: { eraId: eraId! },
+            })
+          }
+        />
       </ScrollView>
-    </View>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: COLORS.lightBg },
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, padding: 24, backgroundColor: COLORS.lightBg },
-  errorText: { color: COLORS.gray600, textAlign: 'center', fontSize: FONT_SIZES.base },
-  retryBtn: { backgroundColor: COLORS.primary, paddingHorizontal: 32, paddingVertical: 12, borderRadius: BORDER_RADIUS.full },
-  retryText: { color: COLORS.white, fontWeight: FONT_WEIGHTS.bold },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: COLORS.primary, paddingTop: 52, paddingBottom: 12, paddingHorizontal: 16,
-  },
-  accent: { height: 4, backgroundColor: COLORS.accent },
-  backBtn: { width: 40, alignItems: 'center' },
-  backBtnText: { color: COLORS.white, fontSize: 30, fontWeight: FONT_WEIGHTS.bold, lineHeight: 34 },
-  headerTitle: { flex: 1, color: COLORS.white, fontSize: FONT_SIZES.lg, fontWeight: FONT_WEIGHTS.bold, textAlign: 'center' },
   content: { padding: SPACING[5], gap: SPACING[4], paddingBottom: SPACING[8] },
-  heroCard: {
-    backgroundColor: COLORS.white, borderRadius: BORDER_RADIUS.xl,
-    padding: SPACING[6], alignItems: 'center', gap: SPACING[3], ...SHADOWS.md,
+  heroCard: { alignItems: 'center', gap: SPACING[3], paddingVertical: SPACING[4] },
+  heroImage: {
+    width: '100%',
+    height: 210,
+    overflow: 'hidden',
+    justifyContent: 'flex-end',
   },
-  heroEmoji: { fontSize: 56 },
-  heroTitle: { fontSize: FONT_SIZES['2xl'], fontWeight: FONT_WEIGHTS.bold, color: COLORS.gray900, textAlign: 'center' },
-  heroDesc: { fontSize: FONT_SIZES.sm, color: COLORS.gray600, textAlign: 'center', lineHeight: 22 },
-  startBtn: {
-    backgroundColor: COLORS.primary, borderRadius: BORDER_RADIUS.xl,
-    paddingVertical: 18, alignItems: 'center', ...SHADOWS.md,
+  heroImageRadius: { borderRadius: BORDER_RADIUS.lg },
+  heroImageOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.18)',
   },
-  startBtnText: { color: COLORS.white, fontWeight: FONT_WEIGHTS.bold, fontSize: FONT_SIZES.lg },
-  comingSoon: { fontSize: FONT_SIZES.xs, color: COLORS.gray400, textAlign: 'center', fontStyle: 'italic' },
+  heroIcon: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroIconSmall: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    alignItems: 'center',
+    justifyContent: 'center',
+    margin: SPACING[3],
+  },
+  heroTitle: {
+    fontSize: FONT_SIZES['2xl'],
+    fontWeight: FONT_WEIGHTS.bold,
+    textAlign: 'center',
+  },
+  heroDesc: { fontSize: FONT_SIZES.sm, textAlign: 'center', lineHeight: 22 },
+  countChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: SPACING[3],
+    paddingVertical: 6,
+    borderRadius: BORDER_RADIUS.full,
+  },
+  countText: { fontSize: FONT_SIZES.sm, fontWeight: FONT_WEIGHTS.bold },
+
+  rulesCard: { gap: SPACING[3] },
+  rulesTitle: { fontSize: FONT_SIZES.base, fontWeight: FONT_WEIGHTS.bold },
+  ruleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: SPACING[2] },
+  ruleText: { flex: 1, fontSize: FONT_SIZES.sm, lineHeight: 20 },
 });

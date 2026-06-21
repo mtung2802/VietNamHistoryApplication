@@ -34,8 +34,8 @@ export const getEventsByStage = async (stageId: string): Promise<Event[]> => {
 
     querySnapshot.forEach((doc) => {
       events.push({
-        id: doc.id,
         ...doc.data(),
+        id: doc.id,
       } as Event);
     });
 
@@ -66,8 +66,8 @@ export const getEventById = async (id: string): Promise<Event | null> => {
     }
 
     return {
-      id: docSnapshot.id,
       ...docSnapshot.data(),
+      id: docSnapshot.id,
     } as Event;
   } catch (error) {
     console.error('❌ Lỗi lấy sự kiện theo ID:', error);
@@ -95,8 +95,8 @@ export const getEventsByPeriod = async (periodId: string): Promise<Event[]> => {
 
     querySnapshot.forEach((doc) => {
       events.push({
-        id: doc.id,
         ...doc.data(),
+        id: doc.id,
       } as Event);
     });
 

@@ -1,104 +1,294 @@
-/**
- * Chỉnh sửa hồ sơ
- * Route: /edit-profile
- * Tương đương: EditProfileActivity.java
- */
-
 import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator, Alert, KeyboardAvoidingView, Platform,
-  ScrollView, StatusBar, StyleSheet, Text, TextInput,
-  TouchableOpacity, View,
+  ActivityIndicator,
+  Alert,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
-import { doc, setDoc } from 'firebase/firestore';
+import { Ionicons } from '@expo/vector-icons';
+import { deleteField, doc, setDoc } from 'firebase/firestore';
 import { db } from '@/services/firebase';
-import { BORDER_RADIUS, COLORS, FONT_SIZES, FONT_WEIGHTS, SHADOWS, SPACING } from '@/constants/theme';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { uploadUserAvatar } from '@/services/userService';
+import {
+  getUserSession,
+  saveUserSession,
+  SessionUser,
+} from '@/services/userSession';
+import { BORDER_RADIUS, FONT_SIZES, FONT_WEIGHTS, SHADOWS, SPACING } from '@/constants/theme';
+import { useThemeColors } from '@/contexts/ThemeContext';
+import { AppHeader, Button, Screen } from '@/components/ui';
 
 export default function EditProfileScreen() {
   const router = useRouter();
+  const colors = useThemeColors();
+  const [user, setUser] = useState<SessionUser | null>(null);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [userId, setUserId] = useState<string | null>(null);
+  const [bio, setBio] = useState('');
+  const [avatarUri, setAvatarUri] = useState('');
+  const [newAvatarUri, setNewAvatarUri] = useState('');
+  const [loadingProfile, setLoadingProfile] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    AsyncStorage.getItem('currentUser').then((raw) => {
-      if (raw) {
-        const u = JSON.parse(raw);
-        setName(u.name ?? '');
-        setEmail(u.email ?? '');
-        setUserId(u.id ?? null);
-      }
-    });
-  }, []);
+    let active = true;
 
-  const handleSave = async () => {
-    if (!name.trim()) { Alert.alert('Lỗi', 'Tên không được để trống'); return; }
-    if (!userId) { Alert.alert('Lỗi', 'Không tìm thấy thông tin người dùng'); return; }
-    try {
-      setLoading(true);
-      await setDoc(doc(db, 'users', userId), { name: name.trim(), email: email.trim() }, { merge: true });
-      const raw = await AsyncStorage.getItem('currentUser');
-      const u = raw ? JSON.parse(raw) : {};
-      await AsyncStorage.setItem('currentUser', JSON.stringify({ ...u, name: name.trim(), email: email.trim() }));
-      Alert.alert('Thành công', 'Đã cập nhật hồ sơ!', [{ text: 'OK', onPress: () => router.back() }]);
-    } catch (e) {
-      Alert.alert('Lỗi', 'Không thể lưu thông tin.');
-    } finally {
-      setLoading(false);
+    getUserSession()
+      .then((session) => {
+        if (!active) return;
+        if (!session) {
+          router.replace('/(tabs)/profile');
+          return;
+        }
+
+        setUser(session);
+        setName(session.name || session.displayName || '');
+        setEmail(session.email || '');
+        setBio(session.bio || '');
+        setAvatarUri(session.avatar || session.photo || '');
+      })
+      .catch(() => Alert.alert('Lỗi', 'Không thể tải thông tin hồ sơ.'))
+      .finally(() => {
+        if (active) setLoadingProfile(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [router]);
+
+  const pickAvatar = async () => {
+    if (Platform.OS !== 'web') {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert(
+          'Cần quyền truy cập ảnh',
+          'Vui lòng cho phép ứng dụng truy cập thư viện để chọn ảnh đại diện.',
+        );
+        return;
+      }
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]?.uri) {
+      setNewAvatarUri(result.assets[0].uri);
     }
   };
 
+  const handleSave = async () => {
+    const normalizedName = name.trim();
+    const normalizedEmail = email.trim();
+
+    if (!normalizedName) {
+      Alert.alert('Lỗi', 'Họ và tên không được để trống');
+      return;
+    }
+    if (normalizedEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      Alert.alert('Lỗi', 'Email không đúng định dạng');
+      return;
+    }
+    if (!user?.id) {
+      Alert.alert('Lỗi', 'Không tìm thấy thông tin người dùng');
+      return;
+    }
+
+    try {
+      setSaving(true);
+      const uploadedAvatar = newAvatarUri
+        ? await uploadUserAvatar(user.id, newAvatarUri)
+        : avatarUri;
+      const profileData = {
+        name: normalizedName,
+        displayName: normalizedName,
+        email: normalizedEmail,
+        bio: bio.trim(),
+        avatar: uploadedAvatar,
+        updatedAt: new Date().toISOString(),
+      };
+
+      await setDoc(
+        doc(db, 'users', user.id),
+        { ...profileData, photo: deleteField() },
+        { merge: true },
+      );
+      await saveUserSession({ ...user, ...profileData, photo: undefined });
+
+      Alert.alert('Thành công', 'Đã cập nhật hồ sơ.', [
+        { text: 'OK', onPress: () => router.back() },
+      ]);
+    } catch (error) {
+      console.error('Unable to save profile:', error);
+      Alert.alert('Lỗi', 'Không thể lưu hồ sơ hoặc tải ảnh lên. Vui lòng thử lại.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const displayedAvatar = newAvatarUri || avatarUri;
+  const inputStyle = [
+    styles.input,
+    {
+      backgroundColor: colors.surface,
+      borderColor: colors.border,
+      color: colors.text,
+    },
+  ];
+
   return (
-    <KeyboardAvoidingView style={styles.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-          <Text style={styles.backBtnText}>‹</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Chỉnh Sửa Hồ Sơ</Text>
-        <View style={{ width: 40 }} />
-      </View>
-      <View style={styles.accent} />
+    <Screen>
+      <AppHeader title="Chỉnh sửa hồ sơ" />
+      {loadingProfile ? (
+        <View style={styles.centered}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      ) : (
+        <KeyboardAvoidingView
+          style={styles.flex}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
+          <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
+            <View style={styles.avatarSection}>
+              <TouchableOpacity onPress={pickAvatar} activeOpacity={0.85}>
+                <View
+                  style={[
+                    styles.avatarFrame,
+                    { backgroundColor: colors.surface, borderColor: colors.primary },
+                  ]}
+                >
+                  {displayedAvatar ? (
+                    <Image source={{ uri: displayedAvatar }} style={styles.avatar} />
+                  ) : (
+                    <Ionicons name="person" size={52} color={colors.textMuted} />
+                  )}
+                </View>
+                <View style={[styles.editAvatarButton, { backgroundColor: colors.primary }]}>
+                  <Ionicons name="camera" size={18} color={colors.onPrimary} />
+                </View>
+              </TouchableOpacity>
+              <Text style={[styles.avatarHint, { color: colors.textSecondary }]}>
+                Chạm để đổi ảnh đại diện
+              </Text>
+            </View>
 
-      <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
-        <Text style={styles.label}>Họ và tên</Text>
-        <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="Nhập họ tên" placeholderTextColor={COLORS.gray400} />
+            <View style={styles.field}>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>Họ và tên *</Text>
+              <TextInput
+                style={inputStyle}
+                value={name}
+                onChangeText={setName}
+                placeholder="Nhập họ và tên"
+                placeholderTextColor={colors.textMuted}
+              />
+            </View>
 
-        <Text style={styles.label}>Email</Text>
-        <TextInput style={styles.input} value={email} onChangeText={setEmail} placeholder="Nhập email" placeholderTextColor={COLORS.gray400} keyboardType="email-address" autoCapitalize="none" />
+            <View style={styles.field}>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>Email</Text>
+              <TextInput
+                style={inputStyle}
+                value={email}
+                onChangeText={setEmail}
+                placeholder="Nhập email"
+                placeholderTextColor={colors.textMuted}
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+            </View>
 
-        <TouchableOpacity style={[styles.saveBtn, loading && { opacity: 0.6 }]} onPress={handleSave} disabled={loading} activeOpacity={0.85}>
-          {loading ? <ActivityIndicator color={COLORS.primary} /> : <Text style={styles.saveBtnText}>Lưu thay đổi</Text>}
-        </TouchableOpacity>
-      </ScrollView>
-    </KeyboardAvoidingView>
+
+
+            <View style={styles.field}>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>Giới thiệu</Text>
+              <TextInput
+                style={[inputStyle, styles.bioInput]}
+                value={bio}
+                onChangeText={setBio}
+                placeholder="Viết vài dòng về bạn"
+                placeholderTextColor={colors.textMuted}
+                multiline
+                maxLength={200}
+                textAlignVertical="top"
+              />
+              <Text style={[styles.characterCount, { color: colors.textMuted }]}>
+                {bio.length}/200
+              </Text>
+            </View>
+
+            <Button
+              label="Lưu thay đổi"
+              icon="save-outline"
+              loading={saving}
+              disabled={saving}
+              onPress={handleSave}
+              size="lg"
+              style={styles.saveButton}
+            />
+          </ScrollView>
+        </KeyboardAvoidingView>
+      )}
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: COLORS.lightBg },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: COLORS.primary, paddingTop: 52, paddingBottom: 12, paddingHorizontal: 16,
+  flex: { flex: 1 },
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  form: { padding: SPACING[5], paddingBottom: SPACING[10] },
+  avatarSection: { alignItems: 'center', marginBottom: SPACING[6] },
+  avatarFrame: {
+    width: 112,
+    height: 112,
+    borderRadius: 56,
+    borderWidth: 3,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...SHADOWS.md,
   },
-  accent: { height: 4, backgroundColor: COLORS.accent },
-  backBtn: { width: 40, alignItems: 'center' },
-  backBtnText: { color: COLORS.white, fontSize: 30, fontWeight: FONT_WEIGHTS.bold, lineHeight: 34 },
-  headerTitle: { flex: 1, color: COLORS.white, fontSize: FONT_SIZES.lg, fontWeight: FONT_WEIGHTS.bold, textAlign: 'center' },
-  form: { padding: SPACING[5], gap: SPACING[2], paddingBottom: SPACING[8] },
-  label: { fontSize: FONT_SIZES.sm, fontWeight: FONT_WEIGHTS.semibold, color: COLORS.gray700, marginBottom: 2 },
+  avatar: { width: '100%', height: '100%' },
+  editAvatarButton: {
+    position: 'absolute',
+    right: 0,
+    bottom: 2,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarHint: { fontSize: FONT_SIZES.sm, marginTop: SPACING[3] },
+  field: { marginBottom: SPACING[4] },
+  label: {
+    fontSize: FONT_SIZES.sm,
+    fontWeight: FONT_WEIGHTS.semibold,
+    marginBottom: SPACING[2],
+  },
   input: {
-    backgroundColor: COLORS.white, borderRadius: BORDER_RADIUS.lg,
-    paddingHorizontal: SPACING[4], paddingVertical: 14,
-    fontSize: FONT_SIZES.base, color: COLORS.gray900,
-    borderWidth: 1, borderColor: COLORS.gray200, ...SHADOWS.sm, marginBottom: SPACING[2],
+    borderRadius: BORDER_RADIUS.lg,
+    borderWidth: 1,
+    paddingHorizontal: SPACING[4],
+    paddingVertical: 14,
+    fontSize: FONT_SIZES.base,
   },
-  saveBtn: {
-    backgroundColor: COLORS.accent, borderRadius: BORDER_RADIUS.full,
-    paddingVertical: 16, alignItems: 'center', ...SHADOWS.md, marginTop: SPACING[4],
+  bioInput: { minHeight: 108, paddingTop: 14 },
+  characterCount: {
+    alignSelf: 'flex-end',
+    fontSize: FONT_SIZES.xs,
+    marginTop: SPACING[1],
   },
-  saveBtnText: { color: COLORS.primary, fontWeight: FONT_WEIGHTS.bold, fontSize: FONT_SIZES.base },
+  saveButton: { marginTop: SPACING[2] },
 });

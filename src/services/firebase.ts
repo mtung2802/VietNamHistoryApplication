@@ -3,8 +3,9 @@
  * Sử dụng Firebase JS SDK modular (v9+)
  */
 
-import { initializeApp } from 'firebase/app';
-import { getAuth, Auth } from 'firebase/auth';
+import { initializeApp, getApps } from 'firebase/app';
+import { initializeAuth, getAuth, getReactNativePersistence, Auth } from 'firebase/auth';
+import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
 import { getFirestore, Firestore } from 'firebase/firestore';
 
 // Đọc config từ biến môi trường
@@ -39,11 +40,21 @@ const validateConfig = (): void => {
 
 validateConfig();
 
-// Khởi tạo Firebase app
-export const app = initializeApp(firebaseConfig);
+// Khởi tạo Firebase app (tránh khởi tạo lại khi hot reload)
+export const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 
-// Khởi tạo Firebase Auth
-export const auth: Auth = getAuth(app);
+// Khởi tạo Firebase Auth với AsyncStorage persistence (React Native)
+// try-catch để tránh lỗi "already initialized" khi Expo hot reload
+let authInstance: Auth;
+try {
+  authInstance = initializeAuth(app, {
+    persistence: getReactNativePersistence(ReactNativeAsyncStorage),
+  });
+} catch {
+  // Auth đã được khởi tạo rồi (hot reload) — lấy instance hiện tại
+  authInstance = getAuth(app);
+}
+export const auth: Auth = authInstance;
 
 // Khởi tạo Firestore
 export const db: Firestore = getFirestore(app);
