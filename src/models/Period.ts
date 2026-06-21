@@ -14,6 +14,19 @@
  *   status               → status
  */
 
+export type FirestoreDateValue =
+  | string
+  | number
+  | Date
+  | { seconds: number; nanoseconds?: number }
+  | { toDate: () => Date };
+
+export interface MediaItem {
+  content?: string;
+  link?: string;
+  url?: string;
+}
+
 export interface Period {
   id: string;           // = document ID = slug
   slug: string;         // URL-friendly identifier (= doc ID)
@@ -21,20 +34,53 @@ export interface Period {
   summary: string;      // Mô tả ngắn (hiển thị trên card)
   description: string;  // Mô tả chi tiết (hiển thị trong màn detail)
   coverMediaRef: string; // URL ảnh bìa
-  startDate: string;    // ISO date string  "0700-01-01T00:00:00+00:00"
-  endDate: string;      // ISO date string
+  images?: MediaItem[];
+  startDate: FirestoreDateValue; // ISO string hoặc Firestore Timestamp
+  endDate: FirestoreDateValue;   // ISO string hoặc Firestore Timestamp
   sortOrder: number;
   status?: string;      // "published" | ...
 }
 
-/** Trích năm từ ISO date string, trả về số nguyên. An toàn với undefined/null. */
-export function yearFromIso(iso: unknown): number {
-  if (!iso || typeof iso !== 'string') return 0;
-  // Format: "0700-01-01T..." hoặc "-0700-01-01T..." (TCN — năm âm)
-  const negative = iso.startsWith('-');
-  const raw = negative ? iso.slice(1) : iso;
-  const year = parseInt(raw.split('-')[0], 10);
-  return isNaN(year) ? 0 : negative ? -year : year;
+/** Trích năm từ ISO date string / Date / Firestore Timestamp. */
+export function yearFromIso(value: unknown): number {
+  if (!value) return 0;
+
+  if (typeof value === 'string') {
+    // Format: "0700-01-01T..." hoặc "-0700-01-01T..." (TCN - năm âm)
+    const negative = value.startsWith('-');
+    const raw = negative ? value.slice(1) : value;
+    const year = parseInt(raw.split('-')[0], 10);
+    return isNaN(year) ? 0 : negative ? -year : year;
+  }
+
+  if (value instanceof Date) {
+    return value.getFullYear();
+  }
+
+  if (typeof value === 'number') {
+    const ms = value < 10000000000 ? value * 1000 : value;
+    const year = new Date(ms).getFullYear();
+    return isNaN(year) ? 0 : year;
+  }
+
+  if (typeof value === 'object') {
+    const maybeTimestamp = value as {
+      seconds?: number;
+      toDate?: () => Date;
+    };
+
+    if (typeof maybeTimestamp.toDate === 'function') {
+      const year = maybeTimestamp.toDate().getFullYear();
+      return isNaN(year) ? 0 : year;
+    }
+
+    if (typeof maybeTimestamp.seconds === 'number') {
+      const year = new Date(maybeTimestamp.seconds * 1000).getFullYear();
+      return isNaN(year) ? 0 : year;
+    }
+  }
+
+  return 0;
 }
 
 /** Format năm hiển thị: âm → TCN, 0 → N/A */

@@ -23,6 +23,38 @@ export function resolveImageUrl(url?: string | null): string | undefined {
   return `https://drive.google.com/uc?export=download&id=${fileId}`;
 }
 
+type MediaRef = {
+  link?: unknown;
+  url?: unknown;
+  content?: unknown;
+};
+
+type WithMediaRefs = {
+  coverMediaRef?: unknown;
+  images?: unknown;
+};
+
+/** Lấy ảnh chính: ưu tiên coverMediaRef, fallback qua images[].link/url. */
+export function getPrimaryImageRef(item?: WithMediaRefs | null): string | undefined {
+  const cover = normalizeMediaString(item?.coverMediaRef);
+  if (cover) return cover;
+
+  if (!Array.isArray(item?.images)) return undefined;
+
+  for (const image of item.images as MediaRef[]) {
+    const link = normalizeMediaString(image?.link) ?? normalizeMediaString(image?.url);
+    if (link) return link;
+  }
+
+  return undefined;
+}
+
+function normalizeMediaString(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}
+
 /** Trích fileId từ các dạng URL Google Drive phổ biến. */
 export function extractDriveId(url: string): string | null {
   // dạng /d/{id}/

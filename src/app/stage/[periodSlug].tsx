@@ -1,121 +1,115 @@
 /**
- * Màn hình Danh Sách Giai Đoạn của một Thời Kỳ
- * Route: /stage/[periodSlug]
- *
- * Tương đương StageActivity.java
- * Đọc subcollection: periods/{periodSlug}/stages (orderBy sortOrder)
+ * Danh sách giai đoạn của một thời kỳ.
+ * Port từ Java StageActivity + stages_items.xml:
+ * header đơn giản, list dọc, card ảnh phía trên và nền chữ tối.
  */
 
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
   FlatList,
-  Image,
   ListRenderItemInfo,
   RefreshControl,
-  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Stage } from '@/models/Stage';
 import { Period, yearFromIso, formatYear } from '@/models/Period';
 import { getStagesByPeriod } from '@/services/stageService';
 import { getPeriodById } from '@/services/periodService';
+import { BORDER_RADIUS, FONT_SIZES, FONT_WEIGHTS, SHADOWS, SPACING } from '@/constants/theme';
+import { useThemeColors } from '@/contexts/ThemeContext';
 import {
-  BORDER_RADIUS,
-  COLORS,
-  FONT_SIZES,
-  FONT_WEIGHTS,
-  SHADOWS,
-  SPACING,
-} from '@/constants/theme';
+  Screen,
+  HistoryImage,
+  LoadingState,
+  ErrorState,
+  EmptyState,
+} from '@/components/ui';
+import { getPrimaryImageRef } from '@/utils/media';
 
-// ─── Placeholder khi không có ảnh ──────────────────────────────────────────
-function StagePlaceholder({ name }: { name: string }) {
-  return (
-    <View style={styles.placeholder}>
-      <Text style={styles.placeholderEmoji}>⚔️</Text>
-      <Text style={styles.placeholderInitial} numberOfLines={1}>
-        {name?.charAt(0) ?? '?'}
-      </Text>
-    </View>
-  );
-}
-
-// ─── Stage Card ─────────────────────────────────────────────────────────────
 function StageCard({
   item,
-  index,
   onPress,
 }: {
   item: Stage;
-  index: number;
   onPress: () => void;
 }) {
+  const colors = useThemeColors();
   const startYear = yearFromIso(item.startDate);
   const endYear = yearFromIso(item.endDate);
-  const yearLabel = `${formatYear(startYear)} — ${formatYear(endYear)}`;
-  const hasImage = !!item.coverMediaRef;
+  const yearLabel = `${formatYear(startYear)}–${formatYear(endYear)}`;
+  const overview = item.overview ?? item.description;
 
   return (
     <TouchableOpacity
-      activeOpacity={0.82}
+      activeOpacity={0.86}
       onPress={onPress}
-      style={[styles.card, index === 0 && styles.cardFirst]}
+      style={[
+        styles.stageCard,
+        {
+          backgroundColor: colors.surface,
+          borderColor: colors.border,
+        },
+      ]}
     >
-      {/* Ảnh */}
-      <View style={styles.imageWrapper}>
-        {hasImage ? (
-          <Image
-            source={{ uri: item.coverMediaRef }}
-            style={styles.image}
-            resizeMode="cover"
-          />
-        ) : (
-          <StagePlaceholder name={item.title} />
-        )}
-        {/* Badge */}
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>{index + 1}</Text>
-        </View>
-        <View style={styles.imageOverlay} />
-      </View>
+      <HistoryImage
+        uri={getPrimaryImageRef(item)}
+        style={styles.stageImage}
+        fallbackIcon="image-outline"
+      />
 
-      {/* Nội dung */}
-      <View style={styles.cardBody}>
-        <View style={styles.yearRow}>
-          <View style={styles.yearDot} />
-          <Text style={styles.yearText}>{yearLabel}</Text>
-        </View>
-
+      <View style={styles.stageBody}>
         <Text style={styles.stageTitle} numberOfLines={2}>
-          {item.title}
+          {item.title ?? 'No Title'}
         </Text>
-
-        {!!item.description && (
-          <Text style={styles.description} numberOfLines={3}>
-            {item.description}
-          </Text>
-        )}
-
-        <View style={styles.cardFooter}>
-          <Text style={styles.footerLabel}>Xem chi tiết</Text>
-          <View style={styles.arrowCircle}>
-            <Text style={styles.arrowText}>›</Text>
-          </View>
-        </View>
+        <Text style={styles.stagePeriod} numberOfLines={1}>
+          {yearLabel}
+        </Text>
+        <Text style={styles.stageDescription} numberOfLines={4}>
+          {overview ?? 'No Overview'}
+        </Text>
       </View>
     </TouchableOpacity>
   );
 }
 
-// ─── Main Screen ─────────────────────────────────────────────────────────────
+function StageHeader({
+  title,
+  onBack,
+}: {
+  title?: string;
+  onBack: () => void;
+}) {
+  const colors = useThemeColors();
+
+  return (
+    <View style={styles.header}>
+      <TouchableOpacity
+        onPress={onBack}
+        style={styles.backButton}
+        activeOpacity={0.75}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+      >
+        <Ionicons name="chevron-back" size={22} color="#3A3A3A" />
+      </TouchableOpacity>
+
+      <Text style={[styles.headerTitle, { color: colors.secondary }]} numberOfLines={1}>
+        {title ?? 'Giai đoạn'}
+      </Text>
+
+      <View style={styles.headerSpacer} />
+    </View>
+  );
+}
+
 export default function StageScreen() {
   const { periodSlug } = useLocalSearchParams<{ periodSlug: string }>();
   const router = useRouter();
+  const colors = useThemeColors();
 
   const [stages, setStages] = useState<Stage[]>([]);
   const [period, setPeriod] = useState<Period | null>(null);
@@ -126,6 +120,7 @@ export default function StageScreen() {
   const load = useCallback(
     async (isRefresh = false) => {
       if (!periodSlug) return;
+
       try {
         if (isRefresh) setRefreshing(true);
         else setLoading(true);
@@ -135,10 +130,11 @@ export default function StageScreen() {
           getStagesByPeriod(periodSlug),
           getPeriodById(periodSlug),
         ]);
+
         setStages(stagesData);
         setPeriod(periodData);
       } catch (err) {
-        console.error('❌ Lỗi tải giai đoạn:', err);
+        console.error('Lỗi tải giai đoạn:', err);
         setError('Không thể tải giai đoạn.\nVui lòng thử lại.');
       } finally {
         setLoading(false);
@@ -152,8 +148,6 @@ export default function StageScreen() {
     load();
   }, [load]);
 
-  const handleBack = () => router.back();
-
   const handlePressStage = (stage: Stage) => {
     router.push({
       pathname: '/stage-detail/[periodSlug]/[stageSlug]',
@@ -161,343 +155,122 @@ export default function StageScreen() {
     });
   };
 
-  const renderItem = ({ item, index }: ListRenderItemInfo<Stage>) => (
-    <StageCard
-      item={item}
-      index={index}
-      onPress={() => handlePressStage(item)}
-    />
+  const renderItem = ({ item }: ListRenderItemInfo<Stage>) => (
+    <StageCard item={item} onPress={() => handlePressStage(item)} />
   );
 
-  // ── Loading ─────────────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <View style={styles.root}>
-        <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
-        <Header
-          title={period?.title ?? 'Giai Đoạn'}
-          onBack={handleBack}
-        />
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={styles.loadingText}>Đang tải giai đoạn…</Text>
-        </View>
-      </View>
+      <Screen safeArea edges={['top', 'bottom']} style={styles.screen}>
+        <StageHeader title="Giai đoạn" onBack={() => router.back()} />
+        <LoadingState message="Đang tải giai đoạn…" />
+      </Screen>
     );
   }
 
-  // ── Error ────────────────────────────────────────────────────────────────────
   if (error) {
     return (
-      <View style={styles.root}>
-        <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
-        <Header title={period?.title ?? 'Giai Đoạn'} onBack={handleBack} />
-        <View style={styles.centered}>
-          <Text style={styles.errorEmoji}>⚠️</Text>
-          <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity
-            style={styles.retryBtn}
-            onPress={() => load()}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.retryBtnText}>Thử lại</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+      <Screen safeArea edges={['top', 'bottom']} style={styles.screen}>
+        <StageHeader title={period?.title ?? 'Giai đoạn'} onBack={() => router.back()} />
+        <ErrorState message={error} onRetry={() => load()} />
+      </Screen>
     );
   }
 
-  // ── Normal ───────────────────────────────────────────────────────────────────
   return (
-    <View style={styles.root}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
+    <Screen safeArea edges={['top', 'bottom']} style={styles.screen}>
       <FlatList
         data={stages}
-        keyExtractor={(s) => s.id}
+        keyExtractor={(stage) => stage.id}
         renderItem={renderItem}
+        showsVerticalScrollIndicator
         contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
         ListHeaderComponent={
-          <Header title={period?.title ?? 'Giai Đoạn'} onBack={handleBack} />
+          <StageHeader title={period?.title ?? 'Giai đoạn'} onBack={() => router.back()} />
         }
         ListEmptyComponent={
-          <View style={styles.centered}>
-            <Text style={styles.emptyEmoji}>📭</Text>
-            <Text style={styles.emptyText}>Chưa có giai đoạn nào.</Text>
+          <View style={styles.emptyWrapper}>
+            <EmptyState message="Không có stages để hiển thị" />
           </View>
         }
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={() => load(true)}
-            colors={[COLORS.primary]}
-            tintColor={COLORS.primary}
+            colors={[colors.primary]}
+            tintColor={colors.primary}
           />
         }
       />
-    </View>
+    </Screen>
   );
 }
 
-// ─── Header ──────────────────────────────────────────────────────────────────
-function Header({ title, onBack }: { title: string; onBack: () => void }) {
-  return (
-    <View style={styles.header}>
-      <View style={styles.headerTopBar}>
-        {/* Back button */}
-        <TouchableOpacity
-          onPress={onBack}
-          style={styles.backBtn}
-          activeOpacity={0.7}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <Text style={styles.backBtnText}>‹</Text>
-        </TouchableOpacity>
-
-        {/* Stars */}
-        <View style={styles.starRow}>
-          {['★', '★', '★', '★', '★'].map((s, i) => (
-            <Text key={i} style={styles.starText}>{s}</Text>
-          ))}
-        </View>
-
-        <Text style={styles.headerTitle} numberOfLines={2}>
-          {title}
-        </Text>
-        <Text style={styles.headerSubtitle}>Các giai đoạn lịch sử</Text>
-      </View>
-      <View style={styles.headerAccentBar} />
-    </View>
-  );
-}
-
-// ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: COLORS.lightBg,
+  screen: {
+    paddingHorizontal: SPACING[4],
   },
-
-  // ── Header ──────────────────────────────────────────────────────────────────
   header: {
-    marginBottom: SPACING[4],
-  },
-  headerTopBar: {
-    backgroundColor: COLORS.primary,
-    paddingTop: 52,
-    paddingBottom: SPACING[5],
-    paddingHorizontal: SPACING[5],
-    alignItems: 'center',
-  },
-  backBtn: {
-    position: 'absolute',
-    left: SPACING[4],
-    top: 52,
-    padding: SPACING[2],
-  },
-  backBtnText: {
-    color: COLORS.white,
-    fontSize: 32,
-    lineHeight: 34,
-    fontWeight: FONT_WEIGHTS.bold,
-  },
-  starRow: {
     flexDirection: 'row',
-    gap: 6,
-    marginBottom: SPACING[2],
+    alignItems: 'center',
+    paddingVertical: SPACING[4],
   },
-  starText: {
-    color: COLORS.accent,
-    fontSize: 14,
+  backButton: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: '#B2B2B2',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerTitle: {
-    color: COLORS.white,
-    fontSize: FONT_SIZES.xl,
-    fontWeight: FONT_WEIGHTS.bold,
+    flex: 1,
     textAlign: 'center',
-    marginHorizontal: SPACING[10],
+    fontSize: FONT_SIZES['2xl'],
+    fontWeight: FONT_WEIGHTS.bold,
   },
-  headerSubtitle: {
-    color: 'rgba(255,255,255,0.8)',
-    fontSize: FONT_SIZES.sm,
-    marginTop: SPACING[1],
-    fontStyle: 'italic',
+  headerSpacer: {
+    width: 34,
+    height: 34,
   },
-  headerAccentBar: {
-    height: 4,
-    backgroundColor: COLORS.accent,
-  },
-
-  // ── List ────────────────────────────────────────────────────────────────────
   listContent: {
     paddingBottom: SPACING[8],
   },
-
-  // ── Card ────────────────────────────────────────────────────────────────────
-  card: {
-    marginHorizontal: SPACING[4],
+  stageCard: {
     marginBottom: SPACING[4],
-    borderRadius: BORDER_RADIUS.xl,
-    backgroundColor: COLORS.white,
+    borderRadius: BORDER_RADIUS.md,
+    borderWidth: StyleSheet.hairlineWidth,
     overflow: 'hidden',
     ...SHADOWS.md,
   },
-  cardFirst: {
-    marginTop: SPACING[2],
-  },
-
-  imageWrapper: {
+  stageImage: {
     width: '100%',
-    height: 160,
-    backgroundColor: '#f0e8e8',
-    position: 'relative',
+    height: 200,
   },
-  image: { width: '100%', height: '100%' },
-  imageOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 50,
-    backgroundColor: 'rgba(0,0,0,0.15)',
-  },
-  placeholder: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#fce8e8',
-    gap: 4,
-  },
-  placeholderEmoji: { fontSize: 36 },
-  placeholderInitial: {
-    fontSize: FONT_SIZES.xl,
-    fontWeight: FONT_WEIGHTS.bold,
-    color: COLORS.primary,
-  },
-
-  badge: {
-    position: 'absolute',
-    top: SPACING[3],
-    left: SPACING[3],
-    backgroundColor: COLORS.primary,
-    width: 30,
-    height: 30,
-    borderRadius: BORDER_RADIUS.full,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: COLORS.accent,
-    ...SHADOWS.sm,
-  },
-  badgeText: {
-    color: COLORS.white,
-    fontSize: FONT_SIZES.xs,
-    fontWeight: FONT_WEIGHTS.bold,
-  },
-
-  cardBody: {
-    padding: SPACING[4],
-    gap: SPACING[2],
-  },
-  yearRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING[2],
-  },
-  yearDot: {
-    width: 8,
-    height: 8,
-    borderRadius: BORDER_RADIUS.full,
-    backgroundColor: COLORS.accent,
-    borderWidth: 1.5,
-    borderColor: COLORS.primary,
-  },
-  yearText: {
-    color: COLORS.primary,
-    fontSize: FONT_SIZES.xs,
-    fontWeight: FONT_WEIGHTS.semibold,
-    letterSpacing: 0.4,
-    textTransform: 'uppercase',
+  stageBody: {
+    backgroundColor: '#333333',
+    padding: SPACING[2],
   },
   stageTitle: {
-    fontSize: FONT_SIZES.base,
+    color: '#FFFFFF',
+    fontSize: FONT_SIZES.lg,
     fontWeight: FONT_WEIGHTS.bold,
-    color: COLORS.gray900,
     lineHeight: 24,
+    marginTop: SPACING[2],
   },
-  description: {
+  stagePeriod: {
+    color: '#FFFFFF',
     fontSize: FONT_SIZES.sm,
-    color: COLORS.gray500,
     lineHeight: 20,
-  },
-
-  cardFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     marginTop: SPACING[1],
-    paddingTop: SPACING[2],
-    borderTopWidth: 1,
-    borderTopColor: COLORS.gray200,
   },
-  footerLabel: {
+  stageDescription: {
+    color: '#FFFFFF',
     fontSize: FONT_SIZES.sm,
-    color: COLORS.primary,
-    fontWeight: FONT_WEIGHTS.semibold,
-  },
-  arrowCircle: {
-    width: 28,
-    height: 28,
-    borderRadius: BORDER_RADIUS.full,
-    backgroundColor: COLORS.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  arrowText: {
-    color: COLORS.white,
-    fontSize: 20,
-    lineHeight: 22,
-    fontWeight: FONT_WEIGHTS.bold,
-  },
-
-  // ── States ───────────────────────────────────────────────────────────────────
-  centered: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: SPACING[6],
-    paddingVertical: SPACING[12],
-    gap: SPACING[3],
-  },
-  loadingText: {
-    color: COLORS.gray500,
-    fontSize: FONT_SIZES.base,
+    lineHeight: 20,
     marginTop: SPACING[2],
   },
-  errorEmoji: { fontSize: 48 },
-  errorText: {
-    color: COLORS.gray600,
-    fontSize: FONT_SIZES.base,
-    textAlign: 'center',
-    lineHeight: 24,
-  },
-  retryBtn: {
-    marginTop: SPACING[2],
-    backgroundColor: COLORS.primary,
-    paddingVertical: SPACING[3],
-    paddingHorizontal: SPACING[8],
-    borderRadius: BORDER_RADIUS.full,
-    ...SHADOWS.sm,
-  },
-  retryBtnText: {
-    color: COLORS.white,
-    fontWeight: FONT_WEIGHTS.bold,
-    fontSize: FONT_SIZES.base,
-  },
-  emptyEmoji: { fontSize: 48 },
-  emptyText: {
-    color: COLORS.gray400,
-    fontSize: FONT_SIZES.base,
-    textAlign: 'center',
+  emptyWrapper: {
+    minHeight: 360,
   },
 });

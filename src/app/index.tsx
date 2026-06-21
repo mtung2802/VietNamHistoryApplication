@@ -29,13 +29,13 @@ import Animated, {
 import { Screen } from '@/components/ui';
 
 const onboardingAssets = {
-  flagStreet: require('../../Photos/phố treo cờ.png'),
-  mausoleum: require('../../Photos/lăng bác.png'),
-  hanoiFlagTower: require('../../Photos/cột cờ.png'),
-  prideBoard: require('../../Photos/tự hào.png'),
-  vietnamMapFlag: require('../../Photos/nonnuoc.png'),
-  lotus: require('../../Photos/hoa.png'),
-  brownPaper: require('../../Photos/nâu.png'),
+  flagStreet: require('../../assets/onboarding/flag-street.png'),
+  mausoleum: require('../../assets/onboarding/mausoleum.png'),
+  hanoiFlagTower: require('../../assets/onboarding/hanoi-flag-tower.png'),
+  prideBoard: require('../../assets/onboarding/pride-board.png'),
+  vietnamMapFlag: require('../../assets/onboarding/vietnam-map-flag.png'),
+  lotus: require('../../assets/onboarding/lotus-flowers.png'),
+  brownPaper: require('../../assets/onboarding/parchment-strip.png'),
 };
 
 const BASE_WIDTH = 750;

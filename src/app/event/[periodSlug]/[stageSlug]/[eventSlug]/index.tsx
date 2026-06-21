@@ -1,79 +1,242 @@
 /**
- * Màn hình Chi Tiết Sự Kiện Lịch Sử
- * Route: /event/[periodSlug]/[stageSlug]/[eventSlug]
- * Tương đương: EventDetailActivity.java
+ * Chi tiết sự kiện lịch sử.
+ * Port logic từ Java EventDetailActivity, mở rộng đủ các mục dữ liệu Firestore.
  */
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  ActivityIndicator, Dimensions, Image, ScrollView,
-  StatusBar, StyleSheet, Text, TouchableOpacity, View,
+  Linking,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Event } from '@/models/Event';
+import { Ionicons } from '@expo/vector-icons';
+import YoutubePlayer from 'react-native-youtube-iframe';
+import { useLocalSearchParams } from 'expo-router';
+import { Event, MediaItem, WarSummaryItem } from '@/models/Event';
 import { getEventsByStage } from '@/services/stageService';
 import { yearFromIso, formatYear } from '@/models/Period';
-import { BORDER_RADIUS, COLORS, FONT_SIZES, FONT_WEIGHTS, SHADOWS, SPACING } from '@/constants/theme';
+import { BORDER_RADIUS, FONT_SIZES, FONT_WEIGHTS, SPACING } from '@/constants/theme';
+import { useThemeColors } from '@/contexts/ThemeContext';
+import {
+  AppHeader,
+  Badge,
+  Card,
+  ErrorState,
+  HistoryImage,
+  LoadingState,
+  Screen,
+  SectionTitle,
+} from '@/components/ui';
+import { getPrimaryImageRef } from '@/utils/media';
+import { extractYoutubeId } from '@/utils/youtube';
 
-const { width: W } = Dimensions.get('window');
+type SideContent = {
+  vn?: string[];
+  opponent?: string[];
+};
 
-function BulletList({ items, color = COLORS.gray700 }: { items: string[]; color?: string }) {
-  if (!items?.length) return null;
+function normalizeList(items?: string[] | string | null): string[] {
+  if (!items) return [];
+  return Array.isArray(items) ? items.filter(Boolean) : [items];
+}
+
+function getOpponent(items?: {
+  usAllies?: string[];
+  opponent?: string[];
+}): string[] {
+  return normalizeList(items?.opponent?.length ? items.opponent : items?.usAllies);
+}
+
+function hasSideContent(content: SideContent): boolean {
+  return normalizeList(content.vn).length > 0 || normalizeList(content.opponent).length > 0;
+}
+
+function BulletList({ items }: { items?: string[] | string | null }) {
+  const colors = useThemeColors();
+  const data = normalizeList(items);
+  if (!data.length) return null;
+
   return (
-    <View style={{ gap: 6 }}>
-      {items.map((item, i) => (
-        <View key={i} style={styles.bulletRow}>
-          <View style={[styles.bulletDot, { backgroundColor: COLORS.primary }]} />
-          <Text style={[styles.bulletText, { color }]}>{item}</Text>
+    <View style={styles.bulletList}>
+      {data.map((item, index) => (
+        <View key={`${index}-${item}`} style={styles.bulletRow}>
+          <View style={[styles.bulletDot, { backgroundColor: colors.primary }]} />
+          <Text style={[styles.bulletText, { color: colors.textSecondary }]}>
+            {item}
+          </Text>
         </View>
       ))}
     </View>
   );
 }
 
-function Section({ title, accent = COLORS.primary, children }: { title: string; accent?: string; children: React.ReactNode }) {
+function InfoSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
   return (
-    <View style={styles.section}>
-      <View style={styles.sectionHeader}>
-        <View style={[styles.sectionAccent, { backgroundColor: accent }]} />
-        <Text style={styles.sectionTitle}>{title}</Text>
+    <Card style={styles.sectionCard}>
+      <SectionTitle title={title} />
+      <View style={styles.sectionContent}>{children}</View>
+    </Card>
+  );
+}
+
+function TwoSideSection({ content }: { content: SideContent }) {
+  const colors = useThemeColors();
+  const vn = normalizeList(content.vn);
+  const opponent = normalizeList(content.opponent);
+  if (!vn.length && !opponent.length) return null;
+
+  return (
+    <View style={styles.twoSide}>
+      <View style={[styles.sideBox, { backgroundColor: colors.primaryDim }]}>
+        <Text style={[styles.sideLabel, { color: colors.primary }]}>
+          Phía Việt Nam
+        </Text>
+        <BulletList items={vn} />
       </View>
-      {children}
+
+      <View style={[styles.sideBox, { backgroundColor: colors.surfaceElevated }]}>
+        <Text style={[styles.sideLabel, { color: colors.secondary }]}>
+          Phía đối phương
+        </Text>
+        <BulletList items={opponent} />
+      </View>
     </View>
   );
 }
 
-function TwoColumnForces({
-  vnItems,
-  enemyItems,
-  vnLabel = '🇻🇳 Phía Việt Nam',
-  enemyLabel = '⚔️ Phía đối địch',
-}: {
-  vnItems?: string[];
-  enemyItems?: string[];
-  vnLabel?: string;
-  enemyLabel?: string;
-}) {
+function WarSummaryList({ items }: { items?: WarSummaryItem[] }) {
+  const colors = useThemeColors();
+  if (!items?.length) return null;
+
   return (
-    <View style={styles.twoCol}>
-      <View style={styles.colBox}>
-        <Text style={styles.colLabel}>{vnLabel}</Text>
-        <BulletList items={vnItems ?? []} color={COLORS.success} />
-      </View>
-      <View style={styles.colDivider} />
-      <View style={styles.colBox}>
-        <Text style={styles.colLabel}>{enemyLabel}</Text>
-        <BulletList items={enemyItems ?? []} color={COLORS.error} />
-      </View>
+    <View style={styles.timeline}>
+      {items.map((item, index) => (
+        <View key={`${index}-${item.detail}`} style={styles.timelineRow}>
+          <View style={styles.timelineMarkerWrap}>
+            <View style={[styles.timelineMarker, { backgroundColor: colors.secondary }]} />
+            {index < items.length - 1 && (
+              <View style={[styles.timelineLine, { backgroundColor: colors.border }]} />
+            )}
+          </View>
+
+          <View style={styles.timelineContent}>
+            {!!item.diadiem?.content && (
+              <Text style={[styles.locationText, { color: colors.primary }]}>
+                {item.diadiem.content}
+              </Text>
+            )}
+            {!!item.detail && (
+              <Text style={[styles.bodyText, { color: colors.textSecondary }]}>
+                {item.detail}
+              </Text>
+            )}
+            <SummaryImage images={item.images} />
+          </View>
+        </View>
+      ))}
     </View>
+  );
+}
+
+function SummaryImage({ images }: { images?: MediaItem[] }) {
+  const image = getPrimaryImageRef({ images });
+  if (!image) return null;
+
+  return (
+    <HistoryImage
+      uri={image}
+      style={styles.summaryImage}
+      radius={BORDER_RADIUS.md}
+      fallbackIcon="image-outline"
+    />
+  );
+}
+
+function extractEventYoutubeId(event: Event): string | undefined {
+  const direct = extractYoutubeId(event.youtubeId);
+  if (direct) return direct;
+
+  for (const video of event.videos ?? []) {
+    if (typeof video === 'string') {
+      const id = extractYoutubeId(video);
+      if (id) return id;
+    } else {
+      const id = extractYoutubeId(video.link) ?? extractYoutubeId(video.url);
+      if (id) return id;
+    }
+  }
+
+  return undefined;
+}
+
+function VideoSection({ event }: { event: Event }) {
+  const colors = useThemeColors();
+  const videoId = extractEventYoutubeId(event);
+  const firstLink = event.videos?.find((video) =>
+    typeof video === 'string' ? video.trim() : video.link?.trim() || video.url?.trim(),
+  );
+  const link = typeof firstLink === 'string' ? firstLink : firstLink?.link ?? firstLink?.url;
+
+  if (!videoId && !link) return null;
+
+  return (
+    <InfoSection title="Video">
+      {videoId ? (
+        <>
+          <View style={styles.videoBox}>
+            <YoutubePlayer height={210} play={false} videoId={videoId} />
+          </View>
+          <TouchableOpacity
+            style={styles.videoOpenRow}
+            onPress={() => Linking.openURL(link ?? `https://www.youtube.com/watch?v=${videoId}`)}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.videoHint, { color: colors.primary }]}>
+              Mở trên YouTube
+            </Text>
+            <Ionicons name="open-outline" size={16} color={colors.primary} />
+          </TouchableOpacity>
+        </>
+      ) : (
+        <TouchableOpacity
+          style={[styles.videoLink, { borderColor: colors.primary }]}
+          onPress={() => link && Linking.openURL(link)}
+          activeOpacity={0.8}
+        >
+          <View style={[styles.videoIcon, { backgroundColor: colors.primaryDim }]}>
+            <Ionicons name="play-circle-outline" size={34} color={colors.primary} />
+          </View>
+          <View style={styles.videoTextBox}>
+            <Text style={[styles.videoLinkText, { color: colors.text }]}>
+              Tóm tắt diễn biến
+            </Text>
+            <Text style={[styles.videoHint, { color: colors.textSecondary }]}>
+              Chạm để mở video
+            </Text>
+          </View>
+          <Ionicons name="open-outline" size={20} color={colors.primary} />
+        </TouchableOpacity>
+      )}
+    </InfoSection>
   );
 }
 
 export default function EventDetailScreen() {
   const { periodSlug, stageSlug, eventSlug } = useLocalSearchParams<{
-    periodSlug: string; stageSlug: string; eventSlug: string;
+    periodSlug: string;
+    stageSlug: string;
+    eventSlug: string;
   }>();
-  const router = useRouter();
+  const colors = useThemeColors();
 
   const [event, setEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
@@ -81,163 +244,304 @@ export default function EventDetailScreen() {
 
   const load = useCallback(async () => {
     if (!periodSlug || !stageSlug || !eventSlug) return;
+
     try {
       setLoading(true);
       setError(null);
-      const evs = await getEventsByStage(periodSlug, stageSlug);
-      const found = evs.find((e) => e.id === eventSlug) ?? null;
-      setEvent(found);
-    } catch {
+      const events = await getEventsByStage(periodSlug, stageSlug);
+      setEvent(events.find((item) => item.id === eventSlug) ?? null);
+    } catch (err) {
+      console.error('Lỗi tải sự kiện:', err);
       setError('Không thể tải sự kiện. Vui lòng thử lại.');
     } finally {
       setLoading(false);
     }
   }, [periodSlug, stageSlug, eventSlug]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const eventSections = useMemo(() => {
+    if (!event) return null;
+
+    return {
+      objective: {
+        vn: event.object?.vn,
+        opponent: getOpponent(event.object),
+      },
+      forces: {
+        vn: event.content?.forces?.vn,
+        opponent: getOpponent(event.content?.forces),
+      },
+      result: {
+        vn: event.content?.result?.vn,
+        opponent: getOpponent(event.content?.result),
+      },
+      meaning: event.meaning?.length
+        ? event.meaning
+        : event.impactOnPresent
+          ? [event.impactOnPresent]
+          : [],
+    };
+  }, [event]);
 
   if (loading) {
     return (
-      <View style={styles.centered}>
-        <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
-        <ActivityIndicator size="large" color={COLORS.primary} />
-        <Text style={styles.loadingText}>Đang tải…</Text>
-      </View>
+      <Screen>
+        <AppHeader title="Sự kiện" />
+        <LoadingState message="Đang tải sự kiện…" />
+      </Screen>
     );
   }
 
-  if (error || !event) {
+  if (error || !event || !eventSections) {
     return (
-      <View style={styles.centered}>
-        <Text style={{ fontSize: 48 }}>⚠️</Text>
-        <Text style={styles.errorText}>{error ?? 'Không tìm thấy sự kiện'}</Text>
-        <TouchableOpacity style={styles.retryBtn} onPress={load}>
-          <Text style={styles.retryText}>Thử lại</Text>
-        </TouchableOpacity>
-      </View>
+      <Screen>
+        <AppHeader title="Sự kiện" />
+        <ErrorState message={error ?? 'Không tìm thấy sự kiện.'} onRetry={load} />
+      </Screen>
     );
   }
 
   const sy = yearFromIso(event.startDate);
   const ey = yearFromIso(event.endDate);
+  const summary = event.summary ?? event.description ?? event.smallTitle;
 
   return (
-    <View style={styles.root}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
-      <ScrollView showsVerticalScrollIndicator={false} stickyHeaderIndices={[0]}>
+    <Screen>
+      <AppHeader
+        title={event.title}
+        subtitle={`${formatYear(sy)} – ${formatYear(ey)}`}
+        centerTitle
+      />
 
-        {/* Header */}
-        <View style={styles.headerBar}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Text style={styles.backBtnText}>‹</Text>
-          </TouchableOpacity>
-          <Text style={styles.headerBarTitle} numberOfLines={1}>{event.title}</Text>
-          <View style={{ width: 40 }} />
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={styles.hero}>
+          <HistoryImage
+            uri={getPrimaryImageRef(event)}
+            style={styles.heroImage}
+            fallbackIcon="image-outline"
+          />
+          <View style={styles.heroOverlay} />
+          <View style={styles.heroContent}>
+            <Badge label={`${formatYear(sy)} – ${formatYear(ey)}`} tone="red" />
+            <Text style={styles.heroTitle}>{event.title}</Text>
+            {!!summary && (
+              <Text style={styles.heroSummary} numberOfLines={4}>
+                {summary}
+              </Text>
+            )}
+          </View>
         </View>
 
-        {/* Carousel */}
-        {event.coverMediaRef ? (
-          <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false} style={styles.carousel}>
-            <Image source={{ uri: event.coverMediaRef }} style={styles.carouselImage} resizeMode="cover" />
-          </ScrollView>
-        ) : (
-          <View style={[styles.carouselImage, styles.carouselPlaceholder]}>
-            <Text style={{ fontSize: 64 }}>⚔️</Text>
-          </View>
+        {!!summary && (
+          <Card style={styles.introCard}>
+            <Text style={[styles.bodyText, { color: colors.textSecondary }]}>
+              {summary}
+            </Text>
+          </Card>
         )}
 
-        <View style={styles.content}>
-          {/* Year badge */}
-          <View style={styles.yearBadge}>
-            <Text style={styles.yearBadgeText}>{`${formatYear(sy)} — ${formatYear(ey)}`}</Text>
-          </View>
+        {!!event.warCause?.length && (
+          <InfoSection title="Lí do">
+            <BulletList items={event.warCause} />
+          </InfoSection>
+        )}
 
-          {/* Title */}
-          <Text style={styles.eventTitle}>{event.title}</Text>
+        {hasSideContent(eventSections.objective) && (
+          <InfoSection title="Mục tiêu">
+            <TwoSideSection content={eventSections.objective} />
+          </InfoSection>
+        )}
 
-          {/* Description */}
-          {!!event.description && (
-            <Section title="Tổng quan">
-              <Text style={styles.bodyText}>{event.description}</Text>
-            </Section>
-          )}
+        {hasSideContent(eventSections.forces) && (
+          <InfoSection title="Lực lượng">
+            <TwoSideSection content={eventSections.forces} />
+          </InfoSection>
+        )}
 
-          {/* Details */}
-          {!!event.details?.length && (
-            <Section title="Diễn biến chi tiết">
+        {(event.content?.warSummary?.length || event.details?.length) ? (
+          <InfoSection title="Diễn biến">
+            {event.content?.warSummary?.length ? (
+              <WarSummaryList items={event.content.warSummary} />
+            ) : (
               <BulletList items={event.details} />
-            </Section>
-          )}
+            )}
+          </InfoSection>
+        ) : null}
 
-          {/* Result */}
-          {(event.content?.result?.vn?.length || event.content?.result?.usAllies?.length) ? (
-            <Section title="Kết quả" accent={COLORS.success}>
-              <TwoColumnForces
-                vnItems={event.content?.result?.vn}
-                enemyItems={event.content?.result?.usAllies}
-                vnLabel="🇻🇳 Phía Việt Nam"
-                enemyLabel="⚔️ Phía đối địch"
-              />
-            </Section>
-          ) : null}
+        {hasSideContent(eventSections.result) && (
+          <InfoSection title="Kết quả">
+            <TwoSideSection content={eventSections.result} />
+          </InfoSection>
+        )}
 
-          {/* Forces */}
-          {(event.content?.forces?.vn?.length || event.content?.forces?.usAllies?.length) ? (
-            <Section title="Lực lượng" accent={COLORS.accent}>
-              <TwoColumnForces
-                vnItems={event.content?.forces?.vn}
-                enemyItems={event.content?.forces?.usAllies}
-                vnLabel="🇻🇳 Quân Việt Nam"
-                enemyLabel="⚔️ Quân đối địch"
-              />
-            </Section>
-          ) : null}
-        </View>
+        {!!eventSections.meaning.length && (
+          <InfoSection title="Ý nghĩa">
+            <BulletList items={eventSections.meaning} />
+          </InfoSection>
+        )}
+
+        <VideoSection event={event} />
       </ScrollView>
-    </View>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: COLORS.lightBg },
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, padding: 24, backgroundColor: COLORS.lightBg },
-  loadingText: { color: COLORS.gray500, fontSize: FONT_SIZES.base },
-  errorText: { color: COLORS.gray600, textAlign: 'center', fontSize: FONT_SIZES.base },
-  retryBtn: { backgroundColor: COLORS.primary, paddingHorizontal: 32, paddingVertical: 12, borderRadius: BORDER_RADIUS.full },
-  retryText: { color: COLORS.white, fontWeight: FONT_WEIGHTS.bold },
-
-  headerBar: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: COLORS.primary, paddingTop: 52, paddingBottom: 12, paddingHorizontal: 16,
+  content: {
+    padding: SPACING[4],
+    paddingBottom: SPACING[10],
+    gap: SPACING[4],
   },
-  backBtn: { width: 40, alignItems: 'center' },
-  backBtnText: { color: COLORS.white, fontSize: 30, fontWeight: FONT_WEIGHTS.bold, lineHeight: 34 },
-  headerBarTitle: { flex: 1, color: COLORS.white, fontSize: FONT_SIZES.base, fontWeight: FONT_WEIGHTS.bold, textAlign: 'center' },
-
-  carousel: { height: 220 },
-  carouselImage: { width: W, height: 220 },
-  carouselPlaceholder: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#fce8e8' },
-
-  content: { padding: SPACING[4], gap: SPACING[4] },
-  yearBadge: {
-    alignSelf: 'flex-start', backgroundColor: COLORS.primary,
-    paddingHorizontal: SPACING[3], paddingVertical: 4, borderRadius: BORDER_RADIUS.full,
+  hero: {
+    height: 320,
+    borderRadius: BORDER_RADIUS.xl,
+    overflow: 'hidden',
   },
-  yearBadgeText: { color: COLORS.white, fontSize: FONT_SIZES.xs, fontWeight: FONT_WEIGHTS.bold },
-  eventTitle: { fontSize: FONT_SIZES['2xl'], fontWeight: FONT_WEIGHTS.bold, color: COLORS.gray900, lineHeight: 32 },
-
-  section: { backgroundColor: COLORS.white, borderRadius: BORDER_RADIUS.xl, padding: SPACING[4], gap: SPACING[3], ...SHADOWS.sm },
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: SPACING[2] },
-  sectionAccent: { width: 4, height: 20, borderRadius: 2 },
-  sectionTitle: { fontSize: FONT_SIZES.base, fontWeight: FONT_WEIGHTS.bold, color: COLORS.gray800 },
-  bodyText: { fontSize: FONT_SIZES.sm, color: COLORS.gray600, lineHeight: 22 },
-
-  bulletRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
-  bulletDot: { width: 6, height: 6, borderRadius: 3, marginTop: 7 },
-  bulletText: { flex: 1, fontSize: FONT_SIZES.sm, lineHeight: 22 },
-
-  twoCol: { flexDirection: 'row', gap: 8 },
-  colBox: { flex: 1, gap: 8 },
-  colDivider: { width: 1, backgroundColor: COLORS.gray200 },
-  colLabel: { fontSize: FONT_SIZES.xs, fontWeight: FONT_WEIGHTS.bold, color: COLORS.gray600 },
+  heroImage: {
+    ...StyleSheet.absoluteFillObject,
+    width: '100%',
+    height: '100%',
+  },
+  heroOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.58)',
+  },
+  heroContent: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    padding: SPACING[4],
+    gap: SPACING[3],
+  },
+  heroTitle: {
+    color: '#FFFFFF',
+    fontSize: FONT_SIZES['2xl'],
+    fontWeight: FONT_WEIGHTS.bold,
+    lineHeight: 32,
+  },
+  heroSummary: {
+    color: '#F5F5F5',
+    fontSize: FONT_SIZES.sm,
+    lineHeight: 22,
+  },
+  introCard: {
+    borderRadius: BORDER_RADIUS.md,
+  },
+  sectionCard: {
+    borderRadius: BORDER_RADIUS.md,
+  },
+  sectionContent: {
+    marginTop: SPACING[3],
+  },
+  bodyText: {
+    fontSize: FONT_SIZES.sm,
+    lineHeight: 22,
+  },
+  bulletList: {
+    gap: SPACING[2],
+  },
+  bulletRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: SPACING[2],
+  },
+  bulletDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    marginTop: 7,
+  },
+  bulletText: {
+    flex: 1,
+    fontSize: FONT_SIZES.sm,
+    lineHeight: 22,
+  },
+  twoSide: {
+    gap: SPACING[3],
+  },
+  sideBox: {
+    borderRadius: BORDER_RADIUS.md,
+    padding: SPACING[3],
+    gap: SPACING[2],
+  },
+  sideLabel: {
+    fontSize: FONT_SIZES.sm,
+    fontWeight: FONT_WEIGHTS.bold,
+  },
+  timeline: {
+    gap: SPACING[2],
+  },
+  timelineRow: {
+    flexDirection: 'row',
+    gap: SPACING[3],
+  },
+  timelineMarkerWrap: {
+    alignItems: 'center',
+    width: 16,
+  },
+  timelineMarker: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginTop: 4,
+  },
+  timelineLine: {
+    flex: 1,
+    width: 2,
+    marginTop: 4,
+  },
+  timelineContent: {
+    flex: 1,
+    paddingBottom: SPACING[3],
+    gap: SPACING[2],
+  },
+  locationText: {
+    fontSize: FONT_SIZES.xs,
+    fontWeight: FONT_WEIGHTS.bold,
+  },
+  summaryImage: {
+    width: '100%',
+    height: 150,
+  },
+  videoBox: {
+    borderRadius: BORDER_RADIUS.md,
+    overflow: 'hidden',
+  },
+  videoOpenRow: {
+    alignSelf: 'flex-end',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING[1],
+    marginTop: SPACING[2],
+  },
+  videoLink: {
+    minHeight: 84,
+    borderWidth: 1,
+    borderRadius: BORDER_RADIUS.md,
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: SPACING[3],
+    padding: SPACING[3],
+  },
+  videoIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: BORDER_RADIUS.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  videoTextBox: {
+    flex: 1,
+    gap: 3,
+  },
+  videoLinkText: {
+    fontSize: FONT_SIZES.base,
+    fontWeight: FONT_WEIGHTS.bold,
+  },
+  videoHint: {
+    fontSize: FONT_SIZES.sm,
+    lineHeight: 20,
+  },
 });

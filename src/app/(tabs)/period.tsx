@@ -5,87 +5,84 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import {
+  Dimensions,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   FlatList,
   ListRenderItemInfo,
   RefreshControl,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Period, yearFromIso, formatYear } from '@/models/Period';
 import { getPeriods } from '@/services/periodService';
-import { FONT_SIZES, FONT_WEIGHTS, SPACING, BORDER_RADIUS } from '@/constants/theme';
+import { BORDER_RADIUS, FONT_SIZES, FONT_WEIGHTS, SHADOWS, SPACING } from '@/constants/theme';
 import { useThemeColors } from '@/contexts/ThemeContext';
 import {
   Screen,
-  AppHeader,
-  Card,
-  Badge,
   HistoryImage,
   LoadingState,
   ErrorState,
   EmptyState,
 } from '@/components/ui';
-import { Ionicons } from '@expo/vector-icons';
+import { getPrimaryImageRef } from '@/utils/media';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const HORIZONTAL_PADDING = SPACING[4];
 
 // ─── Item card ────────────────────────────────────────────────────────────────
 function PeriodCard({
   item,
   onPress,
-  index,
 }: {
   item: Period;
   onPress: () => void;
-  index: number;
 }) {
   const colors = useThemeColors();
   const startYear = yearFromIso(item.startDate);
   const endYear = yearFromIso(item.endDate);
-  const yearLabel = `${formatYear(startYear)} — ${formatYear(endYear)}`;
+  const yearLabel = `${formatYear(startYear)}–${formatYear(endYear)}`;
 
   return (
-    <Card onPress={onPress} noPadding style={styles.card}>
-      <View style={styles.imageWrapper}>
+    <View style={styles.page}>
+      <TouchableOpacity
+        activeOpacity={0.9}
+        onPress={onPress}
+        style={[
+          styles.periodCard,
+          {
+            backgroundColor: colors.surface,
+            borderColor: colors.border,
+          },
+        ]}
+      >
         <HistoryImage
-          uri={item.coverMediaRef}
+          uri={getPrimaryImageRef(item)}
           style={styles.image}
           fallbackIcon="image-outline"
         />
-        {/* Overlay tối để chữ nổi */}
-        <View style={[styles.imageOverlay, { backgroundColor: colors.overlay }]} />
-        {/* Badge số thứ tự */}
-        <View style={[styles.indexBadge, { backgroundColor: colors.primary }]}>
-          <Text style={[styles.indexText, { color: colors.onPrimary }]}>
-            {index + 1}
-          </Text>
-        </View>
-        {/* Năm nổi trên ảnh */}
-        <View style={styles.yearOnImage}>
-          <Badge label={yearLabel} tone="gold" />
-        </View>
-      </View>
+        <View style={styles.fullOverlay} />
 
-      <View style={styles.cardBody}>
-        <Text style={[styles.periodName, { color: colors.text }]} numberOfLines={2}>
-          {item.title}
-        </Text>
-        {!!item.summary && (
-          <Text
-            style={[styles.description, { color: colors.textSecondary }]}
-            numberOfLines={3}
-          >
-            {item.summary}
+        <View style={styles.cardContent}>
+          <Text style={styles.cardTitle} numberOfLines={3}>
+            {item.title ?? 'No Title'}
           </Text>
-        )}
-        <View style={[styles.cardFooter, { borderTopColor: colors.border }]}>
-          <Text style={[styles.footerLabel, { color: colors.primary }]}>
-            Xem giai đoạn
-          </Text>
-          <Ionicons name="arrow-forward-circle" size={26} color={colors.primary} />
+
+          <View style={styles.cardLowerContent}>
+            <Text style={styles.periodRange}>
+              {yearLabel || 'No Period'}
+            </Text>
+            <View style={styles.orangeDivider} />
+            <Text style={styles.summary} numberOfLines={9}>
+              {item.summary ?? 'No Description'}
+            </Text>
+          </View>
         </View>
-      </View>
-    </Card>
+      </TouchableOpacity>
+    </View>
   );
 }
 
@@ -95,6 +92,7 @@ export default function PeriodScreen() {
   const colors = useThemeColors();
 
   const [periods, setPeriods] = useState<Period[]>([]);
+  const [activeIndex, setActiveIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -121,110 +119,178 @@ export default function PeriodScreen() {
 
   const handlePressItem = (period: Period) => {
     router.push({
-      pathname: '/stage/[periodSlug]',
+      pathname: '/period-detail/[periodSlug]',
       params: { periodSlug: period.slug ?? period.id },
     });
   };
 
-  const renderItem = ({ item, index }: ListRenderItemInfo<Period>) => (
-    <PeriodCard item={item} index={index} onPress={() => handlePressItem(item)} />
+  const handleMomentumEnd = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const nextIndex = Math.round(event.nativeEvent.contentOffset.x / SCREEN_WIDTH);
+    setActiveIndex(nextIndex);
+  };
+
+  const renderItem = ({ item }: ListRenderItemInfo<Period>) => (
+    <PeriodCard item={item} onPress={() => handlePressItem(item)} />
   );
 
   return (
-    <Screen>
-      <AppHeader
-        title="Thời Kỳ Lịch Sử"
-        subtitle="4000 năm dựng nước & giữ nước"
-        showBack={false}
-      />
+    <Screen safeArea edges={['top', 'bottom']} style={styles.screen}>
+      <View style={styles.sectionHeader}>
+        <Text style={[styles.sectionTitle, { color: colors.secondary }]}>
+          Thời kỳ
+        </Text>
+        <View style={[styles.headerDivider, { backgroundColor: colors.borderStrong }]} />
+      </View>
+
       {loading ? (
         <LoadingState message="Đang tải thời kỳ lịch sử…" />
       ) : error ? (
         <ErrorState message={error} onRetry={() => loadPeriods()} />
       ) : (
-        <FlatList
-          data={periods}
-          keyExtractor={(item) => item.id}
-          renderItem={renderItem}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-          ListEmptyComponent={<EmptyState message="Chưa có thời kỳ nào." />}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={() => loadPeriods(true)}
-              colors={[colors.primary]}
-              tintColor={colors.primary}
-            />
-          }
-        />
+        <>
+          <FlatList
+            data={periods}
+            keyExtractor={(item) => item.id}
+            renderItem={renderItem}
+            horizontal
+            pagingEnabled
+            snapToInterval={SCREEN_WIDTH}
+            decelerationRate="fast"
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.pagerContent}
+            onMomentumScrollEnd={handleMomentumEnd}
+            ListEmptyComponent={
+              <View style={styles.emptyWrapper}>
+                <EmptyState message="Chưa có thời kỳ nào." />
+              </View>
+            }
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={() => loadPeriods(true)}
+                colors={[colors.primary]}
+                tintColor={colors.primary}
+              />
+            }
+          />
+
+          {periods.length > 1 && (
+            <View style={styles.dots}>
+              {periods.map((period, index) => (
+                <View
+                  key={period.id}
+                  style={[
+                    styles.dot,
+                    {
+                      backgroundColor: index === activeIndex
+                        ? colors.secondary
+                        : colors.borderStrong,
+                    },
+                    index === activeIndex && styles.dotActive,
+                  ]}
+                />
+              ))}
+            </View>
+          )}
+        </>
       )}
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  listContent: {
-    padding: SPACING[4],
-    paddingBottom: SPACING[8],
-    gap: SPACING[4],
+  screen: {
+    paddingTop: SPACING[3],
   },
-  card: {},
-  imageWrapper: {
-    width: '100%',
-    height: 190,
-    position: 'relative',
+  sectionHeader: {
+    paddingHorizontal: HORIZONTAL_PADDING,
+    marginBottom: SPACING[4],
   },
-  image: { width: '100%', height: '100%' },
-  imageOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 80,
-  },
-  indexBadge: {
-    position: 'absolute',
-    top: SPACING[3],
-    left: SPACING[3],
-    width: 32,
-    height: 32,
-    borderRadius: BORDER_RADIUS.full,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  indexText: {
-    fontSize: FONT_SIZES.sm,
-    fontWeight: FONT_WEIGHTS.bold,
-  },
-  yearOnImage: {
-    position: 'absolute',
-    bottom: SPACING[3],
-    left: SPACING[3],
-  },
-  cardBody: {
-    padding: SPACING[4],
-    gap: SPACING[2],
-  },
-  periodName: {
+  sectionTitle: {
     fontSize: FONT_SIZES.lg,
     fontWeight: FONT_WEIGHTS.bold,
-    lineHeight: 26,
+    marginBottom: SPACING[2],
   },
-  description: {
-    fontSize: FONT_SIZES.sm,
-    lineHeight: 20,
+  headerDivider: {
+    height: 3,
+    borderRadius: BORDER_RADIUS.full,
   },
-  cardFooter: {
+  pagerContent: {
+    flexGrow: 1,
+  },
+  page: {
+    width: SCREEN_WIDTH,
+    paddingHorizontal: HORIZONTAL_PADDING,
+    paddingBottom: SPACING[2],
+  },
+  periodCard: {
+    flex: 1,
+    minHeight: 560,
+    borderRadius: BORDER_RADIUS.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: 'hidden',
+    ...SHADOWS.md,
+  },
+  image: {
+    ...StyleSheet.absoluteFillObject,
+    width: '100%',
+    height: '100%',
+  },
+  fullOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(72,56,43,0.65)',
+  },
+  cardContent: {
+    flex: 1,
+    padding: SPACING[4],
+  },
+  cardTitle: {
+    color: '#F5F5F5',
+    fontSize: FONT_SIZES['3xl'],
+    fontWeight: FONT_WEIGHTS.bold,
+    lineHeight: 38,
+    marginTop: 56,
+  },
+  cardLowerContent: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingTop: 84,
+  },
+  periodRange: {
+    color: '#F5F5F5',
+    fontSize: FONT_SIZES.xl,
+    fontWeight: FONT_WEIGHTS.bold,
+  },
+  orangeDivider: {
+    height: 3,
+    backgroundColor: '#E8582B',
+    borderRadius: BORDER_RADIUS.full,
+    marginTop: SPACING[3],
+    marginBottom: SPACING[4],
+  },
+  summary: {
+    color: '#F5F5F5',
+    fontSize: FONT_SIZES.lg,
+    lineHeight: 27,
+  },
+  dots: {
     flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: SPACING[1],
-    paddingTop: SPACING[3],
-    borderTopWidth: StyleSheet.hairlineWidth,
+    gap: SPACING[2],
+    paddingTop: SPACING[2],
+    paddingBottom: SPACING[3],
   },
-  footerLabel: {
-    fontSize: FONT_SIZES.sm,
-    fontWeight: FONT_WEIGHTS.semibold,
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  dotActive: {
+    width: 22,
+  },
+  emptyWrapper: {
+    width: SCREEN_WIDTH,
+    paddingHorizontal: HORIZONTAL_PADDING,
   },
 });

@@ -22,14 +22,15 @@ function RootNavigator() {
         <Stack.Screen name="(tabs)" />
 
         {/* ── Luồng Lịch Sử ─────────────────────────────────── */}
+        <Stack.Screen name="period-detail/[periodSlug]/index" />
         <Stack.Screen name="stage/[periodSlug]" />
-        <Stack.Screen name="stage-detail/[periodSlug]/[stageSlug]" />
-        <Stack.Screen name="event/[periodSlug]/[stageSlug]/[eventSlug]" />
+        <Stack.Screen name="stage-detail/[periodSlug]/[stageSlug]/index" />
+        <Stack.Screen name="event/[periodSlug]/[stageSlug]/[eventSlug]/index" />
 
         {/* ── Nhân Vật ──────────────────────────────────────── */}
-        <Stack.Screen name="person-list/[periodSlug]" />
-        <Stack.Screen name="person/[periodSlug]/[personSlug]" />
-        <Stack.Screen name="person-event/[periodSlug]/[personSlug]/[eventSlug]" />
+        <Stack.Screen name="person-list/[periodSlug]/index" />
+        <Stack.Screen name="person/[periodSlug]/[personSlug]/index" />
+        <Stack.Screen name="person-event/[periodSlug]/[personSlug]/[eventSlug]/index" />
 
         {/* ── Hồ Sơ & Forum ─────────────────────────────────── */}
         <Stack.Screen name="profile-overview/index" />
@@ -39,8 +40,8 @@ function RootNavigator() {
         <Stack.Screen name="forum/new" />
 
         {/* ── Game ──────────────────────────────────────────── */}
-        <Stack.Screen name="quiz/[quizSlug]" />
-        <Stack.Screen name="timeline/[eraId]" />
+        <Stack.Screen name="quiz/[quizSlug]/index" />
+        <Stack.Screen name="timeline/[eraId]/index" />
 
         {/* ── Khám Phá ──────────────────────────────────────── */}
         <Stack.Screen name="explore/article/index" />
