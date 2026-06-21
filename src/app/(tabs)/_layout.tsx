@@ -54,9 +54,9 @@ export default function TabLayout() {
       <Tabs.Screen
         name="explore"
         options={{
-          title: 'Khám phá',
+          title: 'Chat AI',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="compass-outline" size={size ?? 22} color={color} />
+            <Ionicons name="chatbubble-ellipses-outline" size={size ?? 22} color={color} />
           ),
         }}
       />

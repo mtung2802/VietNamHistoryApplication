@@ -1,160 +1,403 @@
 /**
- * Tab Khám Phá
- * Tương đương: ExploreFragment.java
- * Query: explore collection orderBy sortOrder
- * slug == "bai-bao" → /explore/article
- * slug == "bao-tang" → /explore/museum
+ * Tab AI Chatbot.
+ * UI-only for now; backend will be connected later.
  */
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   FlatList,
+  KeyboardAvoidingView,
   ListRenderItemInfo,
-  RefreshControl,
+  Platform,
+  Pressable,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
-import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { ExploreItem, getExploreItems } from '@/services/exploreService';
 import { BORDER_RADIUS, FONT_SIZES, FONT_WEIGHTS, SPACING } from '@/constants/theme';
 import { useThemeColors } from '@/contexts/ThemeContext';
-import {
-  Screen,
-  AppHeader,
-  Card,
-  HistoryImage,
-  LoadingState,
-  ErrorState,
-  EmptyState,
-} from '@/components/ui';
+import { AppHeader, Card, Screen } from '@/components/ui';
 
-const ROUTE_MAP: Record<string, string> = {
-  'bai-bao': '/explore/article',
-  'bao-tang': '/explore/museum',
-};
+type ChatRole = 'assistant' | 'user';
 
-const ICON_MAP: Record<string, keyof typeof Ionicons.glyphMap> = {
-  'bai-bao': 'newspaper-outline',
-  'bao-tang': 'business-outline',
-};
+interface ChatMessage {
+  id: string;
+  role: ChatRole;
+  content: string;
+}
 
-function ExploreCard({ item, onPress }: { item: ExploreItem; onPress: () => void }) {
+const QUICK_PROMPTS = [
+  'Chiến dịch Điện Biên Phủ diễn ra như thế nào?',
+  'Tóm tắt giai đoạn 1954-1975',
+  'Ai là nhân vật tiêu biểu thời chống Mỹ?',
+  'Ý nghĩa của Cách mạng tháng Tám',
+];
+
+const INITIAL_MESSAGES: ChatMessage[] = [
+  {
+    id: 'welcome',
+    role: 'assistant',
+    content:
+      'Chào bạn, mình là trợ lý học Lịch sử Việt Nam. Hãy đặt một câu hỏi về sự kiện, nhân vật hoặc giai đoạn lịch sử bạn muốn tìm hiểu.',
+  },
+];
+
+function createId() {
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function createMockAnswer(question: string) {
+  return `Mình đã nhận câu hỏi: "${question}". Phần giao diện chat đã sẵn sàng; khi backend AI hoàn thiện, câu trả lời lịch sử sẽ được trả về tại đây.`;
+}
+
+function MessageBubble({ message }: { message: ChatMessage }) {
   const colors = useThemeColors();
-  const icon = ICON_MAP[item.slug] ?? 'compass-outline';
+  const isUser = message.role === 'user';
+
   return (
-    <Card onPress={onPress} noPadding>
-      <View style={styles.imageWrapper}>
-        <HistoryImage uri={item.coverMediaRef} style={styles.image} fallbackIcon={icon} />
-        <View style={[styles.imageOverlay, { backgroundColor: colors.overlay }]} />
-        <View style={[styles.iconChip, { backgroundColor: colors.primary }]}>
-          <Ionicons name={icon} size={22} color={colors.onPrimary} />
+    <View style={[styles.messageRow, isUser ? styles.userRow : styles.assistantRow]}>
+      {!isUser && (
+        <View style={[styles.avatar, { backgroundColor: colors.primaryDim }]}>
+          <Ionicons name="sparkles-outline" size={17} color={colors.primary} />
         </View>
+      )}
+
+      <View
+        style={[
+          styles.bubble,
+          {
+            backgroundColor: isUser ? colors.primary : colors.surface,
+            borderColor: isUser ? colors.primary : colors.border,
+          },
+        ]}
+      >
+        <Text style={[styles.messageText, { color: isUser ? colors.onPrimary : colors.text }]}>
+          {message.content}
+        </Text>
       </View>
-      <View style={styles.cardBody}>
-        <Text style={[styles.cardTitle, { color: colors.text }]}>{item.title}</Text>
-        {!!item.description && (
-          <Text style={[styles.cardDesc, { color: colors.textSecondary }]} numberOfLines={2}>
-            {item.description}
-          </Text>
-        )}
-        <View style={[styles.cardFooter, { borderTopColor: colors.border }]}>
-          <Text style={[styles.footerLabel, { color: colors.primary }]}>Khám phá</Text>
-          <Ionicons name="arrow-forward-circle" size={24} color={colors.primary} />
-        </View>
-      </View>
-    </Card>
+    </View>
+  );
+}
+
+function PromptChip({ label, onPress }: { label: string; onPress: () => void }) {
+  const colors = useThemeColors();
+
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.promptChip,
+        {
+          backgroundColor: colors.primaryDim,
+          borderColor: colors.border,
+          opacity: pressed ? 0.75 : 1,
+        },
+      ]}
+    >
+      <Ionicons name="chatbubble-ellipses-outline" size={15} color={colors.primary} />
+      <Text style={[styles.promptText, { color: colors.text }]} numberOfLines={2}>
+        {label}
+      </Text>
+    </Pressable>
   );
 }
 
 export default function ExploreScreen() {
-  const router = useRouter();
   const colors = useThemeColors();
-  const [items, setItems] = useState<ExploreItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const listRef = useRef<FlatList<ChatMessage>>(null);
+  const [messages, setMessages] = useState<ChatMessage[]>(INITIAL_MESSAGES);
+  const [draft, setDraft] = useState('');
+  const [isThinking, setIsThinking] = useState(false);
 
-  const load = useCallback(async (isRefresh = false) => {
-    try {
-      if (isRefresh) setRefreshing(true);
-      else setLoading(true);
-      setError(null);
-      setItems(await getExploreItems());
-    } catch {
-      setError('Không thể tải mục khám phá.');
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
+  const canSend = draft.trim().length > 0 && !isThinking;
+
+  const scrollToEnd = useCallback(() => {
+    requestAnimationFrame(() => listRef.current?.scrollToEnd({ animated: true }));
   }, []);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  const sendMessage = useCallback((text: string) => {
+    const question = text.trim();
+    if (!question || isThinking) return;
 
-  const handlePress = (item: ExploreItem) => {
-    const route = ROUTE_MAP[item.slug];
-    if (route) router.push(route as any);
-  };
+    const userMessage: ChatMessage = {
+      id: createId(),
+      role: 'user',
+      content: question,
+    };
+
+    setDraft('');
+    setMessages((current) => [...current, userMessage]);
+    setIsThinking(true);
+    scrollToEnd();
+
+    setTimeout(() => {
+      const assistantMessage: ChatMessage = {
+        id: createId(),
+        role: 'assistant',
+        content: createMockAnswer(question),
+      };
+
+      setMessages((current) => [...current, assistantMessage]);
+      setIsThinking(false);
+      scrollToEnd();
+    }, 650);
+  }, [isThinking, scrollToEnd]);
+
+  const footer = useMemo(() => {
+    if (!isThinking) return null;
+
+    return (
+      <View style={[styles.thinkingRow, { borderColor: colors.border }]}>
+        <View style={[styles.thinkingDot, { backgroundColor: colors.primary }]} />
+        <Text style={[styles.thinkingText, { color: colors.textSecondary }]}>Đang soạn câu trả lời...</Text>
+      </View>
+    );
+  }, [colors.border, colors.primary, colors.textSecondary, isThinking]);
 
   return (
     <Screen>
-      <AppHeader title="Khám Phá" subtitle="Bài báo & Bảo tàng" showBack={false} />
-      {loading ? (
-        <LoadingState />
-      ) : error ? (
-        <ErrorState message={error} onRetry={() => load()} />
-      ) : (
+      <AppHeader title="Chat AI" subtitle="Trợ lý Lịch sử Việt Nam" showBack={false} />
+
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 88 : 0}
+        style={styles.keyboardRoot}
+      >
         <FlatList
-          data={items}
-          keyExtractor={(i) => i.id}
-          renderItem={({ item }: ListRenderItemInfo<ExploreItem>) => (
-            <ExploreCard item={item} onPress={() => handlePress(item)} />
-          )}
-          contentContainerStyle={styles.list}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={() => load(true)}
-              colors={[colors.primary]}
-              tintColor={colors.primary}
-            />
+          ref={listRef}
+          data={messages}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }: ListRenderItemInfo<ChatMessage>) => <MessageBubble message={item} />}
+          ListHeaderComponent={
+            <View style={styles.topContent}>
+              <Card highlighted style={styles.heroCard}>
+                <View style={styles.heroHeader}>
+                  <View style={[styles.heroIcon, { backgroundColor: colors.primaryDim }]}>
+                    <Ionicons name="school-outline" size={24} color={colors.primary} />
+                  </View>
+                  <View style={styles.heroCopy}>
+                    <Text style={[styles.heroTitle, { color: colors.text }]}>Hỏi đáp lịch sử</Text>
+                    <Text style={[styles.heroSubtitle, { color: colors.textSecondary }]}>
+                      Tìm hiểu sự kiện, nhân vật và mốc thời gian Việt Nam
+                    </Text>
+                  </View>
+                </View>
+              </Card>
+
+              <View style={styles.promptGrid}>
+                {QUICK_PROMPTS.map((prompt) => (
+                  <PromptChip key={prompt} label={prompt} onPress={() => sendMessage(prompt)} />
+                ))}
+              </View>
+            </View>
           }
-          ListEmptyComponent={<EmptyState message="Chưa có mục khám phá." icon="compass-outline" />}
+          ListFooterComponent={footer}
+          contentContainerStyle={styles.chatContent}
+          showsVerticalScrollIndicator={false}
+          onContentSizeChange={scrollToEnd}
         />
-      )}
+
+        <View
+          style={[
+            styles.inputPanel,
+            {
+              backgroundColor: colors.surfaceElevated,
+              borderTopColor: colors.border,
+            },
+          ]}
+        >
+          <View
+            style={[
+              styles.inputBox,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
+              },
+            ]}
+          >
+            <TextInput
+              value={draft}
+              onChangeText={setDraft}
+              placeholder="Nhập câu hỏi lịch sử..."
+              placeholderTextColor={colors.textMuted}
+              multiline
+              maxLength={500}
+              style={[styles.input, { color: colors.text }]}
+              selectionColor={colors.primary}
+            />
+            <Pressable
+              onPress={() => sendMessage(draft)}
+              disabled={!canSend}
+              style={({ pressed }) => [
+                styles.sendButton,
+                {
+                  backgroundColor: canSend ? colors.primary : colors.primaryDim,
+                  opacity: pressed ? 0.78 : 1,
+                },
+              ]}
+            >
+              <Ionicons
+                name={isThinking ? 'hourglass-outline' : 'send'}
+                size={18}
+                color={canSend ? colors.onPrimary : colors.textMuted}
+              />
+            </Pressable>
+          </View>
+        </View>
+      </KeyboardAvoidingView>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  list: { padding: SPACING[4], gap: SPACING[4], paddingBottom: SPACING[8] },
-  imageWrapper: { width: '100%', height: 200, position: 'relative' },
-  image: { width: '100%', height: '100%' },
-  imageOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 90 },
-  iconChip: {
-    position: 'absolute',
-    top: SPACING[3],
-    right: SPACING[3],
-    width: 44,
-    height: 44,
+  keyboardRoot: {
+    flex: 1,
+  },
+  chatContent: {
+    paddingHorizontal: SPACING[4],
+    paddingTop: SPACING[4],
+    paddingBottom: SPACING[5],
+    gap: SPACING[3],
+  },
+  topContent: {
+    gap: SPACING[3],
+    marginBottom: SPACING[1],
+  },
+  heroCard: {
+    gap: SPACING[3],
+  },
+  heroHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING[3],
+  },
+  heroIcon: {
+    width: 48,
+    height: 48,
     borderRadius: BORDER_RADIUS.full,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  cardBody: { padding: SPACING[4], gap: SPACING[2] },
-  cardTitle: { fontSize: FONT_SIZES.xl, fontWeight: FONT_WEIGHTS.bold },
-  cardDesc: { fontSize: FONT_SIZES.sm, lineHeight: 20 },
-  cardFooter: {
+  heroCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: SPACING[1],
+  },
+  heroTitle: {
+    fontSize: FONT_SIZES.lg,
+    fontWeight: FONT_WEIGHTS.bold,
+  },
+  heroSubtitle: {
+    fontSize: FONT_SIZES.sm,
+    lineHeight: 20,
+  },
+  promptGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: SPACING[2],
+  },
+  promptChip: {
+    width: '48.6%',
+    minHeight: 60,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: BORDER_RADIUS.md,
+    paddingHorizontal: SPACING[3],
+    paddingVertical: SPACING[2],
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: SPACING[2],
+  },
+  promptText: {
+    flex: 1,
+    fontSize: FONT_SIZES.xs,
+    fontWeight: FONT_WEIGHTS.semibold,
+    lineHeight: 18,
+  },
+  messageRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: SPACING[2],
+  },
+  assistantRow: {
+    alignSelf: 'flex-start',
+    paddingRight: SPACING[8],
+  },
+  userRow: {
+    alignSelf: 'flex-end',
+    paddingLeft: SPACING[8],
+  },
+  avatar: {
+    width: 32,
+    height: 32,
+    borderRadius: BORDER_RADIUS.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bubble: {
+    maxWidth: '100%',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: BORDER_RADIUS.lg,
+    paddingHorizontal: SPACING[3],
+    paddingVertical: SPACING[3],
+  },
+  messageText: {
+    fontSize: FONT_SIZES.sm,
+    lineHeight: 22,
+  },
+  thinkingRow: {
+    alignSelf: 'flex-start',
+    marginLeft: 40,
+    minHeight: 38,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: BORDER_RADIUS.full,
+    paddingHorizontal: SPACING[3],
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: SPACING[1],
-    paddingTop: SPACING[3],
-    borderTopWidth: StyleSheet.hairlineWidth,
+    gap: SPACING[2],
   },
-  footerLabel: { fontSize: FONT_SIZES.sm, fontWeight: FONT_WEIGHTS.semibold },
+  thinkingDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  thinkingText: {
+    fontSize: FONT_SIZES.xs,
+    fontWeight: FONT_WEIGHTS.medium,
+  },
+  inputPanel: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: SPACING[4],
+    paddingTop: SPACING[3],
+    paddingBottom: Platform.select({ ios: SPACING[5], android: SPACING[3], default: SPACING[3] }),
+  },
+  inputBox: {
+    minHeight: 52,
+    maxHeight: 124,
+    borderWidth: 1,
+    borderRadius: BORDER_RADIUS.lg,
+    paddingLeft: SPACING[3],
+    paddingRight: SPACING[2],
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: SPACING[2],
+  },
+  input: {
+    flex: 1,
+    minHeight: 50,
+    maxHeight: 112,
+    paddingTop: SPACING[3],
+    paddingBottom: SPACING[3],
+    fontSize: FONT_SIZES.sm,
+    lineHeight: 21,
+  },
+  sendButton: {
+    width: 38,
+    height: 38,
+    borderRadius: BORDER_RADIUS.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 7,
+  },
 });
