@@ -248,24 +248,17 @@ async function loadQuizData(quizId: string) {
 }
 
 // ============================================================
-// 9. USER POINTS & BADGES - Ví dụ cập nhật điểm và badge
+// 9. USER BADGES - Vi du cap nhat badge
 // ============================================================
 
-import { addUserPoints, addUserBadge } from '@/services';
+import { addUserBadge } from '@/services';
 
-async function awardUserAchievement(uid: string, points: number) {
+async function awardUserAchievement(uid: string, badge: string) {
   try {
-    // Thêm điểm
-    await addUserPoints(uid, points);
-    console.log(`✅ Thêm ${points} điểm cho user`);
-
-    // Thêm badge nếu đủ điểm
-    if (points >= 100) {
-      await addUserBadge(uid, 'Expert');
-      console.log('✅ Thêm badge "Expert"');
-    }
+    await addUserBadge(uid, badge);
+    console.log(`Added badge "${badge}"`);
   } catch (error) {
-    console.error('❌ Lỗi cập nhật achievement:', error);
+    console.error('Loi cap nhat achievement:', error);
   }
 }
 

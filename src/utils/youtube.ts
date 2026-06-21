@@ -7,6 +7,7 @@ const VIDEO_ID_PATTERNS = [
   /[?&]v=([a-zA-Z0-9_-]{6,})/,
   /youtu\.be\/([a-zA-Z0-9_-]{6,})/,
   /embed\/([a-zA-Z0-9_-]{6,})/,
+  /shorts\/([a-zA-Z0-9_-]{6,})/,
 ];
 
 export function extractYoutubeId(input?: string | null): string | null {

@@ -29,8 +29,8 @@ export const getMuseums = async () => {
 
     querySnapshot.forEach((doc) => {
       museums.push({
-        id: doc.id,
         ...doc.data(),
+        id: doc.id,
       });
     });
 
@@ -57,8 +57,8 @@ export const getMuseumById = async (museumId: string) => {
 
     if (docSnap.exists()) {
       return {
-        id: docSnap.id,
         ...docSnap.data(),
+        id: docSnap.id,
       };
     }
     return null;
@@ -89,8 +89,8 @@ export const getMuseumsByRegion = async (region: string) => {
 
     querySnapshot.forEach((doc) => {
       museums.push({
-        id: doc.id,
         ...doc.data(),
+        id: doc.id,
       });
     });
 
@@ -126,8 +126,8 @@ export const searchMuseums = async (keyword: string) => {
         data.description?.toLowerCase().includes(keyword.toLowerCase())
       ) {
         museums.push({
-          id: doc.id,
           ...data,
+          id: doc.id,
         });
       }
     });

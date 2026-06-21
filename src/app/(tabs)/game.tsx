@@ -6,6 +6,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   FlatList,
+  ImageBackground,
   ListRenderItemInfo,
   StyleSheet,
   Text,
@@ -17,8 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { QuizItem } from '@/models/QuizzItem';
 import { Era } from '@/models/Era';
 import { getQuizzes } from '@/services/quizService';
-import { collection, getDocs } from 'firebase/firestore';
-import { db } from '@/services/firebase';
+import { getTimelineEras } from '@/services/timelinePuzzleService';
 import { BORDER_RADIUS, FONT_SIZES, FONT_WEIGHTS, SPACING } from '@/constants/theme';
 import { useThemeColors } from '@/contexts/ThemeContext';
 import {
@@ -70,11 +70,26 @@ function QuizCard({ item, onPress }: { item: QuizItem; onPress: () => void }) {
 
 function EraCard({ item, onPress }: { item: Era; onPress: () => void }) {
   const colors = useThemeColors();
+  const imageUri = item.coverMediaRef ?? item.thumbnailUrl;
   return (
     <Card onPress={onPress}>
-      <View style={[styles.eraIcon, { backgroundColor: colors.primaryDim }]}>
-        <Ionicons name="time-outline" size={26} color={colors.primary} />
-      </View>
+      {imageUri ? (
+        <ImageBackground
+          source={{ uri: imageUri }}
+          resizeMode="cover"
+          style={styles.eraImage}
+          imageStyle={styles.eraImageRadius}
+        >
+          <View style={styles.eraImageOverlay} />
+          <View style={[styles.eraIcon, { backgroundColor: 'rgba(0,0,0,0.45)' }]}>
+            <Ionicons name="time-outline" size={24} color="#FFD45A" />
+          </View>
+        </ImageBackground>
+      ) : (
+        <View style={[styles.eraIcon, { backgroundColor: colors.primaryDim }]}>
+          <Ionicons name="time-outline" size={26} color={colors.primary} />
+        </View>
+      )}
       <Text style={[styles.cardTitle, { color: colors.text }]}>{item.title}</Text>
       {!!item.description && (
         <Text style={[styles.cardSub, { color: colors.textSecondary }]} numberOfLines={2}>
@@ -111,8 +126,7 @@ export default function GameScreen() {
   const loadEras = useCallback(async () => {
     try {
       setLoading(true);
-      const snap = await getDocs(collection(db, 'games', 'timelinepuzzle', 'eras'));
-      setEras(snap.docs.map((d) => ({ eraId: d.id, ...d.data() } as Era)));
+      setEras(await getTimelineEras());
     } catch (e) {
       console.error(e);
     } finally {
@@ -238,6 +252,19 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUS.lg,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  eraImage: {
+    height: 132,
+    borderRadius: BORDER_RADIUS.lg,
+    overflow: 'hidden',
+    justifyContent: 'flex-end',
+    padding: SPACING[3],
+    marginBottom: SPACING[1],
+  },
+  eraImageRadius: { borderRadius: BORDER_RADIUS.lg },
+  eraImageOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.16)',
   },
   cardFooter: {
     flexDirection: 'row',

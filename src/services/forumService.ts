@@ -1,118 +1,299 @@
 /**
- * Service Diễn đàn
- * Firestore: forum/posts/all/{postId}
- * Replies: forum/posts/all/{postId}/replies/{replyId}
+ * Forum Service — Tất cả Firestore operations cho tính năng Diễn đàn
+ *
+ * Bao gồm:
+ * - Lấy danh sách bài viết (phân trang)
+ * - Lấy chi tiết bài viết
+ * - Toggle like (transaction)
+ * - Real-time replies (onSnapshot)
+ * - Thêm bình luận (batch write)
+ * - Tạo bài viết mới
  */
 
 import {
-  collection, query, orderBy, getDocs, doc, getDoc,
-  addDoc, updateDoc, deleteDoc, serverTimestamp, onSnapshot,
+  collection,
+  doc,
+  addDoc,
+  getDoc,
+  getDocs,
+  query,
+  orderBy,
+  limit,
+  startAfter,
+  runTransaction,
+  onSnapshot,
+  serverTimestamp,
+  writeBatch,
+  increment,
+  Timestamp,
+  QueryDocumentSnapshot,
+  DocumentData,
+  Unsubscribe,
 } from 'firebase/firestore';
 import { db } from '@/services/firebase';
-import { ForumPost } from '@/models/ForumPost';
-import { Reply } from '@/models/Reply';
 
-const POSTS_COL = () => collection(db, 'forum', 'posts', 'all');
+// ── Types ────────────────────────────────────────────────────────────────
 
-/** Lắng nghe realtime danh sách bài viết */
-export const subscribeToForum = (
-  callback: (posts: ForumPost[]) => void,
-  onError: (e: Error) => void,
-) => {
-  const q = query(POSTS_COL(), orderBy('createdAt', 'desc'));
-  return onSnapshot(
-    q,
-    (snap) => {
-      const posts = snap.docs.map((d) => ({ postId: d.id, ...d.data() } as ForumPost));
-      callback(posts);
-    },
-    onError,
-  );
-};
-
-/** Lấy danh sách bài viết (one-shot) */
-export const getPosts = async (): Promise<ForumPost[]> => {
-  try {
-    const q = query(POSTS_COL(), orderBy('createdAt', 'desc'));
-    const snap = await getDocs(q);
-    return snap.docs.map((d) => ({ postId: d.id, ...d.data() } as ForumPost));
-  } catch (e) {
-    console.error('❌ Lỗi getPosts:', e);
-    throw e;
-  }
-};
-
-/** Lấy bài viết theo ID */
-export const getPostById = async (postId: string): Promise<ForumPost | null> => {
-  try {
-    const snap = await getDoc(doc(db, 'forum', 'posts', 'all', postId));
-    if (!snap.exists()) return null;
-    return { postId: snap.id, ...snap.data() } as ForumPost;
-  } catch (e) {
-    console.error('❌ Lỗi getPostById:', e);
-    throw e;
-  }
-};
-
-/** Tạo bài viết mới */
-export const createPost = async (data: {
+/** Dữ liệu 1 bài viết trên Firestore */
+export interface ForumPost {
+  id: string;
   title: string;
   content: string;
   authorId: string;
   authorName: string;
-  authorPhoto?: string;
-}): Promise<string> => {
-  try {
-    const ref = await addDoc(POSTS_COL(), {
-      ...data,
-      replyCount: 0,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    });
-    return ref.id;
-  } catch (e) {
-    console.error('❌ Lỗi createPost:', e);
-    throw e;
-  }
-};
+  authorPhoto: string;
+  authorRank: string;
+  likeCount: number;
+  likes: string[];
+  replyCount: number;
+  createdAt: Timestamp;
+  postId: null;
+}
 
-/** Xóa bài viết */
-export const deletePost = async (postId: string): Promise<void> => {
-  await deleteDoc(doc(db, 'forum', 'posts', 'all', postId));
-};
+/** Dữ liệu 1 bình luận (reply) trên Firestore */
+export interface ForumReply {
+  id: string;
+  content: string;
+  authorId: string;
+  authorName: string;
+  authorPhoto: string;
+  authorRank: string;
+  createdAt: Timestamp;
+}
 
-/** Lấy danh sách replies của bài viết */
-export const getReplies = async (postId: string): Promise<Reply[]> => {
-  try {
-    const q = query(
-      collection(db, 'forum', 'posts', 'all', postId, 'replies'),
-      orderBy('createdAt', 'asc'),
-    );
-    const snap = await getDocs(q);
-    return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Reply));
-  } catch (e) {
-    console.error('❌ Lỗi getReplies:', e);
-    throw e;
-  }
-};
+/** Dữ liệu gửi lên khi tạo bài viết mới */
+export interface CreatePostInput {
+  title: string;
+  content: string;
+  authorId: string;
+  authorName: string;
+  authorPhoto: string;
+  authorRank: string;
+}
 
-/** Thêm reply */
-export const addReply = async (
+/** Dữ liệu gửi lên khi thêm bình luận */
+export interface AddReplyInput {
+  content: string;
+  authorId: string;
+  authorName: string;
+  authorPhoto: string;
+  authorRank: string;
+}
+
+/** Kết quả phân trang bài viết */
+export interface ForumPostsResult {
+  posts: ForumPost[];
+  lastDoc: QueryDocumentSnapshot<DocumentData> | null;
+  hasMore: boolean;
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────────
+
+/**
+ * Parse 1 Firestore document thành ForumPost.
+ */
+function parsePost(doc: QueryDocumentSnapshot<DocumentData>): ForumPost {
+  const data = doc.data();
+  return {
+    id: doc.id,
+    title: data.title ?? '',
+    content: data.content ?? '',
+    authorId: data.authorId ?? '',
+    authorName: data.authorName ?? '',
+    authorPhoto: data.authorPhoto ?? '',
+    authorRank: typeof data.authorRank === 'string' ? data.authorRank : 'Newcomer',
+    likeCount: typeof data.likeCount === 'number' ? data.likeCount : 0,
+    likes: Array.isArray(data.likes) ? data.likes : [],
+    replyCount: typeof data.replyCount === 'number' ? data.replyCount : 0,
+    createdAt: data.createdAt ?? Timestamp.now(),
+    postId: null,
+  };
+}
+
+// ── API ──────────────────────────────────────────────────────────────────
+
+/**
+ * Lấy danh sách bài viết từ collection `forum`, phân trang.
+ *
+ * @param limitCount - Số bài tối đa mỗi trang (mặc định 20)
+ * @param startAfterDoc - Document cuối cùng của trang trước (dùng cho pagination)
+ * @returns Object chứa mảng posts, document cuối cùng, và flag hasMore
+ */
+export async function getForumPosts(
+  limitCount = 20,
+  startAfterDoc?: QueryDocumentSnapshot<DocumentData> | null,
+): Promise<ForumPostsResult> {
+  const forumRef = collection(db, 'forum');
+
+  let q = startAfterDoc
+    ? query(forumRef, orderBy('createdAt', 'desc'), startAfter(startAfterDoc), limit(limitCount + 1))
+    : query(forumRef, orderBy('createdAt', 'desc'), limit(limitCount + 1));
+
+  const snap = await getDocs(q);
+  const allDocs = snap.docs;
+  const hasMore = allDocs.length > limitCount;
+  const docs = hasMore ? allDocs.slice(0, limitCount) : allDocs;
+  const posts = docs.map(parsePost);
+  const lastDoc = docs.length > 0 ? docs[docs.length - 1] : null;
+
+  return { posts, lastDoc, hasMore };
+}
+
+/**
+ * Lấy chi tiết 1 bài viết theo ID.
+ *
+ * @param postId - ID document trong collection `forum`
+ * @returns ForumPost hoặc null nếu không tồn tại
+ */
+export async function getForumPost(postId: string): Promise<ForumPost | null> {
+  const snap = await getDoc(doc(db, 'forum', postId));
+  if (!snap.exists()) return null;
+
+  const data = snap.data();
+  return {
+    id: snap.id,
+    title: data.title ?? '',
+    content: data.content ?? '',
+    authorId: data.authorId ?? '',
+    authorName: data.authorName ?? '',
+    authorPhoto: data.authorPhoto ?? '',
+    authorRank: typeof data.authorRank === 'string' ? data.authorRank : 'Newcomer',
+    likeCount: typeof data.likeCount === 'number' ? data.likeCount : 0,
+    likes: Array.isArray(data.likes) ? data.likes : [],
+    replyCount: typeof data.replyCount === 'number' ? data.replyCount : 0,
+    createdAt: data.createdAt ?? Timestamp.now(),
+    postId: null,
+  };
+}
+
+/**
+ * Toggle like cho 1 bài viết (dùng Firestore transaction).
+ *
+ * Nếu userId đã có trong likes[] → bỏ like (remove + giảm likeCount).
+ * Nếu userId chưa có → thêm like (add + tăng likeCount).
+ *
+ * @param postId - ID bài viết
+ * @param userId - ID người dùng hiện tại
+ * @returns `true` nếu đã like, `false` nếu đã bỏ like
+ */
+export async function toggleLike(postId: string, userId: string): Promise<boolean> {
+  const postRef = doc(db, 'forum', postId);
+
+  return runTransaction(db, async (transaction) => {
+    const postSnap = await transaction.get(postRef);
+    if (!postSnap.exists()) {
+      throw new Error('Bài viết không tồn tại');
+    }
+
+    const data = postSnap.data();
+    const likes: string[] = Array.isArray(data.likes) ? data.likes : [];
+    const alreadyLiked = likes.includes(userId);
+
+    if (alreadyLiked) {
+      // Bỏ like
+      transaction.update(postRef, {
+        likes: likes.filter((id) => id !== userId),
+        likeCount: Math.max(0, (data.likeCount ?? 1) - 1),
+      });
+      return false;
+    } else {
+      // Thêm like
+      transaction.update(postRef, {
+        likes: [...likes, userId],
+        likeCount: (data.likeCount ?? 0) + 1,
+      });
+      return true;
+    }
+  });
+}
+
+/**
+ * Đăng ký lắng nghe real-time replies cho 1 bài viết (onSnapshot).
+ *
+ * Replies được sắp xếp theo `createdAt` tăng dần.
+ *
+ * @param postId - ID bài viết
+ * @param callback - Hàm callback nhận mảng ForumReply mỗi khi có thay đổi
+ * @returns Hàm unsubscribe để huỷ lắng nghe
+ */
+export function subscribeToReplies(
   postId: string,
-  data: { content: string; authorId: string; authorName: string; authorPhoto?: string },
-): Promise<void> => {
-  try {
-    await addDoc(collection(db, 'forum', 'posts', 'all', postId, 'replies'), {
-      ...data,
-      createdAt: serverTimestamp(),
+  callback: (replies: ForumReply[]) => void,
+): Unsubscribe {
+  const repliesRef = collection(db, 'forum', postId, 'replies');
+  const q = query(repliesRef, orderBy('createdAt', 'asc'));
+
+  return onSnapshot(q, (snap) => {
+    const replies: ForumReply[] = snap.docs.map((d) => {
+      const data = d.data();
+      return {
+        id: d.id,
+        content: data.content ?? '',
+        authorId: data.authorId ?? '',
+        authorName: data.authorName ?? '',
+        authorPhoto: data.authorPhoto ?? '',
+        authorRank: typeof data.authorRank === 'string' ? data.authorRank : 'Newcomer',
+        createdAt: data.createdAt ?? Timestamp.now(),
+      };
     });
-    // Tăng replyCount
-    await updateDoc(doc(db, 'forum', 'posts', 'all', postId), {
-      replyCount: (await getPostById(postId))?.replyCount ?? 0 + 1,
-      updatedAt: serverTimestamp(),
-    });
-  } catch (e) {
-    console.error('❌ Lỗi addReply:', e);
-    throw e;
-  }
-};
+    callback(replies);
+  });
+}
+
+/**
+ * Thêm 1 bình luận vào bài viết (batch write).
+ *
+ * Batch gồm 2 thao tác:
+ * 1. Thêm document vào subcollection `forum/{postId}/replies`
+ * 2. Tăng `replyCount` của bài viết lên 1
+ *
+ * @param postId - ID bài viết
+ * @param input - Dữ liệu bình luận
+ */
+export async function addReply(postId: string, input: AddReplyInput): Promise<void> {
+  const batch = writeBatch(db);
+
+  const replyRef = doc(collection(db, 'forum', postId, 'replies'));
+  batch.set(replyRef, {
+    content: input.content,
+    authorId: input.authorId,
+    authorName: input.authorName,
+    authorPhoto: input.authorPhoto,
+    authorRank: input.authorRank,
+    createdAt: serverTimestamp(),
+  });
+
+  const postRef = doc(db, 'forum', postId);
+  batch.update(postRef, {
+    replyCount: increment(1),
+  });
+
+  await batch.commit();
+}
+
+/**
+ * Tạo bài viết mới trong collection `forum`.
+ *
+ * Tự động set: likeCount=0, likes=[], replyCount=0, postId=null,
+ * createdAt=serverTimestamp().
+ *
+ * @param input - Dữ liệu bài viết (title, content, author info)
+ * @returns ID của document vừa tạo
+ */
+export async function createPost(input: CreatePostInput): Promise<string> {
+  const docRef = await addDoc(collection(db, 'forum'), {
+    title: input.title,
+    content: input.content,
+    authorId: input.authorId,
+    authorName: input.authorName,
+    authorPhoto: input.authorPhoto,
+    authorRank: input.authorRank,
+    likeCount: 0,
+    likes: [],
+    replyCount: 0,
+    postId: null,
+    createdAt: serverTimestamp(),
+  });
+
+  return docRef.id;
+}

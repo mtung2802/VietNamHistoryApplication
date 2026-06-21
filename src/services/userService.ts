@@ -4,8 +4,51 @@
  */
 
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import { db } from '@/services/firebase';
 import { UserModel } from '@/models/UserModel';
+
+export const uploadUserAvatar = async (
+  userId: string,
+  imageUri: string,
+): Promise<string> => {
+  if (!userId || !imageUri) {
+    throw new Error('Thiếu người dùng hoặc ảnh đại diện');
+  }
+
+  let result = await manipulateAsync(
+    imageUri,
+    [{ resize: { width: 512 } }],
+    {
+      base64: true,
+      compress: 0.65,
+      format: SaveFormat.JPEG,
+    },
+  );
+
+  if (result.base64 && result.base64.length > 600_000) {
+    result = await manipulateAsync(
+      imageUri,
+      [{ resize: { width: 384 } }],
+      {
+        base64: true,
+        compress: 0.5,
+        format: SaveFormat.JPEG,
+      },
+    );
+  }
+
+  if (!result.base64) {
+    throw new Error('Không thể xử lý ảnh đã chọn');
+  }
+
+  const dataUri = `data:image/jpeg;base64,${result.base64}`;
+  if (dataUri.length > 700_000) {
+    throw new Error('Ảnh đại diện sau khi nén vẫn quá lớn');
+  }
+
+  return dataUri;
+};
 
 /**
  * Lấy thông tin người dùng theo UID
@@ -27,8 +70,8 @@ export const getUserById = async (uid: string): Promise<UserModel | null> => {
     }
 
     return {
-      uid: docSnapshot.id,
       ...docSnapshot.data(),
+      uid: docSnapshot.id,
     } as UserModel;
   } catch (error) {
     console.error('❌ Lỗi lấy thông tin người dùng:', error);
@@ -57,39 +100,6 @@ export const updateUser = async (
     });
   } catch (error) {
     console.error('❌ Lỗi cập nhật thông tin người dùng:', error);
-    throw error;
-  }
-};
-
-/**
- * Cập nhật điểm của người dùng
- * @param uid - Firebase UID
- * @param points - Số điểm cần thêm
- */
-export const addUserPoints = async (uid: string, points: number): Promise<void> => {
-  try {
-    if (!uid) {
-      throw new Error('UID không được để trống');
-    }
-
-    if (typeof points !== 'number' || points < 0) {
-      throw new Error('Points phải là số dương');
-    }
-
-    const userRef = doc(db, 'users', uid);
-    const userDoc = await getDoc(userRef);
-
-    if (!userDoc.exists()) {
-      throw new Error('Người dùng không tồn tại');
-    }
-
-    const currentScore = userDoc.data().totalScore || 0;
-    await updateDoc(userRef, {
-      totalScore: currentScore + points,
-      updatedAt: new Date(),
-    });
-  } catch (error) {
-    console.error('❌ Lỗi cập nhật điểm người dùng:', error);
     throw error;
   }
 };

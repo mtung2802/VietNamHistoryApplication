@@ -12,18 +12,22 @@
  *   sortOrder         → sortOrder
  */
 
+import { FirestoreDateValue, MediaItem } from './Period';
+
 export interface Stage {
   id: string;           // = document ID = slug
   periodSlug: string;   // slug của period cha (để navigate)
   title: string;        // Tên giai đoạn
-  description: string;  // Mô tả
+  description?: string; // Mô tả (một số dữ liệu cũ dùng key này)
+  overview?: string;    // Mô tả ngắn đúng schema Firestore hiện tại
   coverMediaRef: string; // URL ảnh bìa
-  startDate: string;    // ISO date string
-  endDate: string;      // ISO date string
+  images?: MediaItem[];
+  startDate: FirestoreDateValue; // ISO string hoặc Firestore Timestamp
+  endDate: FirestoreDateValue;   // ISO string hoặc Firestore Timestamp
   sortOrder: number;
   // Chi tiết (dùng trong StageDetail)
   details?: string[];
-  result?: string[];
+  result?: string[] | string;
   impactOnPresent?: string;
 }
 
@@ -38,8 +42,8 @@ export interface StageEvent {
   title: string;
   description: string;
   coverMediaRef: string;
-  startDate: string;
-  endDate: string;
+  startDate: FirestoreDateValue;
+  endDate: FirestoreDateValue;
   details?: string[];
   sortOrder?: number;
   content?: {

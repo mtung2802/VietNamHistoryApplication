@@ -29,8 +29,8 @@ export const getTimelines = async () => {
 
     querySnapshot.forEach((doc) => {
       timelines.push({
-        id: doc.id,
         ...doc.data(),
+        id: doc.id,
       });
     });
 
@@ -57,8 +57,8 @@ export const getTimelineById = async (timelineId: string) => {
 
     if (docSnap.exists()) {
       return {
-        id: docSnap.id,
         ...docSnap.data(),
+        id: docSnap.id,
       };
     }
     return null;
@@ -89,8 +89,8 @@ export const getTimelinesByPeriod = async (periodId: string) => {
 
     querySnapshot.forEach((doc) => {
       timelines.push({
-        id: doc.id,
         ...doc.data(),
+        id: doc.id,
       });
     });
 
@@ -121,8 +121,8 @@ export const getTimelinesByYear = async (year: number) => {
 
     querySnapshot.forEach((doc) => {
       timelines.push({
-        id: doc.id,
         ...doc.data(),
+        id: doc.id,
       });
     });
 
@@ -158,8 +158,8 @@ export const searchTimelines = async (keyword: string) => {
         data.description?.toLowerCase().includes(keyword.toLowerCase())
       ) {
         timelines.push({
-          id: doc.id,
           ...data,
+          id: doc.id,
         });
       }
     });
