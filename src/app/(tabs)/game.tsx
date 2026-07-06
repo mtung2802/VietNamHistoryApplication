@@ -8,12 +8,20 @@ import {
   FlatList,
   ImageBackground,
   ListRenderItemInfo,
+  Pressable,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withTiming,
+} from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { QuizItem } from '@/models/QuizzItem';
 import { Era } from '@/models/Era';
@@ -43,10 +51,58 @@ const LEVEL_LABEL: Record<string, string> = {
   hard: 'Khó',
 };
 
-function QuizCard({ item, onPress }: { item: QuizItem; onPress: () => void }) {
+/* ── Stagger entrance + press-scale wrapper ─────────────────────────── */
+const MAX_STAGGER_INDEX = 6;
+
+function AnimatedCardItem({
+  children,
+  index,
+  onPress,
+}: {
+  children: React.ReactNode;
+  index: number;
+  onPress: () => void;
+}) {
+  const entrance = useSharedValue(0);
+  const scale = useSharedValue(1);
+
+  useEffect(() => {
+    const delay = index < MAX_STAGGER_INDEX ? index * 80 : 0;
+    entrance.value = withDelay(
+      delay,
+      withTiming(1, { duration: 400, easing: Easing.out(Easing.cubic) }),
+    );
+  }, []);
+
+  const animStyle = useAnimatedStyle(() => ({
+    opacity: entrance.value,
+    transform: [
+      { translateY: (1 - entrance.value) * 30 },
+      { scale: scale.value },
+    ],
+  }));
+
+  return (
+    <Pressable
+      onPress={onPress}
+      onPressIn={() => {
+        scale.value = withTiming(0.97, { duration: 150 });
+      }}
+      onPressOut={() => {
+        scale.value = withTiming(1, { duration: 150 });
+      }}
+    >
+      <Animated.View style={animStyle}>{children}</Animated.View>
+    </Pressable>
+  );
+}
+
+/* ── Card components ─────────────────────────────────────────────────── */
+
+function QuizCard({ item }: { item: QuizItem }) {
   const colors = useThemeColors();
   return (
-    <Card onPress={onPress}>
+    <Card>
       <Badge
         label={LEVEL_LABEL[item.level] ?? item.level}
         color={LEVEL_TONE[item.level] ?? colors.primary}
@@ -68,11 +124,11 @@ function QuizCard({ item, onPress }: { item: QuizItem; onPress: () => void }) {
   );
 }
 
-function EraCard({ item, onPress }: { item: Era; onPress: () => void }) {
+function EraCard({ item }: { item: Era }) {
   const colors = useThemeColors();
   const imageUri = item.coverMediaRef ?? item.thumbnailUrl;
   return (
-    <Card onPress={onPress}>
+    <Card>
       {imageUri ? (
         <ImageBackground
           source={{ uri: imageUri }}
@@ -182,13 +238,15 @@ export default function GameScreen() {
         <FlatList
           data={quizzes}
           keyExtractor={(q) => q.id}
-          renderItem={({ item }: ListRenderItemInfo<QuizItem>) => (
-            <QuizCard
-              item={item}
+          renderItem={({ item, index }: ListRenderItemInfo<QuizItem>) => (
+            <AnimatedCardItem
+              index={index}
               onPress={() =>
                 router.push({ pathname: '/quiz/[quizSlug]', params: { quizSlug: item.id } })
               }
-            />
+            >
+              <QuizCard item={item} />
+            </AnimatedCardItem>
           )}
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
@@ -198,13 +256,15 @@ export default function GameScreen() {
         <FlatList
           data={eras}
           keyExtractor={(e) => e.eraId}
-          renderItem={({ item }: ListRenderItemInfo<Era>) => (
-            <EraCard
-              item={item}
+          renderItem={({ item, index }: ListRenderItemInfo<Era>) => (
+            <AnimatedCardItem
+              index={index}
               onPress={() =>
                 router.push({ pathname: '/timeline/[eraId]', params: { eraId: item.eraId } })
               }
-            />
+            >
+              <EraCard item={item} />
+            </AnimatedCardItem>
           )}
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
