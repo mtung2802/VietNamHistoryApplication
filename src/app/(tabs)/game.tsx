@@ -19,7 +19,8 @@ import { QuizItem } from '@/models/QuizzItem';
 import { Era } from '@/models/Era';
 import { getQuizzes } from '@/services/quizService';
 import { getTimelineEras } from '@/services/timelinePuzzleService';
-import { BORDER_RADIUS, FONT_SIZES, FONT_WEIGHTS, SPACING } from '@/constants/theme';
+import { BORDER_RADIUS, Fonts, FONT_SIZES, FONT_WEIGHTS, SPACING } from '@/constants/theme';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useThemeColors } from '@/contexts/ThemeContext';
 import {
   Screen,
@@ -43,28 +44,46 @@ const LEVEL_LABEL: Record<string, string> = {
   hard: 'Khó',
 };
 
-function QuizCard({ item, onPress }: { item: QuizItem; onPress: () => void }) {
+function QuizCard({ item, index, onPress }: { item: QuizItem; index: number; onPress: () => void }) {
   const colors = useThemeColors();
+  const formattedIndex = String(index + 1).padStart(2, '0');
+  
   return (
-    <Card onPress={onPress}>
-      <Badge
-        label={LEVEL_LABEL[item.level] ?? item.level}
-        color={LEVEL_TONE[item.level] ?? colors.primary}
-      />
-      <Text style={[styles.cardTitle, { color: colors.text }]} numberOfLines={2}>
-        {item.description}
-      </Text>
-      <View style={styles.metaRow}>
-        <Ionicons name="help-circle-outline" size={16} color={colors.textMuted} />
-        <Text style={[styles.cardSub, { color: colors.textMuted }]}>
-          {item.questionCount} câu hỏi
+    <TouchableOpacity
+      activeOpacity={0.8}
+      onPress={onPress}
+      style={[
+        styles.newQuizCard,
+        { backgroundColor: colors.surface, borderColor: colors.border }
+      ]}
+    >
+      <LinearGradient
+        colors={[colors.primary, colors.primaryBright || colors.primary]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.quizIndexBox}
+      >
+        <Text style={styles.quizIndexText}>{formattedIndex}</Text>
+      </LinearGradient>
+      <View style={styles.quizContent}>
+        <Text style={[styles.quizTitleText, { color: colors.text }]} numberOfLines={2}>
+          {item.description || item.id}
         </Text>
+        <View style={styles.quizMetaRow}>
+          <Badge
+            label={LEVEL_LABEL[item.level] ?? item.level}
+            color={LEVEL_TONE[item.level] ?? colors.primary}
+            style={{ paddingHorizontal: 8, paddingVertical: 2 }}
+          />
+          <View style={[styles.questionCountBadge, { backgroundColor: colors.surfaceElevated }]}>
+            <Text style={[styles.questionCountText, { color: colors.textSecondary }]}>
+              {item.questionCount} câu
+            </Text>
+          </View>
+        </View>
       </View>
-      <View style={[styles.cardFooter, { borderTopColor: colors.border }]}>
-        <Text style={[styles.cardAction, { color: colors.primary }]}>Bắt đầu</Text>
-        <Ionicons name="play-circle" size={22} color={colors.primary} />
-      </View>
-    </Card>
+      <Ionicons name="chevron-forward" size={20} color={colors.textMuted} style={{ marginLeft: 8 }} />
+    </TouchableOpacity>
   );
 }
 
@@ -168,12 +187,26 @@ export default function GameScreen() {
   };
 
   return (
-    <Screen>
-      <AppHeader title="Trò Chơi Lịch Sử" subtitle="Vừa học vừa chơi" showBack={false} />
+    <Screen style={{ backgroundColor: colors.background }}>
+      <LinearGradient
+        colors={[colors.primary, '#8b1c17']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.customHeader}
+      >
+        <View style={styles.headerTopRow}>
+          <Ionicons name="star" size={16} color="#FFFFFF" />
+          <Text style={styles.headerSubtitle}>SỬ VIỆT • HỌC MÀ CHƠI</Text>
+        </View>
+        <Text style={styles.headerTitle}>Ôn sử nước Nam</Text>
+        <Text style={styles.headerDesc}>
+          Chọn một thử thách để bắt đầu hành trình xuyên nghìn năm dựng nước.
+        </Text>
+      </LinearGradient>
 
       <View style={[styles.tabRow, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <TabButton tab="quiz" icon="help-circle-outline" label="Câu Đố" />
-        <TabButton tab="timeline" icon="time-outline" label="Ghép Niên Đại" />
+        <TabButton tab="quiz" icon="help-circle-outline" label="Trắc nghiệm" />
+        <TabButton tab="timeline" icon="time-outline" label="Ghép niên đại" />
       </View>
 
       {loading ? (
@@ -182,9 +215,10 @@ export default function GameScreen() {
         <FlatList
           data={quizzes}
           keyExtractor={(q) => q.id}
-          renderItem={({ item }: ListRenderItemInfo<QuizItem>) => (
+          renderItem={({ item, index }: ListRenderItemInfo<QuizItem>) => (
             <QuizCard
               item={item}
+              index={index}
               onPress={() =>
                 router.push({ pathname: '/quiz/[quizSlug]', params: { quizSlug: item.id } })
               }
@@ -218,17 +252,22 @@ export default function GameScreen() {
 const styles = StyleSheet.create({
   tabRow: {
     flexDirection: 'row',
-    margin: SPACING[4],
-    marginBottom: 0,
+    marginHorizontal: SPACING[5],
+    marginTop: -SPACING[5], // Kéo tab lên đè lên header một chút
+    marginBottom: SPACING[2],
     borderRadius: BORDER_RADIUS.full,
     padding: 4,
-    borderWidth: StyleSheet.hairlineWidth,
-    gap: 4,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   tab: {
     flex: 1,
     flexDirection: 'row',
-    paddingVertical: 10,
+    paddingVertical: 12,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
@@ -236,7 +275,88 @@ const styles = StyleSheet.create({
   },
   tabText: { fontSize: FONT_SIZES.sm, fontWeight: FONT_WEIGHTS.bold },
 
-  list: { padding: SPACING[4], gap: SPACING[3], paddingBottom: SPACING[8] },
+  list: { padding: SPACING[5], gap: SPACING[4], paddingBottom: SPACING[10] },
+
+  // Custom Header
+  customHeader: {
+    paddingTop: SPACING[12],
+    paddingHorizontal: SPACING[5],
+    paddingBottom: SPACING[10], // padding dưới nhiều hơn để chứa tab
+  },
+  headerTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING[2],
+    marginBottom: SPACING[2],
+  },
+  headerSubtitle: {
+    color: '#FFFFFF',
+    fontSize: FONT_SIZES.sm,
+    fontWeight: FONT_WEIGHTS.semibold,
+    letterSpacing: 1,
+  },
+  headerTitle: {
+    color: '#FFFFFF',
+    fontFamily: Fonts.serifExtraBold,
+    fontSize: FONT_SIZES['3xl'],
+    marginBottom: SPACING[1],
+  },
+  headerDesc: {
+    color: 'rgba(255,255,255,0.9)',
+    fontFamily: Fonts.regular,
+    fontSize: FONT_SIZES.sm,
+    lineHeight: 20,
+  },
+
+  // New Quiz Card
+  newQuizCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: SPACING[3],
+    borderRadius: BORDER_RADIUS.xl,
+    borderWidth: 1,
+    shadowColor: 'rgba(101,19,16,1)',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  quizIndexBox: {
+    width: 48,
+    height: 48,
+    borderRadius: BORDER_RADIUS.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: SPACING[3],
+  },
+  quizIndexText: {
+    color: '#FFFFFF',
+    fontFamily: Fonts.serifExtraBold,
+    fontSize: FONT_SIZES.xl,
+  },
+  quizContent: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  quizTitleText: {
+    fontFamily: Fonts.serifBold,
+    fontSize: FONT_SIZES.lg,
+    marginBottom: SPACING[1],
+  },
+  quizMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING[2],
+  },
+  questionCountBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: BORDER_RADIUS.full,
+  },
+  questionCountText: {
+    fontSize: FONT_SIZES.xs,
+    fontWeight: FONT_WEIGHTS.medium,
+  },
 
   cardTitle: {
     fontSize: FONT_SIZES.base,

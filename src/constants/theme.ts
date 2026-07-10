@@ -9,10 +9,10 @@ import { Platform } from 'react-native';
 // ===== ĐỊNH NGHĨA MÀU SẮC =====
 export const COLORS = {
   // Màu chính
-  primary: '#C8102E', // Đỏ chính
-  accent: '#FFD700', // Vàng
-  lightBg: '#fff5f5', // Nền sáng
-  tabInactive: '#ffaaaa', // Tab không hoạt động
+  primary: '#C8102E', // Đỏ PTIT
+  accent: '#FFFFFF', // Trắng thay vì Vàng
+  lightBg: '#FFFFFF', // Nền sáng
+  tabInactive: '#E5E7EB', // Tab không hoạt động
 
   // Màu hỗ trợ
   white: '#FFFFFF',
@@ -45,11 +45,11 @@ export interface ThemeColors {
   surface: string; // nền card / panel
   surfaceElevated: string; // panel nổi cao hơn (modal, header)
   // Điểm nhấn
-  primary: string; // GOLD - màu nhấn chính
-  primaryBright: string; // gold rực hơn (icon, highlight)
-  primaryDim: string; // gold mờ (nền nhạt, viền)
+  primary: string; // ĐỎ PTIT - màu nhấn chính
+  primaryBright: string; // Đỏ sáng hơn (icon, highlight)
+  primaryDim: string; // Đỏ mờ (nền nhạt, viền)
   onPrimary: string; // màu chữ/icon nằm TRÊN nền primary
-  secondary: string; // ĐỎ VN - màu phụ
+  secondary: string; // Trắng hoặc Xám - màu phụ
   onSecondary: string;
   // Chữ
   text: string;
@@ -75,12 +75,12 @@ export const DARK_COLORS: ThemeColors = {
   surface: '#1E1E1E',
   surfaceElevated: '#2A2A2A',
 
-  primary: '#D4AF37', // gold cổ điển
-  primaryBright: '#FFD700',
-  primaryDim: 'rgba(212,175,55,0.16)',
-  onPrimary: '#1A1A1A',
-  secondary: '#C8102E', // đỏ VN
-  onSecondary: '#FFFFFF',
+  primary: '#C8102E', // Đỏ PTIT
+  primaryBright: '#E53935',
+  primaryDim: 'rgba(200, 16, 46, 0.16)',
+  onPrimary: '#FFFFFF',
+  secondary: '#E5E7EB', // Xám sáng
+  onSecondary: '#111827',
 
   text: '#F5F5F5',
   textSecondary: '#B0B0B0',
@@ -101,15 +101,15 @@ export const DARK_COLORS: ThemeColors = {
 };
 
 export const LIGHT_COLORS: ThemeColors = {
-  background: '#FFFBF5', // trắng ngà ấm
+  background: '#FFFFFF', // Trắng PTIT
   surface: '#FFFFFF',
-  surfaceElevated: '#FFF7EA',
+  surfaceElevated: '#F9FAFB', // Trắng xám nhạt
 
-  primary: '#B8860B', // dark goldenrod (đủ tương phản trên nền sáng)
-  primaryBright: '#D4AF37',
-  primaryDim: 'rgba(184,134,11,0.12)',
+  primary: '#C8102E', // Đỏ PTIT
+  primaryBright: '#E53935',
+  primaryDim: 'rgba(200, 16, 46, 0.08)',
   onPrimary: '#FFFFFF',
-  secondary: '#C8102E',
+  secondary: '#1F2937', // Chữ/Icon phụ màu tối
   onSecondary: '#FFFFFF',
 
   text: '#1A1A1A',
@@ -226,26 +226,86 @@ export const SHADOWS = {
 } as const;
 
 // ===== FONTS =====
-export const Fonts = Platform.select({
-  ios: {
-    sans: 'system-ui',
-    serif: 'ui-serif',
-    rounded: 'ui-rounded',
-    mono: 'ui-monospace',
+export const Fonts = {
+  regular: 'BeVietnamPro_400Regular',
+  medium: 'BeVietnamPro_500Medium',
+  semibold: 'BeVietnamPro_600SemiBold',
+  bold: 'BeVietnamPro_700Bold',
+  serifRegular: 'PlayfairDisplay_400Regular',
+  serifSemiBold: 'PlayfairDisplay_600SemiBold',
+  serifBold: 'PlayfairDisplay_700Bold',
+  serifExtraBold: 'PlayfairDisplay_800ExtraBold',
+};
+
+// ===== PALETTE MÀU GỐC HTML (Thiết kế Sử Việt) =====
+// Ánh xạ trực tiếp từ CSS variables trong file Sử Việt.dc.html
+export const SuVietColors = {
+  son: '#8b1c17',       // --son: Đỏ sẫm chính (gradient start)
+  son2: '#651310',      // --son-2: Đỏ tối (gradient end)
+  do: '#b23a2b',        // --do: Đỏ sáng
+  dong: '#a8823a',      // --dong: Vàng đồng
+  dong2: '#d8bd79',     // --dong-2: Vàng nhạt
+  sao: '#f0c04c',       // --sao: Vàng sao
+  giay: '#f3ead6',      // --giay: Nền giấy cổ
+  card: '#fdf8ec',      // --card: Nền thẻ bài
+  muc: '#2a201a',       // --muc: Mực đen (text chính)
+  muc2: '#7d6d5c',      // --muc-2: Mực nhạt (text phụ)
+  line: 'rgba(101,19,16,0.12)', // --line: Màu viền
+  // Màu trạng thái quiz
+  correct: '#3d7a4e',   // Đúng: Xanh lá
+  wrong: '#a83232',     // Sai: Đỏ
+  medium: '#b07f2c',    // Trung bình: Vàng
+  // Nền trạng thái
+  correctBg: '#e8f3ea',
+  wrongBg: '#f7e6e4',
+  rulesBg: '#f4ead2',   // Nền luật chơi
+  // Shadow
+  shadowSon: 'rgba(101,19,16,1)',
+} as const;
+
+// ===== BÓNG ĐỔ THEO THIẾT KẾ HTML =====
+export const HTML_SHADOWS = {
+  // 0 10px 24px -18px rgba(101,19,16,.5)
+  card: {
+    shadowColor: 'rgba(101,19,16,1)',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.5,
+    shadowRadius: 12,
+    elevation: 4,
   },
-  default: {
-    sans: 'normal',
-    serif: 'serif',
-    rounded: 'normal',
-    mono: 'monospace',
+  // 0 20px 40px -26px rgba(101,19,16,.6)
+  cardLarge: {
+    shadowColor: 'rgba(101,19,16,1)',
+    shadowOffset: { width: 0, height: 14 },
+    shadowOpacity: 0.6,
+    shadowRadius: 20,
+    elevation: 8,
   },
-  web: {
-    sans: 'var(--font-display)',
-    serif: 'var(--font-serif)',
-    rounded: 'var(--font-rounded)',
-    mono: 'var(--font-mono)',
+  // 0 16px 34px -24px rgba(101,19,16,.6)
+  rankCard: {
+    shadowColor: 'rgba(101,19,16,1)',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 17,
+    elevation: 5,
   },
-});
+  // 0 12px 24px -12px rgba(101,19,16,.8) – nút bấm
+  button: {
+    shadowColor: 'rgba(101,19,16,1)',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.8,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  // 0 14px 28px -10px rgba(101,19,16,.8) – FAB
+  fab: {
+    shadowColor: 'rgba(101,19,16,1)',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.8,
+    shadowRadius: 14,
+    elevation: 10,
+  },
+} as const;
 
 // ===== THEME TỔNG HỢP =====
 export const THEME = {

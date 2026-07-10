@@ -1,0 +1,1206 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800;900&family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; }
+  body { font-family: 'Be Vietnam Pro', system-ui, sans-serif; background: #241512; }
+  .scr::-webkit-scrollbar { width: 0; height: 0; }
+  .scr { scrollbar-width: none; }
+  a { color: #b98a3a; text-decoration: none; }
+  a:hover { color: #8b1c17; }
+  @keyframes shakeX { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-7px)} 40%{transform:translateX(7px)} 60%{transform:translateX(-5px)} 80%{transform:translateX(5px)} }
+  @keyframes popIn { from{opacity:0; transform:translateY(10px) scale(.98)} to{opacity:1; transform:none} }
+  @keyframes ringSpin { to { transform: rotate(360deg); } }
+  @keyframes fadeUp { from{opacity:0; transform:translateY(14px)} to{opacity:1; transform:none} }
+</style>
+</helmet>
+
+<div style="min-height:100vh; display:flex; align-items:center; justify-content:center; padding:28px 14px; background:
+      radial-gradient(120% 90% at 50% -10%, #3a201a 0%, #241512 55%, #1a0f0c 100%);">
+
+  <div style="position:relative; width:392px; height:848px; border-radius:52px; padding:11px;
+        background:linear-gradient(160deg,#3a2016,#20110d); box-shadow:0 40px 90px -30px rgba(0,0,0,.8), 0 0 0 2px rgba(216,189,121,.14) inset;">
+
+  <!-- PHONE -->
+  <div style="--son:#8b1c17; --son-2:#651310; --do:#b23a2b; --dong:#a8823a; --dong-2:#d8bd79; --sao:#f0c04c;
+        --giay:#f3ead6; --card:#fdf8ec; --muc:#2a201a; --muc-2:#7d6d5c; --line:rgba(101,19,16,.12);
+        position:relative; width:100%; height:100%; border-radius:42px; overflow:hidden;
+        background:var(--giay); display:flex; flex-direction:column; font-size:15px; color:var(--muc);">
+
+    <!-- decorative background pattern -->
+    <sc-if value="{{ showPattern }}" hint-placeholder-val="{{ true }}">
+      <div style="position:absolute; inset:0; pointer-events:none; opacity:.05; z-index:0;
+            background-image: repeating-radial-gradient(circle at 50% 42%, var(--son) 0 1.5px, transparent 1.5px 26px);"></div>
+    </sc-if>
+
+    <!-- status bar -->
+    <div style="position:relative; z-index:5; height:46px; flex:none; display:flex; align-items:center; justify-content:space-between;
+          padding:0 26px; font-size:14px; font-weight:700; color:var(--muc); background:transparent;">
+      <span>9:41</span>
+      <div style="position:absolute; left:50%; top:9px; transform:translateX(-50%); width:104px; height:26px; background:#20110d; border-radius:0 0 16px 16px;"></div>
+      <div style="display:flex; gap:6px; align-items:center;">
+        <div style="width:17px; height:11px; border:1.5px solid var(--muc); border-radius:3px; position:relative;"><div style="position:absolute; inset:1.5px; background:var(--muc); border-radius:1px;"></div></div>
+      </div>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="scr" style="position:relative; z-index:2; flex:1; min-height:0; overflow-y:auto;">
+
+      <!-- ================= GAME HOME ================= -->
+      <sc-if value="{{ is.gameHome }}" hint-placeholder-val="{{ true }}">
+        <div style="animation:fadeUp .4s ease;">
+          <div style="padding:8px 22px 20px; color:#f6e9cf; position:relative; overflow:hidden;">
+            <!-- trống đồng backdrop (kéo/bấm để đổi ảnh) -->
+            <div style="position:absolute; inset:-30px 0; z-index:0;">
+              <x-import component-from-global-scope="image-slot" from="./image-slot.js" id="hdr-drum" shape="rect" fit="cover" placeholder="Ảnh trống đồng" style="width:100%; height:100%;" hint-size="100%,100%"></x-import>
+            </div>
+            <div style="position:absolute; inset:0; z-index:1; pointer-events:none; background:linear-gradient(112deg, rgba(101,19,16,.95) 0%, rgba(101,19,16,.82) 40%, rgba(139,28,23,.5) 78%, rgba(139,28,23,.32) 100%);"></div>
+            <!-- chim hạc vàng -->
+            <div style="position:absolute; right:6px; top:-4px; width:126px; height:150px; z-index:3;">
+              <x-import component-from-global-scope="image-slot" from="./image-slot.js" id="hdr-crane" shape="rect" fit="contain" placeholder="Chim hạc vàng" style="width:100%; height:100%;" hint-size="126px,150px"></x-import>
+            </div>
+            <div style="position:relative; z-index:2; pointer-events:none;">
+              <div style="display:flex; align-items:center; gap:9px;">
+                <div style="width:24px; height:24px; background:var(--sao); clip-path:polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%);"></div>
+                <span style="font-weight:700; letter-spacing:2px; font-size:12px; text-transform:uppercase; color:var(--dong-2);">Sử Việt · Học mà chơi</span>
+              </div>
+              <h1 style="font-family:'Playfair Display',serif; font-weight:800; font-size:32px; margin:14px 0 4px; line-height:1.1; padding-right:70px;">Ôn sử nước Nam</h1>
+              <p style="margin:0; font-size:14px; color:#e8d3ae; max-width:250px;">Chọn một thử thách để bắt đầu hành trình xuyên nghìn năm dựng nước.</p>
+            </div>
+          </div>
+
+          <!-- segmented -->
+          <div style="padding:18px 22px 6px;">
+            <div style="display:flex; gap:6px; background:#efe2c9; border:1px solid var(--line); border-radius:14px; padding:5px;">
+              <button onClick="{{ setQuizMode }}" style="{{ seg.quiz }}">Trắc nghiệm</button>
+              <button onClick="{{ setTlMode }}" style="{{ seg.tl }}">Ghép niên đại</button>
+            </div>
+          </div>
+
+          <!-- quiz list -->
+          <sc-if value="{{ is.modeQuiz }}" hint-placeholder-val="{{ true }}">
+            <div style="padding:8px 22px 30px; display:flex; flex-direction:column; gap:14px;">
+              <sc-for list="{{ quizList }}" as="q" hint-placeholder-count="3">
+                <div onClick="{{ q.open }}" style="background:var(--card); border:1px solid var(--line); border-radius:18px; padding:16px; cursor:pointer;
+                      box-shadow:0 10px 24px -18px rgba(101,19,16,.5); display:flex; gap:14px; align-items:center;">
+                  <div style="flex:none; width:52px; height:52px; border-radius:14px; display:grid; place-items:center; color:#f6e9cf;
+                        background:linear-gradient(150deg,var(--son),var(--son-2));">
+                    <span style="font-family:'Playfair Display',serif; font-weight:800; font-size:22px;">{{ q.numlabel }}</span>
+                  </div>
+                  <div style="flex:1; min-width:0;">
+                    <div style="font-family:'Playfair Display',serif; font-weight:700; font-size:18px; color:var(--muc); line-height:1.15;">{{ q.title }}</div>
+                    <div style="font-size:12.5px; color:var(--muc-2); margin-top:2px;">{{ q.sub }}</div>
+                    <div style="display:flex; gap:7px; margin-top:9px;">
+                      <span style="{{ q.diffStyle }}">{{ q.diff }}</span>
+                      <span style="font-size:11.5px; font-weight:600; color:var(--muc-2); background:#f0e6d0; border:1px solid var(--line); padding:3px 9px; border-radius:20px;">{{ q.count }} câu</span>
+                    </div>
+                  </div>
+                  <div style="flex:none; color:var(--dong); font-size:22px;">›</div>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+
+          <!-- timeline list -->
+          <sc-if value="{{ is.modeTl }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:8px 22px 30px; display:flex; flex-direction:column; gap:14px;">
+              <sc-for list="{{ tlList }}" as="t" hint-placeholder-count="2">
+                <div onClick="{{ t.open }}" style="background:var(--card); border:1px solid var(--line); border-radius:18px; overflow:hidden; cursor:pointer;
+                      box-shadow:0 10px 24px -18px rgba(101,19,16,.5);">
+                  <div style="height:96px; position:relative; background:repeating-linear-gradient(135deg,#efe2c9 0 12px,#e7d7ba 12px 24px); display:flex; align-items:flex-end;">
+                    <div style="position:absolute; inset:0; display:grid; place-items:center; opacity:.5;">
+                      <div style="width:60px; height:60px; border-radius:50%; background:repeating-conic-gradient(from 0deg,var(--dong) 0 15deg,var(--dong-2) 15deg 30deg);
+                            box-shadow:0 0 0 5px #efe2c9, 0 0 0 7px var(--dong);"></div>
+                    </div>
+                    <span style="position:absolute; top:9px; left:10px; font-family:monospace; font-size:10px; letter-spacing:1px; color:var(--muc-2); background:rgba(253,248,236,.75); padding:2px 6px; border-radius:5px;">ảnh minh hoạ thời kỳ</span>
+                  </div>
+                  <div style="padding:14px 16px;">
+                    <div style="display:flex; justify-content:space-between; align-items:baseline; gap:8px;">
+                      <div style="font-family:'Playfair Display',serif; font-weight:700; font-size:18px; color:var(--muc);">{{ t.title }}</div>
+                      <div style="font-size:11.5px; font-weight:700; color:var(--dong); white-space:nowrap;">{{ t.era }}</div>
+                    </div>
+                    <p style="margin:6px 0 0; font-size:13px; color:var(--muc-2); line-height:1.45;">{{ t.desc }}</p>
+                    <div style="margin-top:10px; font-size:11.5px; font-weight:600; color:var(--son); display:flex; align-items:center; gap:6px;">
+                      <span style="width:7px; height:7px; background:var(--son); transform:rotate(45deg); display:inline-block;"></span>{{ t.count }} sự kiện cần sắp xếp
+                    </div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+
+      <!-- ================= QUIZ INTRO ================= -->
+      <sc-if value="{{ is.quizIntro }}" hint-placeholder-val="{{ false }}">
+        <div style="min-height:100%; display:flex; flex-direction:column;">
+          <div style="padding:8px 20px 60px; background:linear-gradient(165deg,var(--son),var(--son-2)); color:#f6e9cf; flex:none;">
+            <button onClick="{{ back }}" style="width:38px;height:38px;border-radius:50%;border:1px solid rgba(240,192,76,.35);background:rgba(0,0,0,.14);color:#f6e9cf;font-size:20px;cursor:pointer;">‹</button>
+          </div>
+          <div style="margin-top:-42px; padding:0 22px 30px; flex:1;">
+            <div style="background:var(--card); border:1px solid var(--line); border-radius:22px; padding:26px 22px; box-shadow:0 20px 40px -26px rgba(101,19,16,.6);">
+              <div style="width:60px;height:60px;margin:0 auto; border-radius:16px; display:grid; place-items:center; color:#f6e9cf; background:linear-gradient(150deg,var(--son),var(--son-2));">
+                <div style="width:26px;height:26px;background:var(--sao);clip-path:polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%);"></div>
+              </div>
+              <h2 style="font-family:'Playfair Display',serif; font-weight:800; font-size:24px; text-align:center; margin:16px 0 4px;">{{ curQuiz.title }}</h2>
+              <p style="text-align:center; color:var(--muc-2); font-size:13.5px; margin:0 0 20px;">{{ curQuiz.sub }}</p>
+              <div style="display:flex; gap:10px; margin-bottom:22px;">
+                <div style="flex:1; text-align:center; background:#f4ead2; border:1px solid var(--line); border-radius:14px; padding:12px 6px;">
+                  <div style="font-family:'Playfair Display',serif; font-weight:800; font-size:22px; color:var(--son);">{{ curQuiz.count }}</div>
+                  <div style="font-size:11px; color:var(--muc-2); font-weight:600;">câu hỏi</div>
+                </div>
+                <div style="flex:1; text-align:center; background:#f4ead2; border:1px solid var(--line); border-radius:14px; padding:12px 6px;">
+                  <div style="font-family:'Playfair Display',serif; font-weight:800; font-size:22px; color:var(--son);">{{ curQuiz.diff }}</div>
+                  <div style="font-size:11px; color:var(--muc-2); font-weight:600;">độ khó</div>
+                </div>
+                <div style="flex:1; text-align:center; background:#f4ead2; border:1px solid var(--line); border-radius:14px; padding:12px 6px;">
+                  <div style="font-family:'Playfair Display',serif; font-weight:800; font-size:22px; color:var(--son);">{{ timerSeconds }}s</div>
+                  <div style="font-size:11px; color:var(--muc-2); font-weight:600;">mỗi câu</div>
+                </div>
+              </div>
+              <div style="background:#f4ead2; border:1px dashed var(--dong); border-radius:14px; padding:13px 15px; font-size:13px; color:var(--muc-2); line-height:1.5;">
+                <b style="color:var(--muc);">Luật chơi.</b> Mỗi câu có 4 đáp án và giới hạn thời gian. Trả lời xong sẽ có lời giải lịch sử. Hết giờ tính là sai.
+              </div>
+              <button onClick="{{ startQuiz }}" style="width:100%; margin-top:22px; padding:15px; border:none; border-radius:15px; cursor:pointer;
+                    background:linear-gradient(150deg,var(--son),var(--son-2)); color:#f6e9cf; font-family:'Be Vietnam Pro'; font-weight:700; font-size:16px;
+                    box-shadow:0 12px 24px -12px rgba(101,19,16,.8);">Bắt đầu chơi</button>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ================= QUIZ PLAY ================= -->
+      <sc-if value="{{ is.quizPlay }}" hint-placeholder-val="{{ false }}">
+        <div style="min-height:100%; display:flex; flex-direction:column; background:var(--giay);">
+          <div style="padding:8px 20px 16px; flex:none;">
+            <div style="display:flex; align-items:center; gap:12px;">
+              <button onClick="{{ back }}" style="width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:var(--card);color:var(--son);font-size:18px;cursor:pointer;flex:none;">✕</button>
+              <div style="flex:1; height:9px; background:#e6d6b8; border-radius:20px; overflow:hidden;">
+                <div style="height:100%; width:{{ quizPct }}%; background:linear-gradient(90deg,var(--dong),var(--son)); border-radius:20px; transition:width .3s;"></div>
+              </div>
+              <div style="flex:none; font-weight:700; font-size:13px; color:var(--muc-2);">{{ qNum }}/{{ curQuiz.count }}</div>
+            </div>
+            <div style="display:flex; justify-content:center; margin-top:14px;">
+              <div style="{{ timerStyle }}">{{ timeLeft }}<span style="font-size:12px; margin-left:1px;">s</span></div>
+            </div>
+          </div>
+
+          <div style="flex:1; padding:4px 22px 24px;">
+            <div style="background:var(--card); border:1px solid var(--line); border-radius:18px; padding:20px; margin-bottom:18px; box-shadow:0 10px 26px -20px rgba(101,19,16,.6);">
+              <div style="font-size:11px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--dong); margin-bottom:8px;">Câu hỏi {{ qNum }}</div>
+              <div style="font-family:'Playfair Display',serif; font-weight:700; font-size:20px; line-height:1.3; color:var(--muc);">{{ curQ.text }}</div>
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:11px;">
+              <sc-for list="{{ curOptions }}" as="o" hint-placeholder-count="4">
+                <button onClick="{{ o.choose }}" style="{{ o.style }}">
+                  <span style="{{ o.badgeStyle }}">{{ o.letter }}</span>
+                  <span style="flex:1; text-align:left;">{{ o.text }}</span>
+                  <span style="font-weight:800; font-size:16px;">{{ o.mark }}</span>
+                </button>
+              </sc-for>
+            </div>
+
+            <sc-if value="{{ answered }}" hint-placeholder-val="{{ false }}">
+              <div style="margin-top:16px; background:#f4ead2; border-left:4px solid var(--dong); border-radius:0 14px 14px 0; padding:14px 16px; animation:popIn .3s ease;">
+                <div style="font-weight:700; font-size:13px; color:{{ verdictColor }}; margin-bottom:5px;">{{ verdictText }}</div>
+                <div style="font-size:13px; color:var(--muc-2); line-height:1.5;">{{ curQ.exp }}</div>
+              </div>
+            </sc-if>
+          </div>
+
+          <sc-if value="{{ answered }}" hint-placeholder-val="{{ false }}">
+            <div style="flex:none; padding:12px 22px 24px; background:linear-gradient(0deg,var(--giay) 60%,transparent);">
+              <button onClick="{{ nextQuestion }}" style="width:100%; padding:15px; border:none; border-radius:15px; cursor:pointer;
+                    background:linear-gradient(150deg,var(--son),var(--son-2)); color:#f6e9cf; font-family:'Be Vietnam Pro'; font-weight:700; font-size:16px;
+                    box-shadow:0 12px 24px -12px rgba(101,19,16,.8);">{{ nextLabel }}</button>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+
+      <!-- ================= QUIZ RESULT ================= -->
+      <sc-if value="{{ is.quizResult }}" hint-placeholder-val="{{ false }}">
+        <div style="min-height:100%;">
+          <div style="padding:34px 22px 30px; text-align:center; background:linear-gradient(165deg,var(--son),var(--son-2)); color:#f6e9cf; position:relative; overflow:hidden;">
+            <div style="position:absolute; left:50%; top:-40px; transform:translateX(-50%); width:220px; height:220px; border-radius:50%; opacity:.18;
+                  background:repeating-conic-gradient(from 0deg, var(--sao) 0 14deg, transparent 14deg 28deg);"></div>
+            <div style="position:relative;">
+              <div style="width:84px;height:84px;margin:0 auto 14px; border-radius:50%; display:grid; place-items:center;
+                    background:radial-gradient(circle,var(--dong-2) 0 26px, transparent 27px), repeating-conic-gradient(from 0deg,var(--dong) 0 15deg,var(--son-2) 15deg 30deg);
+                    box-shadow:0 0 0 3px var(--sao);">
+                <div style="width:34px;height:34px;background:var(--sao);clip-path:polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%);"></div>
+              </div>
+              <div style="font-family:'Playfair Display',serif; font-weight:800; font-size:28px;">{{ resultGrade }}</div>
+              <p style="margin:6px 0 0; color:#e8d3ae; font-size:14px;">{{ resultSub }}</p>
+            </div>
+          </div>
+
+          <div style="padding:20px 22px 30px; display:flex; flex-direction:column; gap:16px;">
+            <div style="display:flex; gap:10px;">
+              <div style="flex:1; background:var(--card); border:1px solid var(--line); border-radius:16px; padding:14px 6px; text-align:center;">
+                <div style="font-family:'Playfair Display',serif; font-weight:800; font-size:24px; color:var(--son);">{{ resCorrect }}/{{ curQuiz.count }}</div>
+                <div style="font-size:11.5px; color:var(--muc-2); font-weight:600;">câu đúng</div>
+              </div>
+              <div style="flex:1; background:var(--card); border:1px solid var(--line); border-radius:16px; padding:14px 6px; text-align:center;">
+                <div style="font-family:'Playfair Display',serif; font-weight:800; font-size:24px; color:var(--son);">{{ resScore }}</div>
+                <div style="font-size:11.5px; color:var(--muc-2); font-weight:600;">điểm</div>
+              </div>
+              <div style="flex:1; background:linear-gradient(150deg,var(--dong),#8f6e2c); border-radius:16px; padding:14px 6px; text-align:center; color:#fff;">
+                <div style="font-family:'Playfair Display',serif; font-weight:800; font-size:24px;">+{{ resXp }}</div>
+                <div style="font-size:11.5px; opacity:.9; font-weight:600;">XP</div>
+              </div>
+            </div>
+
+            <sc-if value="{{ resBadge }}" hint-placeholder-val="{{ false }}">
+              <div style="background:#fff6e0; border:1px solid var(--dong); border-radius:16px; padding:14px; display:flex; align-items:center; gap:13px; animation:popIn .4s ease;">
+                <div style="width:46px;height:46px;flex:none;border-radius:50%; display:grid; place-items:center; background:repeating-conic-gradient(from 0deg,var(--dong) 0 15deg,var(--dong-2) 15deg 30deg); box-shadow:0 0 0 2px var(--sao);">
+                  <div style="width:18px;height:18px;background:var(--sao);clip-path:polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%);"></div>
+                </div>
+                <div><div style="font-size:11px; font-weight:700; color:var(--dong); letter-spacing:1px;">HUY HIỆU MỚI</div>
+                <div style="font-family:'Playfair Display',serif; font-weight:700; font-size:16px; color:var(--muc);">Điểm Tuyệt Đối</div></div>
+              </div>
+            </sc-if>
+
+            <div>
+              <div style="font-family:'Playfair Display',serif; font-weight:700; font-size:17px; color:var(--muc); margin:4px 0 12px;">Xem lại bài làm</div>
+              <div style="display:flex; flex-direction:column; gap:11px;">
+                <sc-for list="{{ reviewList }}" as="rv" hint-placeholder-count="3">
+                  <div style="background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px; border-left:4px solid {{ rv.color }};">
+                    <div style="font-size:14px; font-weight:600; color:var(--muc); line-height:1.35;">{{ rv.q }}</div>
+                    <div style="margin-top:8px; font-size:12.5px; color:var(--muc-2);"><b style="color:{{ rv.color }};">{{ rv.status }}</b> — Đáp án đúng: <b style="color:var(--son);">{{ rv.correct }}</b></div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+
+            <div style="display:flex; gap:11px; margin-top:6px;">
+              <button onClick="{{ replayQuiz }}" style="flex:1; padding:14px; border:1px solid var(--son); border-radius:14px; background:transparent; color:var(--son); font-family:'Be Vietnam Pro'; font-weight:700; font-size:15px; cursor:pointer;">Chơi lại</button>
+              <button onClick="{{ toGameHome }}" style="flex:1; padding:14px; border:none; border-radius:14px; background:linear-gradient(150deg,var(--son),var(--son-2)); color:#f6e9cf; font-family:'Be Vietnam Pro'; font-weight:700; font-size:15px; cursor:pointer;">Trở về</button>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ================= TIMELINE INTRO ================= -->
+      <sc-if value="{{ is.tlIntro }}" hint-placeholder-val="{{ false }}">
+        <div style="min-height:100%; display:flex; flex-direction:column;">
+          <div style="padding:8px 20px 60px; background:linear-gradient(165deg,var(--son),var(--son-2)); color:#f6e9cf; flex:none;">
+            <button onClick="{{ back }}" style="width:38px;height:38px;border-radius:50%;border:1px solid rgba(240,192,76,.35);background:rgba(0,0,0,.14);color:#f6e9cf;font-size:20px;cursor:pointer;">‹</button>
+          </div>
+          <div style="margin-top:-42px; padding:0 22px 30px; flex:1;">
+            <div style="background:var(--card); border:1px solid var(--line); border-radius:22px; padding:26px 22px; box-shadow:0 20px 40px -26px rgba(101,19,16,.6);">
+              <div style="width:64px;height:64px;margin:0 auto; border-radius:50%; display:grid; place-items:center; background:repeating-conic-gradient(from 0deg,var(--dong) 0 15deg,var(--dong-2) 15deg 30deg); box-shadow:0 0 0 3px var(--son);">
+                <div style="width:22px;height:22px;border-radius:50%;background:var(--card);"></div>
+              </div>
+              <h2 style="font-family:'Playfair Display',serif; font-weight:800; font-size:24px; text-align:center; margin:16px 0 4px;">{{ curTl.title }}</h2>
+              <p style="text-align:center; color:var(--dong); font-weight:700; font-size:13px; margin:0 0 18px;">{{ curTl.era }}</p>
+              <p style="font-size:13.5px; color:var(--muc-2); line-height:1.55; text-align:center; margin:0 0 20px;">{{ curTl.desc }}</p>
+              <div style="background:#f4ead2; border:1px dashed var(--dong); border-radius:14px; padding:13px 15px; font-size:13px; color:var(--muc-2); line-height:1.5;">
+                <b style="color:var(--muc);">Cách chơi.</b> Chọn sự kiện bạn cho là <b>sớm nhất</b> chưa xếp, đặt lên dòng thời gian. Ghép đúng sẽ hiện mốc năm; ghép sai bị trừ một mạng. Có {{ curTl.count }} sự kiện & 3 mạng.
+              </div>
+              <button onClick="{{ startTl }}" style="width:100%; margin-top:22px; padding:15px; border:none; border-radius:15px; cursor:pointer;
+                    background:linear-gradient(150deg,var(--son),var(--son-2)); color:#f6e9cf; font-family:'Be Vietnam Pro'; font-weight:700; font-size:16px;
+                    box-shadow:0 12px 24px -12px rgba(101,19,16,.8);">Bắt đầu chơi</button>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ================= TIMELINE PLAY ================= -->
+      <sc-if value="{{ is.tlPlay }}" hint-placeholder-val="{{ false }}">
+        <div style="min-height:100%; display:flex; flex-direction:column;">
+          <div style="padding:10px 22px 14px; flex:none; display:flex; align-items:center; justify-content:space-between;">
+            <button onClick="{{ back }}" style="width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:var(--card);color:var(--son);font-size:16px;cursor:pointer;">✕</button>
+            <div style="display:flex; gap:5px;">
+              <sc-for list="{{ tlHearts }}" as="h" hint-placeholder-count="3">
+                <div style="width:16px;height:16px;background:{{ h.color }};clip-path:polygon(50% 88%,12% 45%,12% 22%,32% 12%,50% 26%,68% 12%,88% 22%,88% 45%);"></div>
+              </sc-for>
+            </div>
+            <div style="font-family:monospace; font-weight:700; font-size:14px; color:var(--muc-2);">{{ tlTimeStr }}</div>
+          </div>
+
+          <div style="padding:0 22px 6px; flex:none;">
+            <div style="font-size:12px; font-weight:700; color:var(--dong); letter-spacing:1px;">ĐÃ XẾP {{ tlPlacedCount }}/{{ curTl.count }}</div>
+          </div>
+
+          <!-- placed timeline -->
+          <div style="padding:10px 22px 8px; flex:none;">
+            <div style="display:flex; flex-direction:column; gap:0; position:relative;">
+              <sc-for list="{{ tlSlots }}" as="s" hint-placeholder-count="1">
+                <div style="display:flex; gap:12px; animation:popIn .3s ease;">
+                  <div style="flex:none; width:54px; text-align:right; font-family:'Playfair Display',serif; font-weight:800; font-size:17px; color:var(--son); padding-top:2px;">{{ s.year }}</div>
+                  <div style="flex:none; display:flex; flex-direction:column; align-items:center;">
+                    <div style="width:14px;height:14px;border-radius:50%;background:var(--son);box-shadow:0 0 0 3px rgba(139,28,23,.18);"></div>
+                    <div style="flex:1; width:2px; background:var(--dong); min-height:14px;"></div>
+                  </div>
+                  <div style="flex:1; padding-bottom:12px;">
+                    <div style="font-weight:700; font-size:14px; color:var(--muc);">{{ s.title }}</div>
+                    <div style="font-size:12px; color:var(--muc-2); line-height:1.4; margin-top:2px;">{{ s.desc }}</div>
+                  </div>
+                </div>
+              </sc-for>
+              <!-- next slot -->
+              <sc-if value="{{ tlShowNext }}" hint-placeholder-val="{{ true }}">
+                <div style="display:flex; gap:12px; align-items:center;">
+                  <div style="flex:none; width:54px; text-align:right; font-family:'Playfair Display',serif; font-weight:800; font-size:17px; color:var(--dong);">?</div>
+                  <div style="flex:none; width:14px; display:flex; justify-content:center;">
+                    <div style="width:14px;height:14px;border-radius:50%;border:2px dashed var(--dong);"></div>
+                  </div>
+                  <div style="flex:1; font-size:12.5px; color:var(--muc-2); font-style:italic;">Đặt sự kiện sớm nhất tiếp theo vào đây</div>
+                </div>
+              </sc-if>
+            </div>
+          </div>
+
+          <!-- event pool -->
+          <div style="flex:1; padding:14px 22px 24px; background:linear-gradient(0deg,#efe2c9,transparent); border-radius:22px 22px 0 0; margin-top:8px;">
+            <div style="font-size:12px; font-weight:700; color:var(--muc-2); letter-spacing:1px; margin-bottom:10px;">CHỌN SỰ KIỆN</div>
+            <div style="display:flex; flex-direction:column; gap:10px;">
+              <sc-for list="{{ tlPoolCards }}" as="c" hint-placeholder-count="3">
+                <button onClick="{{ c.place }}" style="{{ c.style }}">
+                  <span style="width:8px;height:8px;background:var(--dong);transform:rotate(45deg);flex:none;"></span>
+                  <span style="flex:1; text-align:left;">{{ c.title }}</span>
+                </button>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ================= TIMELINE RESULT ================= -->
+      <sc-if value="{{ is.tlResult }}" hint-placeholder-val="{{ false }}">
+        <div style="min-height:100%;">
+          <div style="padding:34px 22px 28px; text-align:center; background:linear-gradient(165deg,{{ tlResA }},{{ tlResB }}); color:#f6e9cf;">
+            <div style="font-family:'Playfair Display',serif; font-weight:800; font-size:30px;">{{ tlResTitle }}</div>
+            <p style="margin:6px 0 0; color:#f0dcb8; font-size:14px;">{{ tlResSub }}</p>
+            <div style="display:inline-flex; gap:20px; margin-top:18px;">
+              <div><div style="font-family:'Playfair Display',serif; font-weight:800; font-size:26px;">{{ tlPlacedCount }}/{{ curTl.count }}</div><div style="font-size:11.5px; opacity:.85;">xếp đúng</div></div>
+              <div><div style="font-family:'Playfair Display',serif; font-weight:800; font-size:26px;">+{{ tlXp }}</div><div style="font-size:11.5px; opacity:.85;">XP</div></div>
+            </div>
+          </div>
+          <div style="padding:22px 22px 30px;">
+            <div style="font-family:'Playfair Display',serif; font-weight:700; font-size:17px; color:var(--muc); margin-bottom:14px;">Dòng thời gian chuẩn</div>
+            <div style="display:flex; flex-direction:column;">
+              <sc-for list="{{ tlStandard }}" as="e" hint-placeholder-count="4">
+                <div style="display:flex; gap:12px;">
+                  <div style="flex:none; width:54px; text-align:right; font-family:'Playfair Display',serif; font-weight:800; font-size:17px; color:var(--son); padding-top:1px;">{{ e.year }}</div>
+                  <div style="flex:none; display:flex; flex-direction:column; align-items:center;">
+                    <div style="width:12px;height:12px;border-radius:50%;background:var(--dong);"></div>
+                    <div style="flex:1; width:2px; background:var(--line); min-height:12px;"></div>
+                  </div>
+                  <div style="flex:1; padding-bottom:14px;">
+                    <div style="font-weight:700; font-size:14px; color:var(--muc);">{{ e.title }}</div>
+                    <div style="font-size:12px; color:var(--muc-2); line-height:1.4; margin-top:2px;">{{ e.desc }}</div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display:flex; gap:11px; margin-top:10px;">
+              <button onClick="{{ replayTl }}" style="flex:1; padding:14px; border:1px solid var(--son); border-radius:14px; background:transparent; color:var(--son); font-family:'Be Vietnam Pro'; font-weight:700; font-size:15px; cursor:pointer;">Chơi lại</button>
+              <button onClick="{{ toGameHome }}" style="flex:1; padding:14px; border:none; border-radius:14px; background:linear-gradient(150deg,var(--son),var(--son-2)); color:#f6e9cf; font-family:'Be Vietnam Pro'; font-weight:700; font-size:15px; cursor:pointer;">Trở về</button>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ================= PROFILE HOME ================= -->
+      <sc-if value="{{ is.profileHome }}" hint-placeholder-val="{{ false }}">
+        <div style="animation:fadeUp .35s ease;">
+          <div style="padding:14px 22px 56px; background:linear-gradient(165deg,var(--son),var(--son-2)); color:#f6e9cf; position:relative; overflow:hidden;">
+            <div style="position:absolute; right:-40px; bottom:-50px; width:170px; height:170px; border-radius:50%; opacity:.14; background:repeating-conic-gradient(from 0deg,var(--sao) 0 14deg,transparent 14deg 28deg);"></div>
+            <div style="display:flex; align-items:center; gap:15px; position:relative;">
+              <div style="width:72px;height:72px;flex:none;border-radius:50%; display:grid; place-items:center; font-family:'Playfair Display',serif; font-weight:800; font-size:28px; color:var(--son);
+                    background:var(--giay); box-shadow:0 0 0 3px var(--sao);">{{ me.initials }}</div>
+              <div style="flex:1; min-width:0;">
+                <div style="font-family:'Playfair Display',serif; font-weight:800; font-size:22px; line-height:1.1;">{{ me.name }}</div>
+                <div style="font-size:13px; color:#e8d3ae;">@{{ me.username }}</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="padding:0 22px 26px; margin-top:-38px; position:relative;">
+            <!-- rank card -->
+            <div onClick="{{ openRank }}" style="background:var(--card); border:1px solid var(--line); border-radius:20px; padding:17px; box-shadow:0 16px 34px -24px rgba(101,19,16,.6); cursor:pointer;">
+              <div style="display:flex; align-items:center; gap:14px;">
+                <div style="width:56px;height:56px;flex:none;border-radius:50%; display:grid; place-items:center; background:radial-gradient(circle at 50% 36%, #fff6e0 0 28%, var(--dong-2) 56%, var(--dong) 100%); box-shadow:0 0 0 2px var(--sao), inset 0 -3px 6px rgba(101,19,16,.22);">
+                  <span style="font-size:27px; line-height:1; filter:drop-shadow(0 1px 1px rgba(101,19,16,.35));">{{ curRank.icon }}</span>
+                </div>
+                <div style="flex:1;">
+                  <div style="font-size:11px; font-weight:700; letter-spacing:1px; color:var(--dong);">HẠNG HIỆN TẠI</div>
+                  <div style="font-family:'Playfair Display',serif; font-weight:800; font-size:20px; color:var(--muc);">{{ curRank.name }}</div>
+                </div>
+                <div style="text-align:right;">
+                  <div style="font-family:'Playfair Display',serif; font-weight:800; font-size:18px; color:var(--son);">{{ me.xp }}</div>
+                  <div style="font-size:11px; color:var(--muc-2);">XP</div>
+                </div>
+              </div>
+              <div style="margin-top:13px;">
+                <div style="height:9px; background:#e6d6b8; border-radius:20px; overflow:hidden;"><div style="height:100%; width:{{ rankPct }}%; background:linear-gradient(90deg,var(--dong),var(--son)); border-radius:20px;"></div></div>
+                <div style="display:flex; justify-content:space-between; margin-top:6px; font-size:11.5px; color:var(--muc-2);">
+                  <span>Còn {{ xpToNext }} XP</span><span>Lên hạng {{ nextRank.name }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- stats -->
+            <div style="display:flex; gap:10px; margin-top:14px;">
+              <div style="flex:1; background:var(--card); border:1px solid var(--line); border-radius:14px; padding:12px 4px; text-align:center;">
+                <div style="font-family:'Playfair Display',serif; font-weight:800; font-size:20px; color:var(--muc);">128</div>
+                <div style="font-size:10.5px; color:var(--muc-2); font-weight:600;">lượt chơi</div>
+              </div>
+              <div style="flex:1; background:var(--card); border:1px solid var(--line); border-radius:14px; padding:12px 4px; text-align:center;">
+                <div style="font-family:'Playfair Display',serif; font-weight:800; font-size:20px; color:var(--muc);">980</div>
+                <div style="font-size:10.5px; color:var(--muc-2); font-weight:600;">điểm cao nhất</div>
+              </div>
+              <div style="flex:1; background:var(--card); border:1px solid var(--line); border-radius:14px; padding:12px 4px; text-align:center;">
+                <div style="font-family:'Playfair Display',serif; font-weight:800; font-size:20px; color:var(--son);">12🔥</div>
+                <div style="font-size:10.5px; color:var(--muc-2); font-weight:600;">chuỗi ngày</div>
+              </div>
+            </div>
+
+            <!-- badges -->
+            <div style="margin-top:22px; display:flex; align-items:center; justify-content:space-between;">
+              <div style="font-family:'Playfair Display',serif; font-weight:700; font-size:17px; color:var(--muc);">Huy hiệu</div>
+              <div style="font-size:12px; color:var(--muc-2);">{{ badgeCount }} đã đạt</div>
+            </div>
+            <div style="margin-top:12px; display:grid; grid-template-columns:repeat(4,1fr); gap:12px;">
+              <sc-for list="{{ badges }}" as="b" hint-placeholder-count="8">
+                <div onClick="{{ b.open }}" style="text-align:center; cursor:pointer;">
+                  <div style="{{ b.iconStyle }}">
+                    <span style="{{ b.glyphStyle }}">{{ b.icon }}</span>
+                    <sc-if value="{{ b.locked }}" hint-placeholder-val="{{ false }}"><div style="position:absolute; inset:0; border-radius:50%; background:rgba(40,32,26,.45); display:grid; place-items:center; color:#fff; font-size:14px;">🔒</div></sc-if>
+                  </div>
+                  <div style="font-size:10px; color:var(--muc-2); margin-top:5px; line-height:1.15; font-weight:600;">{{ b.name }}</div>
+                </div>
+              </sc-for>
+            </div>
+
+            <!-- menu -->
+            <div style="margin-top:24px; background:var(--card); border:1px solid var(--line); border-radius:18px; overflow:hidden;">
+              <button onClick="{{ toHistory }}" style="{{ menuRow }}"><span style="width:24px;">🗂️</span><span style="flex:1; text-align:left;">Lịch sử chơi</span><span style="color:var(--dong);">›</span></button>
+              <button onClick="{{ toForum }}" style="{{ menuRow }}"><span style="width:24px;">💬</span><span style="flex:1; text-align:left;">Diễn đàn</span><span style="color:var(--dong);">›</span></button>
+              <button onClick="{{ toEdit }}" style="{{ menuRow }}"><span style="width:24px;">✎</span><span style="flex:1; text-align:left;">Chỉnh sửa hồ sơ</span><span style="color:var(--dong);">›</span></button>
+              <button style="{{ menuRowLast }}"><span style="width:24px;">⏻</span><span style="flex:1; text-align:left; color:var(--son);">Đăng xuất</span></button>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ================= EDIT PROFILE ================= -->
+      <sc-if value="{{ is.editProfile }}" hint-placeholder-val="{{ false }}">
+        <div>
+          <div style="padding:10px 20px 18px; background:linear-gradient(165deg,var(--son),var(--son-2)); color:#f6e9cf; display:flex; align-items:center; gap:12px;">
+            <button onClick="{{ back }}" style="width:36px;height:36px;border-radius:50%;border:1px solid rgba(240,192,76,.35);background:rgba(0,0,0,.14);color:#f6e9cf;font-size:19px;cursor:pointer;">‹</button>
+            <h2 style="font-family:'Playfair Display',serif; font-weight:700; font-size:19px; margin:0;">Chỉnh sửa hồ sơ</h2>
+          </div>
+          <div style="padding:24px 22px 30px;">
+            <div style="text-align:center; margin-bottom:22px;">
+              <div style="width:88px;height:88px;margin:0 auto;border-radius:50%; display:grid; place-items:center; font-family:'Playfair Display',serif; font-weight:800; font-size:34px; color:#f6e9cf; background:linear-gradient(150deg,var(--son),var(--son-2)); box-shadow:0 0 0 3px var(--sao);">{{ me.initials }}</div>
+              <button style="margin-top:12px; padding:8px 18px; border:1px solid var(--dong); border-radius:20px; background:transparent; color:var(--dong); font-family:'Be Vietnam Pro'; font-weight:600; font-size:13px; cursor:pointer;">Đổi ảnh đại diện</button>
+            </div>
+            <label style="{{ fieldLabel }}">Tên hiển thị</label>
+            <input value="{{ editName }}" onInput="{{ onEditName }}" style="{{ fieldInput }}" />
+            <label style="{{ fieldLabel }}">Tên đăng nhập</label>
+            <input value="{{ editUser }}" onInput="{{ onEditUser }}" style="{{ fieldInput }}" />
+            <label style="{{ fieldLabel }}">Tiểu sử</label>
+            <textarea onInput="{{ onEditBio }}" style="{{ fieldInput }} min-height:88px; resize:none;">{{ editBio }}</textarea>
+            <div style="display:flex; gap:11px; margin-top:22px;">
+              <button onClick="{{ back }}" style="flex:1; padding:14px; border:1px solid var(--line); border-radius:14px; background:transparent; color:var(--muc-2); font-family:'Be Vietnam Pro'; font-weight:700; font-size:15px; cursor:pointer;">Hủy</button>
+              <button onClick="{{ saveProfile }}" style="flex:1; padding:14px; border:none; border-radius:14px; background:linear-gradient(150deg,var(--son),var(--son-2)); color:#f6e9cf; font-family:'Be Vietnam Pro'; font-weight:700; font-size:15px; cursor:pointer;">Lưu thay đổi</button>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ================= HISTORY ================= -->
+      <sc-if value="{{ is.history }}" hint-placeholder-val="{{ false }}">
+        <div>
+          <div style="padding:10px 20px 18px; background:linear-gradient(165deg,var(--son),var(--son-2)); color:#f6e9cf; display:flex; align-items:center; gap:12px;">
+            <button onClick="{{ back }}" style="width:36px;height:36px;border-radius:50%;border:1px solid rgba(240,192,76,.35);background:rgba(0,0,0,.14);color:#f6e9cf;font-size:19px;cursor:pointer;">‹</button>
+            <div><h2 style="font-family:'Playfair Display',serif; font-weight:700; font-size:19px; margin:0;">Lịch sử chơi</h2>
+            <div style="font-size:12px; color:#e8d3ae;">Tổng {{ historyCount }} lượt chơi</div></div>
+          </div>
+          <div style="padding:18px 22px 30px; display:flex; flex-direction:column; gap:12px;">
+            <sc-for list="{{ history }}" as="h" hint-placeholder-count="5">
+              <div onClick="{{ h.open }}" style="background:var(--card); border:1px solid var(--line); border-radius:15px; padding:14px; display:flex; gap:13px; align-items:center; cursor:pointer;">
+                <div style="width:44px;height:44px;flex:none;border-radius:12px; display:grid; place-items:center; font-size:20px; background:{{ h.iconBg }};">{{ h.icon }}</div>
+                <div style="flex:1; min-width:0;">
+                  <div style="font-weight:700; font-size:14px; color:var(--muc);">{{ h.title }}</div>
+                  <div style="font-size:11.5px; color:var(--muc-2); margin-top:2px;">{{ h.time }}</div>
+                </div>
+                <div style="text-align:right;">
+                  <div style="font-weight:700; font-size:14px; color:{{ h.scoreColor }};">{{ h.score }}</div>
+                  <div style="font-size:11px; color:var(--dong); font-weight:600;">+{{ h.xp }} XP</div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ================= REVIEW (old play) ================= -->
+      <sc-if value="{{ is.review }}" hint-placeholder-val="{{ false }}">
+        <div>
+          <div style="padding:10px 20px 18px; background:linear-gradient(165deg,var(--son),var(--son-2)); color:#f6e9cf; display:flex; align-items:center; gap:12px;">
+            <button onClick="{{ back }}" style="width:36px;height:36px;border-radius:50%;border:1px solid rgba(240,192,76,.35);background:rgba(0,0,0,.14);color:#f6e9cf;font-size:19px;cursor:pointer;">‹</button>
+            <div><h2 style="font-family:'Playfair Display',serif; font-weight:700; font-size:18px; margin:0;">Xem lại lượt chơi</h2>
+            <div style="font-size:12px; color:#e8d3ae;">{{ reviewTitle }}</div></div>
+          </div>
+          <div style="padding:18px 22px 30px; display:flex; flex-direction:column; gap:12px;">
+            <sc-for list="{{ reviewOld }}" as="r" hint-placeholder-count="4">
+              <div style="background:var(--card); border:1px solid var(--line); border-radius:14px; padding:15px; border-left:4px solid {{ r.color }};">
+                <div style="font-size:14px; font-weight:600; color:var(--muc); line-height:1.35;">{{ r.q }}</div>
+                <div style="margin-top:9px; font-size:12.5px; color:var(--muc-2);">Bạn chọn: <b style="color:{{ r.color }};">{{ r.chosen }}</b></div>
+                <div style="font-size:12.5px; color:var(--muc-2);">Đáp án đúng: <b style="color:var(--son);">{{ r.correct }}</b></div>
+                <div style="margin-top:8px; font-size:12.5px; color:var(--muc-2); line-height:1.5; background:#f4ead2; padding:9px 11px; border-radius:9px;">{{ r.exp }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ================= PUBLIC PROFILE ================= -->
+      <sc-if value="{{ is.publicProfile }}" hint-placeholder-val="{{ false }}">
+        <div>
+          <div style="padding:12px 22px 50px; background:linear-gradient(165deg,var(--son),var(--son-2)); color:#f6e9cf;">
+            <button onClick="{{ back }}" style="width:36px;height:36px;border-radius:50%;border:1px solid rgba(240,192,76,.35);background:rgba(0,0,0,.14);color:#f6e9cf;font-size:19px;cursor:pointer;margin-bottom:14px;">‹</button>
+            <div style="display:flex; align-items:center; gap:14px;">
+              <div style="width:64px;height:64px;flex:none;border-radius:50%; display:grid; place-items:center; font-family:'Playfair Display',serif; font-weight:800; font-size:24px; color:var(--son); background:var(--giay); box-shadow:0 0 0 3px {{ pub.ringColor }};">{{ pub.initials }}</div>
+              <div><div style="font-family:'Playfair Display',serif; font-weight:800; font-size:20px;">{{ pub.name }}</div>
+              <div style="font-size:12.5px; color:#e8d3ae;">@{{ pub.username }}</div>
+              <div style="display:inline-block; margin-top:5px; font-size:11px; font-weight:700; color:var(--son-2); background:{{ pub.ringColor }}; padding:2px 10px; border-radius:20px;">Hạng {{ pub.rank }}</div></div>
+            </div>
+          </div>
+          <div style="padding:0 22px 30px; margin-top:-32px;">
+            <div style="background:var(--card); border:1px solid var(--line); border-radius:16px; padding:15px; display:flex; box-shadow:0 14px 30px -24px rgba(101,19,16,.6);">
+              <div style="flex:1; text-align:center;"><div style="font-family:'Playfair Display',serif; font-weight:800; font-size:19px; color:var(--muc);">{{ pub.xp }}</div><div style="font-size:11px; color:var(--muc-2);">XP</div></div>
+              <div style="width:1px; background:var(--line);"></div>
+              <div style="flex:1; text-align:center;"><div style="font-family:'Playfair Display',serif; font-weight:800; font-size:19px; color:var(--muc);">{{ pub.plays }}</div><div style="font-size:11px; color:var(--muc-2);">lượt chơi</div></div>
+              <div style="width:1px; background:var(--line);"></div>
+              <div style="flex:1; text-align:center;"><div style="font-family:'Playfair Display',serif; font-weight:800; font-size:19px; color:var(--muc);">{{ pub.badges }}</div><div style="font-size:11px; color:var(--muc-2);">huy hiệu</div></div>
+            </div>
+            <div style="font-family:'Playfair Display',serif; font-weight:700; font-size:16px; color:var(--muc); margin:22px 0 12px;">Huy hiệu</div>
+            <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px;">
+              <sc-for list="{{ pubBadges }}" as="b" hint-placeholder-count="4">
+                <div style="text-align:center;">
+                  <div style="{{ b.iconStyle }}"><span style="{{ b.glyphStyle }}">{{ b.icon }}</span></div>
+                  <div style="font-size:10px; color:var(--muc-2); margin-top:5px; font-weight:600;">{{ b.name }}</div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ================= FORUM INDEX ================= -->
+      <sc-if value="{{ is.forumIndex }}" hint-placeholder-val="{{ false }}">
+        <div style="animation:fadeUp .35s ease; padding-bottom:20px;">
+          <div style="padding:10px 22px 16px; background:linear-gradient(165deg,var(--son),var(--son-2)); color:#f6e9cf;">
+            <h2 style="font-family:'Playfair Display',serif; font-weight:800; font-size:26px; margin:6px 0 2px;">Diễn đàn Sử Việt</h2>
+            <p style="margin:0; font-size:13px; color:#e8d3ae;">Cùng cộng đồng luận bàn nghìn năm lịch sử.</p>
+            <div style="display:flex; gap:8px; margin-top:14px;">
+              <button onClick="{{ setFilterNew }}" style="{{ filt.new }}">Mới nhất</button>
+              <button onClick="{{ setFilterHot }}" style="{{ filt.hot }}">Nổi bật</button>
+            </div>
+          </div>
+          <div style="padding:16px 22px 10px; display:flex; flex-direction:column; gap:14px;">
+            <sc-for list="{{ posts }}" as="p" hint-placeholder-count="3">
+              <div style="background:var(--card); border:1px solid var(--line); border-radius:18px; padding:16px; box-shadow:0 10px 24px -20px rgba(101,19,16,.5);">
+                <div style="display:flex; align-items:center; gap:10px;">
+                  <div onClick="{{ p.openAuthor }}" style="width:38px;height:38px;flex:none;border-radius:50%; display:grid; place-items:center; font-weight:700; font-size:15px; color:var(--son); background:var(--giay); box-shadow:0 0 0 2px {{ p.ringColor }}; cursor:pointer;">{{ p.initials }}</div>
+                  <div style="flex:1; min-width:0;">
+                    <div onClick="{{ p.openAuthor }}" style="font-weight:700; font-size:13.5px; color:var(--muc); cursor:pointer;">{{ p.name }} <span style="font-size:10.5px; font-weight:700; color:var(--son-2); background:{{ p.ringColor }}; padding:1px 7px; border-radius:12px; margin-left:2px;">{{ p.rank }}</span></div>
+                    <div style="font-size:11.5px; color:var(--muc-2);">{{ p.time }}</div>
+                  </div>
+                  <span style="{{ p.tagStyle }}">{{ p.tag }}</span>
+                </div>
+                <div onClick="{{ p.open }}" style="cursor:pointer;">
+                  <div style="font-family:'Playfair Display',serif; font-weight:700; font-size:17px; color:var(--muc); margin:11px 0 5px; line-height:1.25;">{{ p.title }}</div>
+                  <p style="margin:0; font-size:13px; color:var(--muc-2); line-height:1.5; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">{{ p.excerpt }}</p>
+                </div>
+                <div style="display:flex; gap:18px; margin-top:12px; font-size:12.5px; color:var(--muc-2); font-weight:600;">
+                  <span>♥ {{ p.likes }}</span><span>💬 {{ p.commentCount }}</span>
+                </div>
+              </div>
+            </sc-for>
+            <div style="text-align:center; padding:14px; color:var(--muc-2); font-size:12.5px;">Kéo để tải thêm bài viết cũ hơn…</div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ================= FORUM DETAIL ================= -->
+      <sc-if value="{{ is.postDetail }}" hint-placeholder-val="{{ false }}">
+        <div style="min-height:100%; display:flex; flex-direction:column;">
+          <div style="padding:10px 20px 14px; background:linear-gradient(165deg,var(--son),var(--son-2)); color:#f6e9cf; flex:none; display:flex; align-items:center; gap:12px;">
+            <button onClick="{{ back }}" style="width:36px;height:36px;border-radius:50%;border:1px solid rgba(240,192,76,.35);background:rgba(0,0,0,.14);color:#f6e9cf;font-size:19px;cursor:pointer;">‹</button>
+            <h2 style="font-family:'Playfair Display',serif; font-weight:700; font-size:17px; margin:0;">Bài viết</h2>
+          </div>
+          <div class="scr" style="flex:1; min-height:0; overflow-y:auto; padding:18px 22px 16px;">
+            <div style="display:flex; align-items:center; gap:11px;">
+              <div onClick="{{ curPost.openAuthor }}" style="width:44px;height:44px;flex:none;border-radius:50%; display:grid; place-items:center; font-weight:700; font-size:16px; color:var(--son); background:var(--giay); box-shadow:0 0 0 3px {{ curPost.ringColor }}; cursor:pointer;">{{ curPost.initials }}</div>
+              <div><div style="font-weight:700; font-size:14px; color:var(--muc);">{{ curPost.name }} <span style="font-size:10.5px; font-weight:700; color:var(--son-2); background:{{ curPost.ringColor }}; padding:1px 8px; border-radius:12px;">{{ curPost.rank }}</span></div>
+              <div style="font-size:12px; color:var(--muc-2);">{{ curPost.time }}</div></div>
+            </div>
+            <h1 style="font-family:'Playfair Display',serif; font-weight:800; font-size:23px; line-height:1.25; color:var(--muc); margin:16px 0 12px;">{{ curPost.title }}</h1>
+            <div style="font-size:14.5px; color:#40342b; line-height:1.65; white-space:pre-line;">{{ curPost.body }}</div>
+            <div style="margin-top:18px; padding-top:16px; border-top:1px solid var(--line); display:flex; align-items:center; gap:12px;">
+              <button onClick="{{ toggleLike }}" style="{{ likeStyle }}">♥ {{ curPost.likes }}</button>
+              <span style="font-size:13px; color:var(--muc-2);">{{ curPost.commentCount }} bình luận</span>
+            </div>
+            <div style="margin-top:20px; display:flex; flex-direction:column; gap:14px;">
+              <sc-for list="{{ curComments }}" as="c" hint-placeholder-count="2">
+                <div style="display:flex; gap:11px; animation:popIn .3s ease;">
+                  <div onClick="{{ c.openAuthor }}" style="width:36px;height:36px;flex:none;border-radius:50%; display:grid; place-items:center; font-weight:700; font-size:14px; color:var(--son); background:var(--giay); box-shadow:0 0 0 2px {{ c.ringColor }}; cursor:pointer;">{{ c.initials }}</div>
+                  <div style="flex:1; background:var(--card); border:1px solid var(--line); border-radius:4px 14px 14px 14px; padding:11px 13px;">
+                    <div style="display:flex; align-items:center; gap:7px;"><span style="font-weight:700; font-size:13px; color:var(--muc);">{{ c.name }}</span><span style="font-size:10px; font-weight:700; color:var(--son-2); background:{{ c.ringColor }}; padding:1px 6px; border-radius:10px;">{{ c.rank }}</span><span style="font-size:11px; color:var(--muc-2); margin-left:auto;">{{ c.time }}</span></div>
+                    <div style="font-size:13.5px; color:#40342b; line-height:1.5; margin-top:5px;">{{ c.text }}</div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="flex:none; padding:11px 16px 16px; background:var(--card); border-top:1px solid var(--line); display:flex; gap:9px; align-items:center;">
+            <input value="{{ commentDraft }}" onInput="{{ onCommentInput }}" placeholder="Viết bình luận…" style="flex:1; border:1px solid var(--line); background:var(--giay); border-radius:22px; padding:11px 16px; font-family:'Be Vietnam Pro'; font-size:14px; color:var(--muc); outline:none;" />
+            <button onClick="{{ sendComment }}" style="width:44px;height:44px;flex:none;border:none;border-radius:50%; background:linear-gradient(150deg,var(--son),var(--son-2)); color:#f6e9cf; font-size:17px; cursor:pointer;">➤</button>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ================= CREATE POST ================= -->
+      <sc-if value="{{ is.createPost }}" hint-placeholder-val="{{ false }}">
+        <div style="min-height:100%; display:flex; flex-direction:column;">
+          <div style="padding:10px 20px 14px; background:linear-gradient(165deg,var(--son),var(--son-2)); color:#f6e9cf; display:flex; align-items:center; gap:12px;">
+            <button onClick="{{ back }}" style="width:36px;height:36px;border-radius:50%;border:1px solid rgba(240,192,76,.35);background:rgba(0,0,0,.14);color:#f6e9cf;font-size:19px;cursor:pointer;">‹</button>
+            <h2 style="font-family:'Playfair Display',serif; font-weight:700; font-size:18px; margin:0;">Tạo bài đăng mới</h2>
+          </div>
+          <div style="flex:1; padding:22px;">
+            <label style="{{ fieldLabel }}">Tiêu đề</label>
+            <input value="{{ newTitle }}" onInput="{{ onNewTitle }}" placeholder="Tiêu đề bài viết…" style="{{ fieldInput }}" />
+            <label style="{{ fieldLabel }}">Chủ đề</label>
+            <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px;">
+              <sc-for list="{{ tagOptions }}" as="t" hint-placeholder-count="4">
+                <button onClick="{{ t.pick }}" style="{{ t.style }}">{{ t.label }}</button>
+              </sc-for>
+            </div>
+            <label style="{{ fieldLabel }}">Nội dung</label>
+            <textarea onInput="{{ onNewBody }}" placeholder="Chia sẻ kiến thức, đặt câu hỏi, cùng thảo luận…" style="{{ fieldInput }} min-height:200px; resize:none;">{{ newBody }}</textarea>
+          </div>
+          <div style="flex:none; padding:12px 22px 20px; display:flex; gap:11px;">
+            <button onClick="{{ back }}" style="flex:1; padding:14px; border:1px solid var(--line); border-radius:14px; background:transparent; color:var(--muc-2); font-family:'Be Vietnam Pro'; font-weight:700; font-size:15px; cursor:pointer;">Hủy</button>
+            <button onClick="{{ submitPost }}" style="{{ submitStyle }}">Đăng bài</button>
+          </div>
+        </div>
+      </sc-if>
+
+    </div>
+
+    <!-- ================= TAB BAR ================= -->
+    <sc-if value="{{ showTabBar }}" hint-placeholder-val="{{ true }}">
+      <div style="position:relative; z-index:6; flex:none; height:76px; display:flex; background:var(--card); border-top:1px solid var(--line); box-shadow:0 -8px 20px -14px rgba(101,19,16,.4);">
+        <button onClick="{{ tabGame }}" style="{{ tabBtn }}">
+          <div style="width:22px;height:22px; background:{{ tabc.game }}; clip-path:polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%);"></div>
+          <span style="font-size:11px; font-weight:700; color:{{ tabc.game }};">Trò chơi</span>
+        </button>
+        <button onClick="{{ tabForum }}" style="{{ tabBtn }}">
+          <div style="width:22px;height:20px; border:2.5px solid {{ tabc.forum }}; border-radius:8px 8px 8px 2px;"></div>
+          <span style="font-size:11px; font-weight:700; color:{{ tabc.forum }};">Diễn đàn</span>
+        </button>
+        <button onClick="{{ tabProfile }}" style="{{ tabBtn }}">
+          <div style="display:flex; flex-direction:column; align-items:center;"><div style="width:10px;height:10px;border-radius:50%;background:{{ tabc.profile }};"></div><div style="width:20px;height:11px;border-radius:11px 11px 0 0;background:{{ tabc.profile }};margin-top:1px;"></div></div>
+          <span style="font-size:11px; font-weight:700; color:{{ tabc.profile }};">Hồ sơ</span>
+        </button>
+      </div>
+    </sc-if>
+
+    <!-- ================= MODAL: RANK ================= -->
+    <sc-if value="{{ modalRank }}" hint-placeholder-val="{{ false }}">
+      <div onClick="{{ closeModal }}" style="position:absolute; inset:0; z-index:20; background:rgba(26,15,12,.55); display:flex; align-items:flex-end; animation:popIn .25s ease;">
+        <div onClick="{{ stop }}" style="width:100%; background:var(--giay); border-radius:26px 26px 0 0; padding:22px 22px 30px; max-height:78%; overflow-y:auto;" class="scr">
+          <div style="width:44px; height:5px; background:var(--line); border-radius:5px; margin:0 auto 16px;"></div>
+          <h2 style="font-family:'Playfair Display',serif; font-weight:800; font-size:22px; text-align:center; margin:0 0 4px; color:var(--muc);">Các cấp bậc</h2>
+          <p style="text-align:center; font-size:13px; color:var(--muc-2); margin:0 0 18px;">Tích luỹ XP để thăng hạng.</p>
+          <div style="display:flex; flex-direction:column; gap:10px;">
+            <sc-for list="{{ rankRows }}" as="r" hint-placeholder-count="6">
+              <div style="{{ r.rowStyle }}">
+                <div style="width:44px;height:44px;flex:none;border-radius:50%; display:grid; place-items:center; background:radial-gradient(circle at 50% 36%, #fff6e0 0 28%, var(--dong-2) 56%, var(--dong) 100%); box-shadow:0 0 0 2px var(--sao);">
+                  <span style="font-size:22px; line-height:1;">{{ r.icon }}</span>
+                </div>
+                <div style="flex:1;"><div style="font-family:'Playfair Display',serif; font-weight:700; font-size:16px; color:var(--muc);">{{ r.name }}</div>
+                <div style="font-size:12px; color:var(--muc-2);">Từ {{ r.min }} XP</div></div>
+                <sc-if value="{{ r.current }}" hint-placeholder-val="{{ false }}"><span style="font-size:11px; font-weight:700; color:#f6e9cf; background:var(--son); padding:4px 11px; border-radius:20px;">Hiện tại</span></sc-if>
+              </div>
+            </sc-for>
+          </div>
+          <button onClick="{{ closeModal }}" style="width:100%; margin-top:20px; padding:14px; border:none; border-radius:14px; background:var(--muc); color:var(--giay); font-family:'Be Vietnam Pro'; font-weight:700; font-size:15px; cursor:pointer;">Đóng</button>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ================= MODAL: BADGE ================= -->
+    <sc-if value="{{ modalBadge }}" hint-placeholder-val="{{ false }}">
+      <div onClick="{{ closeModal }}" style="position:absolute; inset:0; z-index:20; background:rgba(26,15,12,.55); display:flex; align-items:center; justify-content:center; padding:28px; animation:popIn .25s ease;">
+        <div onClick="{{ stop }}" style="width:100%; background:var(--giay); border-radius:24px; padding:28px 24px; text-align:center;">
+          <div style="{{ activeBadge.frameStyle }}">
+            <span style="{{ activeBadge.glyphStyle }}">{{ activeBadge.icon }}</span>
+            <sc-if value="{{ activeBadge.locked }}" hint-placeholder-val="{{ false }}"><div style="position:absolute; inset:0; border-radius:50%; background:rgba(40,32,26,.45); display:grid; place-items:center; color:#fff; font-size:26px;">🔒</div></sc-if>
+          </div>
+          <h2 style="font-family:'Playfair Display',serif; font-weight:800; font-size:22px; margin:0 0 4px; color:var(--muc);">{{ activeBadge.name }}</h2>
+          <div style="font-size:12.5px; font-weight:700; color:{{ activeBadge.statusColor }}; margin-bottom:12px;">{{ activeBadge.status }}</div>
+          <p style="font-size:13.5px; color:var(--muc-2); line-height:1.55; margin:0 0 22px;">{{ activeBadge.desc }}</p>
+          <button onClick="{{ closeModal }}" style="width:100%; padding:14px; border:none; border-radius:14px; background:linear-gradient(150deg,var(--son),var(--son-2)); color:#f6e9cf; font-family:'Be Vietnam Pro'; font-weight:700; font-size:15px; cursor:pointer;">Đóng</button>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- FAB for forum -->
+    <sc-if value="{{ showFab }}" hint-placeholder-val="{{ false }}">
+      <button onClick="{{ toCreate }}" style="position:absolute; right:20px; bottom:92px; z-index:9; width:58px; height:58px; border:none; border-radius:50%; cursor:pointer;
+            background:linear-gradient(150deg,var(--son),var(--son-2)); color:#f6e9cf; font-size:28px; box-shadow:0 14px 28px -10px rgba(101,19,16,.8), 0 0 0 3px var(--sao);">✎</button>
+    </sc-if>
+
+  </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:480,&quot;height&quot;:940},&quot;showPattern&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Hoa văn&quot;},&quot;timerSeconds&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:20,&quot;min&quot;:10,&quot;max&quot;:40,&quot;step&quot;:5,&quot;unit&quot;:&quot;s&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Trò chơi&quot;}}">
+class Component extends DCLogic {
+  constructor(props){
+    super(props);
+    this.ranks = [
+      {name:'Sơ Học', min:0, icon:'🪶'}, {name:'Đồng', min:500, icon:'🥉'}, {name:'Bạc', min:1500, icon:'🥈'},
+      {name:'Vàng', min:3500, icon:'🥇'}, {name:'Ngọc Bích', min:6000, icon:'💎'}, {name:'Huyền Thoại', min:10000, icon:'🐉'}
+    ];
+    this.quizzes = [
+      { id:'ndl', title:'Buổi Đầu Độc Lập', sub:'Ngô – Đinh – Tiền Lê', diff:'Trung bình', count:5, questions:[
+        {text:'Chiến thắng Bạch Đằng năm 938 do ai lãnh đạo?', opts:['Ngô Quyền','Đinh Bộ Lĩnh','Lê Hoàn','Dương Đình Nghệ'], ans:0, exp:'Ngô Quyền dùng trận địa cọc ngầm đánh tan quân Nam Hán trên sông Bạch Đằng năm 938, chấm dứt hơn một nghìn năm Bắc thuộc.'},
+        {text:'Ai dẹp loạn 12 sứ quân, lập nên nước Đại Cồ Việt?', opts:['Lý Công Uẩn','Đinh Bộ Lĩnh','Ngô Quyền','Lê Hoàn'], ans:1, exp:'Đinh Bộ Lĩnh dẹp loạn 12 sứ quân, lên ngôi Đinh Tiên Hoàng năm 968, đặt tên nước là Đại Cồ Việt.'},
+        {text:'Kinh đô nước Đại Cồ Việt thời Đinh đặt ở đâu?', opts:['Cổ Loa','Thăng Long','Hoa Lư','Phú Xuân'], ans:2, exp:'Kinh đô Hoa Lư (Ninh Bình ngày nay) là nơi định đô của nhà Đinh và Tiền Lê.'},
+        {text:'Ai lãnh đạo cuộc kháng chiến chống Tống năm 981?', opts:['Lê Hoàn','Lý Thường Kiệt','Trần Hưng Đạo','Ngô Quyền'], ans:0, exp:'Lê Hoàn (Lê Đại Hành) lãnh đạo kháng chiến chống Tống thắng lợi năm 981, lập nhà Tiền Lê.'},
+        {text:'Nhà nước Vạn Xuân trước đó do ai sáng lập?', opts:['Triệu Quang Phục','Lý Bí','Mai Thúc Loan','Phùng Hưng'], ans:1, exp:'Lý Bí (Lý Nam Đế) đánh đuổi quân Lương, lập nước Vạn Xuân năm 544.'}
+      ]},
+      { id:'lt', title:'Hào Khí Lý – Trần', sub:'Thăng Long & ba lần đại thắng', diff:'Khó', count:5, questions:[
+        {text:'Nhà Lý dời đô về Thăng Long vào năm nào?', opts:['968','1009','1010','1054'], ans:2, exp:'Năm 1010, Lý Thái Tổ (Lý Công Uẩn) ban Chiếu dời đô, dời từ Hoa Lư về thành Đại La và đổi tên là Thăng Long.'},
+        {text:'"Nam quốc sơn hà" gắn liền với tên tuổi nào?', opts:['Lý Thường Kiệt','Trần Quốc Tuấn','Lê Lợi','Nguyễn Trãi'], ans:0, exp:'Bài thơ thần "Nam quốc sơn hà" gắn với Lý Thường Kiệt tại phòng tuyến sông Như Nguyệt năm 1077.'},
+        {text:'Ai là tổng chỉ huy ba lần kháng chiến chống Mông – Nguyên?', opts:['Trần Thủ Độ','Trần Hưng Đạo','Trần Nhân Tông','Trần Quang Khải'], ans:1, exp:'Hưng Đạo Đại Vương Trần Quốc Tuấn là tổng chỉ huy quân Đại Việt trong ba cuộc kháng chiến chống Mông – Nguyên.'},
+        {text:'Chiến thắng Bạch Đằng năm 1288 đánh tan quân xâm lược nào?', opts:['Quân Tống','Quân Minh','Quân Mông – Nguyên','Quân Thanh'], ans:2, exp:'Năm 1288, Trần Hưng Đạo tái lập trận địa cọc trên sông Bạch Đằng, tiêu diệt đạo quân Mông – Nguyên lần thứ ba.'},
+        {text:'Hội nghị Diên Hồng thời Trần bàn về việc gì?', opts:['Chọn người kế vị','Quyết đánh quân Nguyên','Dời đô','Cải cách ruộng đất'], ans:1, exp:'Hội nghị Diên Hồng (1284) do vua Trần triệu tập các bô lão để hỏi ý dân về việc nên hoà hay nên đánh quân Nguyên — tất cả đồng thanh "Đánh!".'}
+      ]},
+      { id:'ls', title:'Lam Sơn Dựng Nghiệp', sub:'Lê Lợi & mười năm kháng chiến', diff:'Dễ', count:4, questions:[
+        {text:'Ai lãnh đạo cuộc khởi nghĩa Lam Sơn?', opts:['Nguyễn Trãi','Lê Lợi','Lê Lai','Trần Nguyên Hãn'], ans:1, exp:'Lê Lợi phát động khởi nghĩa Lam Sơn (1418–1427), về sau lên ngôi lập nhà Hậu Lê.'},
+        {text:'Ai là quân sư, tác giả "Bình Ngô đại cáo"?', opts:['Nguyễn Trãi','Nguyễn Bỉnh Khiêm','Chu Văn An','Lê Văn Hưu'], ans:0, exp:'Nguyễn Trãi soạn "Bình Ngô đại cáo" — bản tuyên ngôn độc lập hùng tráng sau khi đánh đuổi quân Minh.'},
+        {text:'Khởi nghĩa Lam Sơn chống lại quân xâm lược nào?', opts:['Quân Tống','Quân Nguyên','Quân Minh','Quân Thanh'], ans:2, exp:'Khởi nghĩa Lam Sơn nhằm đánh đuổi quân Minh đô hộ, giành lại độc lập cho Đại Việt.'},
+        {text:'Sau chiến thắng, Lê Lợi lên ngôi năm nào?', opts:['1418','1427','1428','1442'], ans:2, exp:'Năm 1428, Lê Lợi lên ngôi hoàng đế, hiệu Lê Thái Tổ, mở đầu triều Hậu Lê.'}
+      ]}
+    ];
+    this.timelines = [
+      { id:'dn', title:'Dựng Nước & Giữ Nước', era:'Thế kỷ X – XVIII', count:6, desc:'Sắp xếp những mốc son chống ngoại xâm suốt chiều dài lịch sử theo đúng dòng thời gian.', events:[
+        {id:'e1', year:938, title:'Chiến thắng Bạch Đằng', desc:'Ngô Quyền đại phá quân Nam Hán.'},
+        {id:'e2', year:1010, title:'Dời đô Thăng Long', desc:'Lý Thái Tổ ban Chiếu dời đô.'},
+        {id:'e3', year:1077, title:'Chiến thắng Như Nguyệt', desc:'Lý Thường Kiệt phá tan quân Tống.'},
+        {id:'e4', year:1288, title:'Bạch Đằng lần ba', desc:'Trần Hưng Đạo diệt quân Mông – Nguyên.'},
+        {id:'e5', year:1428, title:'Lê Lợi lên ngôi', desc:'Kết thúc kháng chiến chống Minh.'},
+        {id:'e6', year:1789, title:'Ngọc Hồi – Đống Đa', desc:'Quang Trung đại phá quân Thanh.'}
+      ]},
+      { id:'kc', title:'Ba Lần Bình Nguyên', era:'Thế kỷ XIII', count:4, desc:'Ba cuộc kháng chiến chống Mông – Nguyên hào hùng dưới triều Trần.', events:[
+        {id:'k1', year:1258, title:'Đông Bộ Đầu', desc:'Chặn đứng quân Mông Cổ lần thứ nhất.'},
+        {id:'k2', year:1285, title:'Chương Dương – Hàm Tử', desc:'Đại thắng quân Nguyên lần thứ hai.'},
+        {id:'k3', year:1288, title:'Bạch Đằng', desc:'Diệt gọn đạo thuỷ quân Nguyên lần ba.'},
+        {id:'k4', year:1300, title:'Trần Hưng Đạo mất', desc:'Để lại di huấn "khoan thư sức dân".'}
+      ]}
+    ];
+    this.badges = [
+      {id:'b1', name:'Khai Quốc', locked:false, icon:'🏯', desc:'Hoàn thành bài trắc nghiệm đầu tiên của bạn.', date:'02/06/2026'},
+      {id:'b2', name:'Bạch Đằng', locked:false, icon:'⚔️', desc:'Trả lời đúng 10 câu về thời Ngô – Đinh – Lý.', date:'11/06/2026'},
+      {id:'b3', name:'Chuỗi 7 Ngày', locked:false, icon:'🔥', desc:'Chơi liên tục 7 ngày không gián đoạn.', date:'20/06/2026'},
+      {id:'b4', name:'Điểm Tuyệt Đối', locked:false, icon:'🎯', desc:'Đạt 10/10 (hoặc trọn điểm) trong một bài trắc nghiệm.', date:'28/06/2026'},
+      {id:'b5', name:'Bậc Thầy Niên Đại', locked:true, icon:'⏳', desc:'Chiến thắng 5 ván Ghép Niên Đại không mất mạng nào.'},
+      {id:'b6', name:'Sử Gia', locked:true, icon:'📜', desc:'Đăng 20 bài viết được cộng đồng yêu thích trên diễn đàn.'},
+      {id:'b7', name:'Trống Đồng Vàng', locked:true, icon:'🥁', desc:'Đạt tới hạng Vàng trong hệ thống xếp hạng.'},
+      {id:'b8', name:'Thăng Long', locked:true, icon:'🐉', desc:'Hoàn thành tổng cộng 100 lượt chơi.'}
+    ];
+    this.users = {
+      thanhtran:{name:'Trần Thanh', username:'thanhsu92', rank:'Vàng', ring:'#f0c04c', xp:4120, plays:203, badges:6},
+      lehoang:{name:'Lê Hoàng', username:'hoangle', rank:'Bạc', ring:'#cdd3d8', xp:1980, plays:97, badges:4},
+      phammai:{name:'Phạm Mai', username:'maipham', rank:'Đồng', ring:'#cd7f4a', xp:820, plays:41, badges:3},
+      dangvu:{name:'Đặng Vũ', username:'vudang', rank:'Ngọc Bích', ring:'#8fd6c4', xp:7300, plays:388, badges:7}
+    };
+    this.posts = [
+      { id:'p1', authorKey:'thanhtran', time:'2 giờ trước', tag:'Phân tích', likes:42,
+        title:'Vì sao trận Bạch Đằng 1288 lại được xem là kinh điển?', 
+        body:'Mình vừa đọc lại về trận Bạch Đằng năm 1288 và thực sự thán phục tài dụng binh của Hưng Đạo Đại Vương.\n\nĐiểm mấu chốt là việc kết hợp bãi cọc ngầm với quy luật thuỷ triều lên xuống của sông. Quân ta nhử thuyền địch vào khi triều cao, rồi phản công lúc triều rút khiến thuyền Nguyên mắc cạn trên bãi cọc.\n\nĐây là lần thứ ba sông Bạch Đằng chứng kiến đại thắng của dân tộc. Mọi người nghĩ sao về nghệ thuật quân sự này?',
+        comments:[
+          {authorKey:'lehoang', time:'1 giờ trước', text:'Cọc Bạch Đằng cộng với thuỷ triều đúng là đỉnh cao. Địa lợi được tận dụng tuyệt đối!'},
+          {authorKey:'phammai', time:'40 phút trước', text:'Mình bổ sung: yếu tố "biết địch biết ta" và tinh thần Hội nghị Diên Hồng cũng góp phần rất lớn.'}
+        ]},
+      { id:'p2', authorKey:'dangvu', time:'5 giờ trước', tag:'Văn hoá', likes:67,
+        title:'Trống đồng Đông Sơn nói lên điều gì về người Việt cổ?',
+        body:'Hoa văn trên mặt trống đồng — hình ngôi sao nhiều cánh ở trung tâm, chim Lạc bay ngược chiều kim đồng hồ, cảnh giã gạo, đua thuyền...\n\nTất cả cho thấy một nền văn minh nông nghiệp lúa nước phát triển và đời sống tinh thần phong phú từ hàng nghìn năm trước. Ngôi sao trung tâm được cho là biểu tượng của Mặt Trời.\n\nMọi người có góc nhìn nào khác về ý nghĩa các hoa văn này không?',
+        comments:[
+          {authorKey:'thanhtran', time:'3 giờ trước', text:'Chim Lạc bay ngược chiều kim đồng hồ được nhiều nhà nghiên cứu liên hệ với tín ngưỡng thờ Mặt Trời đó bạn.'}
+        ]},
+      { id:'p3', authorKey:'phammai', time:'1 ngày trước', tag:'Nhân vật', likes:29,
+        title:'Chiếu dời đô — tầm nhìn ngàn năm của Lý Thái Tổ', 
+        body:'Năm 1010, Lý Công Uẩn quyết định dời đô từ Hoa Lư ra Đại La, đổi tên thành Thăng Long ("rồng bay lên").\n\nQuyết định này thể hiện một tầm nhìn chiến lược: chọn vùng đất trung tâm, bằng phẳng, thuận lợi giao thương và phát triển lâu dài thay vì cố thủ ở vùng núi hiểm trở.\n\nHơn một nghìn năm sau, Thăng Long – Hà Nội vẫn là trái tim của đất nước.',
+        comments:[] }
+    ];
+
+    this.state = {
+      tab:'game', route:'game/home', navStack:[], modal:null, activeBadgeId:null,
+      mode:'quiz',
+      quizId:null, qIndex:0, selected:null, answered:false, timedOut:false, resCorrect:0, resScore:0, resXp:0, resBadge:false, timeLeft:20, answersLog:[],
+      tlId:null, tlPool:[], tlPlaced:[], tlLives:3, tlTime:0, tlWrongId:null, tlXp:0,
+      name:'Nguyễn Minh Anh', username:'minhanh', bio:'Yêu sử Việt, mê trống đồng Đông Sơn.', xp:2680,
+      editName:'', editUser:'', editBio:'',
+      liked:{p2:false},
+      activePostId:null, publicKey:null, reviewIdx:null,
+      newTitle:'', newBody:'', newTag:'Thảo luận', commentDraft:'',
+      filter:'new', commentTick:0
+    };
+    this.history = [
+      {type:'quiz', qid:'lt', title:'Hào Khí Lý – Trần', score:'4/5', xp:220, time:'Hôm nay, 09:12'},
+      {type:'timeline', title:'Dựng Nước & Giữ Nước', score:'Thắng', xp:200, time:'Hôm qua, 20:45'},
+      {type:'quiz', qid:'ndl', title:'Buổi Đầu Độc Lập', score:'5/5', xp:260, time:'08/07, 21:03'},
+      {type:'quiz', qid:'ls', title:'Lam Sơn Dựng Nghiệp', score:'3/4', xp:150, time:'07/07, 14:20'},
+      {type:'timeline', title:'Ba Lần Bình Nguyên', score:'Thua', xp:60, time:'05/07, 19:30'}
+    ];
+    this.tags = ['Thảo luận','Phân tích','Văn hoá','Nhân vật','Sự kiện'];
+  }
+
+  componentDidMount(){
+    this.timer = setInterval(()=>this.tick(), 1000);
+  }
+  componentWillUnmount(){ clearInterval(this.timer); }
+
+  tick(){
+    const s = this.state;
+    if(s.route==='game/quiz-play' && s.quizId && !s.answered){
+      if(s.timeLeft<=1){ this.timeoutAnswer(); }
+      else this.setState({timeLeft:s.timeLeft-1});
+    }
+    if(s.route==='game/tl-play' && s.tlPool.length>0){
+      this.setState({tlTime:s.tlTime+1});
+    }
+  }
+
+  // ---- navigation ----
+  go(route, patch){ this.setState(s=>({navStack:[...s.navStack, s.route], route, modal:null, ...(patch||{})})); }
+  back(){ this.setState(s=>{ const st=[...s.navStack]; const prev=st.pop() || this.homeFor(s.tab); return {route:prev, navStack:st, modal:null}; }); }
+  homeFor(tab){ return tab==='profile'?'profile/home':tab==='forum'?'forum/index':'game/home'; }
+  setTab(tab){ this.setState({tab, route:this.homeFor(tab), navStack:[], modal:null}); }
+
+  quiz(){ return this.quizzes.find(q=>q.id===this.state.quizId) || this.quizzes[0]; }
+  tl(){ return this.timelines.find(t=>t.id===this.state.tlId) || this.timelines[0]; }
+  rankFor(xp){ let r=this.ranks[0]; for(const x of this.ranks){ if(xp>=x.min) r=x; } return r; }
+  nextRankFor(xp){ for(const x of this.ranks){ if(x.min>xp) return x; } return this.ranks[this.ranks.length-1]; }
+  initials(name){ const p=name.trim().split(/\s+/); return ((p[0]?.[0]||'')+(p[p.length-1]?.[0]||'')).toUpperCase(); }
+
+  // ---- quiz ----
+  startQuizIntro(id){ this.go('game/quiz-intro', {quizId:id}); }
+  startQuiz(){ this.setState({route:'game/quiz-play', navStack:[...this.state.navStack,'game/quiz-intro'], qIndex:0, selected:null, answered:false, timedOut:false, resCorrect:0, resScore:0, answersLog:[], timeLeft:(this.props.timerSeconds||20)}); }
+  choose(i){
+    if(this.state.answered) return;
+    const q=this.quiz().questions[this.state.qIndex];
+    const ok = i===q.ans;
+    this.setState(s=>({ selected:i, answered:true, timedOut:false,
+      resCorrect:s.resCorrect+(ok?1:0), resScore:s.resScore+(ok?100:0),
+      answersLog:[...s.answersLog, {q:q.text, chosen:i, ans:q.ans, opts:q.opts, exp:q.exp, ok}] }));
+  }
+  timeoutAnswer(){
+    const q=this.quiz().questions[this.state.qIndex];
+    this.setState(s=>({ selected:null, answered:true, timedOut:true, timeLeft:0,
+      answersLog:[...s.answersLog, {q:q.text, chosen:-1, ans:q.ans, opts:q.opts, exp:q.exp, ok:false}] }));
+  }
+  nextQuestion(){
+    const quiz=this.quiz();
+    if(this.state.qIndex+1 >= quiz.questions.length){
+      const total=quiz.questions.length;
+      const correct=this.state.resCorrect;
+      const xp = correct*40 + (correct===total?60:0);
+      const badge = correct===total;
+      this.setState(s=>({route:'game/quiz-result', xp:s.xp+xp, resXp:xp, resBadge:badge}));
+    } else {
+      this.setState(s=>({qIndex:s.qIndex+1, selected:null, answered:false, timedOut:false, timeLeft:(this.props.timerSeconds||20)}));
+    }
+  }
+  replayQuiz(){ this.startQuiz(); }
+
+  // ---- timeline ----
+  startTlIntro(id){ this.go('game/tl-intro', {tlId:id}); }
+  startTl(){
+    const evs=[...this.tl().events];
+    const pool=evs.map(e=>({...e})).sort(()=>Math.random()-0.5);
+    this.setState({route:'game/tl-play', navStack:[...this.state.navStack,'game/tl-intro'], tlPool:pool, tlPlaced:[], tlLives:3, tlTime:0, tlWrongId:null});
+  }
+  placeEvent(id){
+    const s=this.state; if(s.tlPool.length===0) return;
+    const earliest=[...s.tlPool].sort((a,b)=>a.year-b.year)[0];
+    if(id===earliest.id){
+      const ev=s.tlPool.find(e=>e.id===id);
+      const pool=s.tlPool.filter(e=>e.id!==id);
+      const placed=[...s.tlPlaced, ev];
+      if(pool.length===0){
+        const xp=200 + s.tlLives*40;
+        this.setState(st=>({tlPool:pool, tlPlaced:placed, route:'game/tl-result', tlXp:xp, xp:st.xp+xp}));
+      } else this.setState({tlPool:pool, tlPlaced:placed});
+    } else {
+      const lives=s.tlLives-1;
+      this.setState({tlWrongId:id, tlLives:lives});
+      setTimeout(()=>this.setState({tlWrongId:null}), 450);
+      if(lives<=0){ const xp=60; this.setState(st=>({route:'game/tl-result', tlXp:xp, xp:st.xp+xp})); }
+    }
+  }
+  replayTl(){ this.startTl(); }
+
+  // ---- profile ----
+  openRank(){ this.setState({modal:'rank'}); }
+  openBadge(id){ this.setState({modal:'badge', activeBadgeId:id}); }
+  closeModal(){ this.setState({modal:null}); }
+  toEdit(){ this.go('profile/edit', {editName:this.state.name, editUser:this.state.username, editBio:this.state.bio}); }
+  saveProfile(){ this.setState(s=>({name:s.editName, username:s.editUser, bio:s.editBio})); this.back(); }
+  toHistory(){ this.go('profile/history'); }
+  openReview(idx){ this.go('profile/review', {reviewIdx:idx}); }
+
+  // ---- forum ----
+  openPost(id){ this.go('forum/detail', {activePostId:id}); }
+  post(){ return this.posts.find(p=>p.id===this.state.activePostId) || this.posts[0]; }
+  toggleLike(){ const id=this.state.activePostId; this.setState(s=>({liked:{...s.liked, [id]:!s.liked[id]}})); }
+  sendComment(){
+    const t=this.state.commentDraft.trim(); if(!t) return;
+    this.post().comments.push({authorKey:'me', time:'Vừa xong', text:t});
+    this.setState(s=>({commentDraft:'', commentTick:s.commentTick+1}));
+  }
+  openAuthor(key){ if(key==='me'){ this.setTab('profile'); return;} this.go('user/public', {publicKey:key}); }
+  toCreate(){ this.go('forum/create', {newTitle:'', newBody:'', newTag:'Thảo luận'}); }
+  submitPost(){
+    if(!this.state.newTitle.trim() || !this.state.newBody.trim()) return;
+    const id='np'+Date.now();
+    this.posts.unshift({id, authorKey:'me', time:'Vừa xong', tag:this.state.newTag, likes:0,
+      title:this.state.newTitle.trim(), body:this.state.newBody.trim(), comments:[]});
+    this.setState({route:'forum/index', navStack:[], tab:'forum'});
+  }
+
+  // ---- style helpers ----
+  segStyle(active){ return `flex:1;padding:10px;border:none;border-radius:10px;cursor:pointer;font-family:'Be Vietnam Pro';font-weight:700;font-size:14px;transition:.2s;`+
+    (active?`background:linear-gradient(150deg,var(--son),var(--son-2));color:#f6e9cf;box-shadow:0 6px 14px -8px rgba(101,19,16,.8);`:`background:transparent;color:var(--muc-2);`); }
+  diffStyle(d){ const c=d==='Dễ'?'#3d7a4e':d==='Khó'?'#a83232':'#b07f2c'; return `font-size:11.5px;font-weight:700;color:${c};background:${c}1a;border:1px solid ${c}44;padding:3px 10px;border-radius:20px;`; }
+  optStyle(st){ // st: idle|correct|wrong|muted
+    const base=`display:flex;align-items:center;gap:12px;width:100%;padding:15px 16px;border-radius:14px;cursor:pointer;font-family:'Be Vietnam Pro';font-size:14.5px;font-weight:600;text-align:left;transition:.2s;`;
+    if(st==='correct') return base+`background:#e8f3ea;border:2px solid #3d7a4e;color:#1f4d2e;`;
+    if(st==='wrong') return base+`background:#f7e6e4;border:2px solid #a83232;color:#7a1f1f;`;
+    if(st==='muted') return base+`background:var(--card);border:2px solid var(--line);color:var(--muc-2);opacity:.6;`;
+    return base+`background:var(--card);border:2px solid var(--line);color:var(--muc);`;
+  }
+  badgeBtnStyle(active){ const c=active?'var(--son)':'#f0e6d0'; return `padding:6px 14px;border-radius:20px;border:1px solid ${active?'var(--son)':'var(--line)'};background:${active?'var(--son)':'transparent'};color:${active?'#f6e9cf':'var(--muc-2)'};font-family:'Be Vietnam Pro';font-weight:600;font-size:12.5px;cursor:pointer;`; }
+
+  renderVals(){
+    const s=this.state, r=s.route;
+    const showPattern = this.props.showPattern ?? true;
+    const timerSeconds = this.props.timerSeconds || 20;
+    const quiz=this.quiz(), tlv=this.tl();
+    const curRank=this.rankFor(s.xp), nextRank=this.nextRankFor(s.xp);
+    const span = nextRank.min - curRank.min;
+    const rankPct = span>0 ? Math.min(100, Math.round((s.xp-curRank.min)/span*100)) : 100;
+    const xpToNext = Math.max(0, nextRank.min - s.xp);
+
+    const is = {
+      gameHome:r==='game/home', modeQuiz:s.mode==='quiz', modeTl:s.mode==='timeline',
+      quizIntro:r==='game/quiz-intro', quizPlay:r==='game/quiz-play', quizResult:r==='game/quiz-result',
+      tlIntro:r==='game/tl-intro', tlPlay:r==='game/tl-play', tlResult:r==='game/tl-result',
+      profileHome:r==='profile/home', editProfile:r==='profile/edit', history:r==='profile/history', review:r==='profile/review',
+      publicProfile:r==='user/public',
+      forumIndex:r==='forum/index', postDetail:r==='forum/detail', createPost:r==='forum/create'
+    };
+    const immersive=['game/quiz-play','game/tl-play','forum/detail','forum/create'];
+    const showTabBar = !immersive.includes(r);
+    const activeTab = r.startsWith('profile')?'profile':r.startsWith('forum')||r.startsWith('user')?'forum':'game';
+    const tc = t => activeTab===t ? 'var(--son)' : '#c3b49b';
+
+    // quiz play
+    const curQ = quiz.questions[Math.min(s.qIndex, quiz.questions.length-1)];
+    let curOptions=[];
+    if(curQ){
+      curOptions = curQ.opts.map((txt,i)=>{
+        let st='idle';
+        if(s.answered){
+          if(i===curQ.ans) st='correct';
+          else if(i===s.selected) st='wrong';
+          else st='muted';
+        }
+        return { letter:String.fromCharCode(65+i), text:txt, style:this.optStyle(st),
+          badgeStyle:`flex:none;width:28px;height:28px;border-radius:8px;display:grid;place-items:center;font-weight:800;font-size:13px;`+
+            (st==='correct'?'background:#3d7a4e;color:#fff;':st==='wrong'?'background:#a83232;color:#fff;':'background:#efe2c9;color:var(--son);'),
+          mark: st==='correct'?'✓':st==='wrong'?'✕':'', choose:()=>this.choose(i) };
+      });
+    }
+    const verdict = s.timedOut ? 'timeout' : (s.answered && s.selected===curQ?.ans);
+    const timerStyle = `width:52px;height:52px;border-radius:50%;display:grid;place-items:center;font-family:'Playfair Display',serif;font-weight:800;font-size:20px;`+
+      (s.timeLeft<=5 && !s.answered ? 'background:#f7e6e4;color:#a83232;box-shadow:0 0 0 3px #a8323244;' : 'background:var(--card);color:var(--son);box-shadow:0 0 0 3px var(--line);');
+
+    // quiz result
+    const total=quiz.questions.length, corr=s.resCorrect;
+    const ratio=corr/total;
+    const resultGrade = ratio>=0.9?'Xuất Sắc!' : ratio>=0.6?'Đạt Rồi!' : 'Cần Cố Gắng';
+    const resultSub = ratio>=0.9?'Bậc thầy sử Việt, thật đáng nể!' : ratio>=0.6?'Kiến thức vững vàng, tiếp tục nhé.' : 'Ôn thêm rồi thử lại nào!';
+    const reviewList = s.answersLog.map(a=>({ q:a.q, correct:a.opts[a.ans], color:a.ok?'#3d7a4e':'#a83232',
+      status: a.ok?'Đúng' : (a.chosen<0?'Hết giờ':'Sai') }));
+
+    // timeline play
+    const tlHearts = [0,1,2].map(i=>({color: i<s.tlLives ? 'var(--son)' : '#dccdb0'}));
+    const tlTimeStr = `${String(Math.floor(s.tlTime/60)).padStart(2,'0')}:${String(s.tlTime%60).padStart(2,'0')}`;
+    const tlSlots = s.tlPlaced.map(e=>({year:e.year, title:e.title, desc:e.desc}));
+    const tlPoolCards = s.tlPool.map(e=>{
+      const shake = s.tlWrongId===e.id;
+      const style = `display:flex;align-items:center;gap:11px;width:100%;padding:14px 15px;border-radius:13px;cursor:pointer;font-family:'Be Vietnam Pro';font-size:14px;font-weight:600;text-align:left;color:var(--muc);`+
+        (shake ? 'background:#f7e6e4;border:2px solid #a83232;animation:shakeX .4s;' : 'background:var(--card);border:2px solid var(--line);');
+      return {title:e.title, place:()=>this.placeEvent(e.id), style};
+    });
+    const tlStandard = [...tlv.events].sort((a,b)=>a.year-b.year);
+    const tlWin = s.tlPlaced.length===tlv.events.length && s.tlPool.length===0;
+
+    // badges
+    const coinBg = 'background:radial-gradient(circle at 50% 36%, #fff6e0 0 28%, var(--dong-2) 56%, var(--dong) 100%);box-shadow:0 0 0 2px var(--sao), 0 6px 14px -9px rgba(101,19,16,.6);';
+    const mkBadge = b=>{
+      const iconStyle = `position:relative;width:100%;aspect-ratio:1;border-radius:50%;display:grid;place-items:center;`+
+        (b.locked ? 'background:#e4d7bd;box-shadow:inset 0 0 0 2px #cdbb98;' : coinBg);
+      const glyphStyle = `font-size:26px;line-height:1;`+(b.locked?'filter:grayscale(1);opacity:.38;':'filter:drop-shadow(0 1px 1px rgba(101,19,16,.35));');
+      return {name:b.name, locked:b.locked, icon:b.icon, iconStyle, glyphStyle, open:()=>this.openBadge(b.id)};
+    };
+    const badges = this.badges.map(mkBadge);
+    const badgeCount = this.badges.filter(b=>!b.locked).length;
+    const ab = this.badges.find(b=>b.id===s.activeBadgeId) || this.badges[0];
+    const activeBadge = { name:ab.name, locked:ab.locked, op: ab.locked?'.5':'1', icon:ab.icon,
+      frameStyle: `width:92px;height:92px;margin:0 auto 16px;border-radius:50%;display:grid;place-items:center;position:relative;`+
+        (ab.locked ? 'background:#e4d7bd;box-shadow:inset 0 0 0 3px #cdbb98;' : coinBg),
+      glyphStyle: `font-size:44px;line-height:1;`+(ab.locked?'filter:grayscale(1);opacity:.4;':'filter:drop-shadow(0 2px 2px rgba(101,19,16,.35));'),
+      status: ab.locked?'Chưa mở khoá':('Đã mở khoá · '+ab.date),
+      statusColor: ab.locked?'var(--muc-2)':'#3d7a4e', desc:ab.desc };
+
+    // rank modal rows
+    const rankRows = this.ranks.map(rk=>({ name:rk.name, min:rk.min, icon:rk.icon, current: rk.name===curRank.name,
+      rowStyle:`display:flex;align-items:center;gap:13px;padding:12px;border-radius:14px;border:1px solid ${rk.name===curRank.name?'var(--son)':'var(--line)'};background:${rk.name===curRank.name?'#fff6e0':'var(--card)'};` }));
+
+    // history
+    const history = this.history.map((h,idx)=>({ title:h.title, time:h.time, score:h.score, xp:h.xp,
+      icon: h.type==='quiz'?'📜':'⏳', iconBg: h.type==='quiz'?'#f4e2d0':'#e8ece0',
+      scoreColor: (h.score==='Thua')?'#a83232':(h.score==='Thắng'?'#3d7a4e':'var(--muc)'),
+      open:()=>this.openReview(idx) }));
+
+    // review old (use quiz ndl sample answers)
+    const rq = this.quizzes.find(q=>q.id==='ndl');
+    const sampleChosen=[0,1,2,3,0]; // some wrong
+    const reviewOld = rq.questions.map((q,i)=>{ const chosen=sampleChosen[i]; const ok=chosen===q.ans;
+      return {q:q.text, chosen:q.opts[chosen], correct:q.opts[q.ans], exp:q.exp, color: ok?'#3d7a4e':'#a83232'}; });
+    const reviewTitle = 'Buổi Đầu Độc Lập · 4/5 đúng';
+
+    // forum
+    const authorOf = key => key==='me' ? {name:s.name, username:s.username, rank:curRank.name, ring:'#f0c04c', xp:s.xp, plays:128, badges:badgeCount} : this.users[key];
+    const rankRing = rk => rk==='Vàng'?'#f0c04c':rk==='Bạc'?'#cdd3d8':rk==='Đồng'?'#cd7f4a':rk==='Ngọc Bích'?'#8fd6c4':rk==='Huyền Thoại'?'#c9a0ff':'#e0d3b8';
+    const tagStyle = t => { const c=t==='Phân tích'?'#8b1c17':t==='Văn hoá'?'#a8823a':t==='Nhân vật'?'#5a6b8a':'#3d7a4e'; return `font-size:10.5px;font-weight:700;color:${c};background:${c}18;padding:3px 9px;border-radius:12px;white-space:nowrap;`; };
+    let postsList = this.posts.map(p=>{ const a=authorOf(p.authorKey);
+      return {id:p.id, name:a.name, rank:a.rank, ringColor:rankRing(a.rank), initials:this.initials(a.name), time:p.time, tag:p.tag, tagStyle:tagStyle(p.tag),
+        title:p.title, excerpt:p.body.split('\n')[0], likes:p.likes+(s.liked[p.id]?1:0), commentCount:p.comments.length,
+        open:()=>this.openPost(p.id), openAuthor:()=>this.openAuthor(p.authorKey)}; });
+    if(s.filter==='hot') postsList=[...postsList].sort((a,b)=>b.likes-a.likes);
+
+    const P=this.post(); const pa=authorOf(P.authorKey);
+    const curPost={ name:pa.name, rank:pa.rank, ringColor:rankRing(pa.rank), initials:this.initials(pa.name), time:P.time,
+      title:P.title, body:P.body, likes:P.likes+(s.liked[P.id]?1:0), commentCount:P.comments.length, openAuthor:()=>this.openAuthor(P.authorKey) };
+    const liked = s.liked[P.id];
+    const likeStyle = `display:flex;align-items:center;gap:6px;padding:8px 16px;border-radius:22px;cursor:pointer;font-family:'Be Vietnam Pro';font-weight:700;font-size:13.5px;`+
+      (liked?'background:var(--son);color:#f6e9cf;border:1px solid var(--son);':'background:transparent;color:var(--son);border:1px solid var(--son);');
+    const curComments = P.comments.map(c=>{ const a=authorOf(c.authorKey);
+      return {name:a.name, rank:a.rank, ringColor:rankRing(a.rank), initials:this.initials(a.name), time:c.time, text:c.text, openAuthor:()=>this.openAuthor(c.authorKey)}; });
+
+    // public profile
+    const pk=this.state.publicKey; const pu = pk?authorOf(pk):this.users.thanhtran;
+    const pub={ name:pu.name, username:pu.username, rank:pu.rank, ringColor:rankRing(pu.rank), initials:this.initials(pu.name), xp:pu.xp, plays:pu.plays, badges:pu.badges };
+    const pubBadges2 = this.badges.slice(0,4).map(b=>mkBadge({...b, locked:false}));
+
+    // create post tags
+    const tagOptions = this.tags.map(t=>({label:t, pick:()=>this.setState({newTag:t}),
+      style: this.badgeBtnStyle(s.newTag===t)}));
+    const canSubmit = s.newTitle.trim() && s.newBody.trim();
+    const submitStyle = `flex:2;padding:14px;border:none;border-radius:14px;font-family:'Be Vietnam Pro';font-weight:700;font-size:15px;cursor:pointer;`+
+      (canSubmit?'background:linear-gradient(150deg,var(--son),var(--son-2));color:#f6e9cf;':'background:#d8c9ac;color:#fff;');
+
+    return {
+      showPattern, timerSeconds, is, showTabBar,
+      showFab: is.forumIndex, showFab2:false,
+      tabc:{game:tc('game'), forum:tc('forum'), profile:tc('profile')},
+      tabBtn:`flex:1;border:none;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;cursor:pointer;`,
+      tabGame:()=>this.setTab('game'), tabForum:()=>this.setTab('forum'), tabProfile:()=>this.setTab('profile'),
+      back:()=>this.back(), stop:(e)=>e.stopPropagation(),
+
+      // game home
+      seg:{quiz:this.segStyle(s.mode==='quiz'), tl:this.segStyle(s.mode==='timeline')},
+      setQuizMode:()=>this.setState({mode:'quiz'}), setTlMode:()=>this.setState({mode:'timeline'}),
+      quizList:this.quizzes.map((q,i)=>({title:q.title, sub:q.sub, diff:q.diff, count:q.count, numlabel:String(i+1).padStart(2,'0'),
+        diffStyle:this.diffStyle(q.diff), open:()=>this.startQuizIntro(q.id)})),
+      tlList:this.timelines.map(t=>({title:t.title, era:t.era, desc:t.desc, count:t.count, open:()=>this.startTlIntro(t.id)})),
+
+      // quiz
+      curQuiz:{title:quiz.title, sub:quiz.sub, diff:quiz.diff, count:quiz.questions.length},
+      startQuiz:()=>this.startQuiz(),
+      qNum:s.qIndex+1, quizPct:Math.round((s.qIndex+(s.answered?1:0))/quiz.questions.length*100),
+      timeLeft:s.timeLeft, timerStyle, curQ:{text:curQ?.text||'', exp:curQ?.exp||''}, curOptions, answered:s.answered,
+      verdictText: verdict==='timeout'?'⏱ Hết giờ!' : verdict?'✓ Chính xác!' : '✕ Chưa đúng',
+      verdictColor: (verdict===true)?'#3d7a4e':'#a83232',
+      nextQuestion:()=>this.nextQuestion(), nextLabel: s.qIndex+1>=quiz.questions.length?'Xem kết quả':'Câu tiếp theo',
+      resultGrade, resultSub, resCorrect:corr, resScore:s.resScore, resXp:s.resXp, resBadge:s.resBadge, reviewList,
+      replayQuiz:()=>this.replayQuiz(), toGameHome:()=>this.setTab('game'),
+
+      // timeline
+      curTl:{title:tlv.title, era:tlv.era, desc:tlv.desc, count:tlv.events.length},
+      startTl:()=>this.startTl(), tlHearts, tlTimeStr, tlPlacedCount:s.tlPlaced.length, tlSlots, tlPoolCards,
+      tlShowNext: s.tlPool.length>0, tlStandard,
+      tlResTitle: tlWin?'Chiến Thắng!' : 'Kết Thúc', tlResSub: tlWin?'Bạn đã xếp đúng toàn bộ dòng thời gian!' : 'Hết mạng rồi — ôn lại và thử sức nhé!',
+      tlResA: tlWin?'var(--son)':'#5a4a42', tlResB: tlWin?'var(--son-2)':'#3a2e28', tlXp:s.tlXp,
+      replayTl:()=>this.replayTl(),
+
+      // profile
+      me:{name:s.name, username:s.username, xp:s.xp, initials:this.initials(s.name)},
+      curRank:{name:curRank.name, icon:curRank.icon}, nextRank:{name:nextRank.name}, rankPct, xpToNext,
+      badges, badgeCount, openRank:()=>this.openRank(),
+      toHistory:()=>this.toHistory(), toForum:()=>this.setTab('forum'), toEdit:()=>this.toEdit(),
+      menuRow:`display:flex;align-items:center;gap:12px;width:100%;padding:15px 16px;border:none;border-bottom:1px solid var(--line);background:transparent;font-family:'Be Vietnam Pro';font-size:14.5px;font-weight:600;color:var(--muc);cursor:pointer;`,
+      menuRowLast:`display:flex;align-items:center;gap:12px;width:100%;padding:15px 16px;border:none;background:transparent;font-family:'Be Vietnam Pro';font-size:14.5px;font-weight:600;color:var(--muc);cursor:pointer;`,
+      editName:s.editName, editUser:s.editUser, editBio:s.editBio,
+      onEditName:e=>this.setState({editName:e.target.value}), onEditUser:e=>this.setState({editUser:e.target.value}), onEditBio:e=>this.setState({editBio:e.target.value}),
+      saveProfile:()=>this.saveProfile(),
+      fieldLabel:`display:block;font-size:12.5px;font-weight:700;color:var(--muc-2);margin:14px 0 6px;`,
+      fieldInput:`width:100%;border:1px solid var(--line);background:var(--card);border-radius:12px;padding:13px 14px;font-family:'Be Vietnam Pro';font-size:14.5px;color:var(--muc);outline:none;`,
+      history, historyCount:this.history.length,
+      reviewOld, reviewTitle,
+
+      // public
+      pub, pubBadges:pubBadges2,
+
+      // forum
+      filt:{new:this.badgeBtnStyle(s.filter==='new'), hot:this.badgeBtnStyle(s.filter==='hot')},
+      setFilterNew:()=>this.setState({filter:'new'}), setFilterHot:()=>this.setState({filter:'hot'}),
+      posts:postsList, curPost, curComments, likeStyle, toggleLike:()=>this.toggleLike(),
+      commentDraft:s.commentDraft, onCommentInput:e=>this.setState({commentDraft:e.target.value}), sendComment:()=>this.sendComment(),
+      toCreate:()=>this.toCreate(),
+      newTitle:s.newTitle, newBody:s.newBody, onNewTitle:e=>this.setState({newTitle:e.target.value}), onNewBody:e=>this.setState({newBody:e.target.value}),
+      tagOptions, submitStyle, submitPost:()=>this.submitPost(),
+
+      // modal
+      modalRank:s.modal==='rank', modalBadge:s.modal==='badge', rankRows, activeBadge, closeModal:()=>this.closeModal()
+    };
+  }
+}
+</script>
+</body>
+</html>

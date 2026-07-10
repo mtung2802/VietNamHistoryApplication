@@ -1,5 +1,5 @@
 /**
- * Timeline Puzzle gameplay.
+ * Timeline Puzzle gameplay. (Thiết kế Sử đàn)
  * Port tu UI Java: nen chien truong, ban bai, card pixel-art va nhan vat frame animation.
  */
 
@@ -17,15 +17,15 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { getEraById } from '@/services/timelinePuzzleService';
 import { Era, TimelineEvent } from '@/models/Era';
 import { SessionResult, BadgeDefinition } from '@/models/GamificationModels';
-import { BORDER_RADIUS, FONT_SIZES, FONT_WEIGHTS, SPACING } from '@/constants/theme';
-import { useThemeColors } from '@/contexts/ThemeContext';
+import { Fonts, HTML_SHADOWS, SuVietColors, SPACING } from '@/constants/theme';
 import { useAuth } from '@/contexts/AuthContext';
 import { useGamification } from '@/contexts/GamificationContext';
 import { getRankTier } from '@/services/rankService';
-import { Button, Card, ErrorState, LoadingState, Screen, AppHeader, useTopInset } from '@/components/ui';
+import { ErrorState, LoadingState, Screen, AppHeader, useTopInset } from '@/components/ui';
 
 const MAX_WRONG_MOVES = 5;
 const MAX_ATTACKS = 3;
@@ -138,7 +138,6 @@ export default function TimelinePlayScreen() {
 
   const router = useRouter();
   const topInset = useTopInset();
-  const colors = useThemeColors();
   const { user } = useAuth();
   const { submitSession, profile } = useGamification();
 
@@ -158,7 +157,6 @@ export default function TimelinePlayScreen() {
   const [warriorMode, setWarriorMode] = useState<WarriorMode>('idle');
   const [shakeKey, setShakeKey] = useState<string | null>(null);
 
-  // Gamification state
   const [sessionResult, setSessionResult] = useState<SessionResult | null>(null);
   const totalTimeRef = useRef(0);
   const submittedRef = useRef(false);
@@ -242,7 +240,6 @@ export default function TimelinePlayScreen() {
     }
   }, [load, isReviewMode, params.timelineItems, params.xpGained, profile, era]);
 
-  // Timer tổng thời gian chơi
   useEffect(() => {
     if (loading || error || status !== 'playing') return;
     const id = setInterval(() => {
@@ -251,7 +248,6 @@ export default function TimelinePlayScreen() {
     return () => clearInterval(id);
   }, [loading, error, status]);
 
-  // Submit gamification session khi game kết thúc
   useEffect(() => {
     if (isReviewMode || status === 'playing' || submittedRef.current || !user?.id) return;
     submittedRef.current = true;
@@ -365,42 +361,84 @@ export default function TimelinePlayScreen() {
   if (loading) return <LoadingState message="Đang tải kỷ nguyên..." />;
   if (error) return <ErrorState message={error} onRetry={load} />;
 
-  if (isReviewMode) {
-    return (
-      <Screen>
-        <AppHeader title="Xem lại kết quả" showThemeToggle={false} />
-        <View style={[styles.overlay, { backgroundColor: colors.background, position: 'relative', flex: 1 }]}>
-          <Card highlighted style={styles.modal}>
-            <Ionicons name="trophy" size={56} color={colors.primary} />
-            <Text style={[styles.modalTitle, { color: colors.primary }]}>
-              Hoàn thành!
-            </Text>
+  const renderResultModal = () => (
+    <View style={styles.overlay}>
+      <View style={[styles.modal, HTML_SHADOWS.cardLarge]}>
+        <Ionicons
+          name={status === 'won' ? 'trophy' : 'skull'}
+          size={56}
+          color={status === 'won' ? SuVietColors.do : SuVietColors.muc2}
+        />
+        <Text style={[styles.modalTitle, { color: status === 'won' ? SuVietColors.do : SuVietColors.muc }]}>
+          {status === 'won' ? 'Hoàn thành!' : 'Thua mất rồi!'}
+        </Text>
 
-            {/* XP Notification */}
-            {sessionResult && (
-              <View style={[styles.xpBanner, { backgroundColor: colors.primaryDim, borderColor: colors.primary }]}>
-                <View style={styles.xpBannerRow}>
-                  <Ionicons name="sparkles" size={20} color={colors.primary} />
-                  <Text style={[styles.xpBannerText, { color: colors.primary }]}>
-                    +{sessionResult.xpGained} XP
-                  </Text>
-                  <Text style={[styles.xpBannerDetail, { color: colors.textSecondary }]}>
-                    Tổng: {sessionResult.totalXP} • Hạng: {sessionResult.currentRank}
-                  </Text>
-                </View>
+        {sessionResult && (
+          <LinearGradient
+            colors={[SuVietColors.son, SuVietColors.son2]}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+            style={styles.xpBanner}
+          >
+            <View style={styles.xpBannerRow}>
+              <Ionicons name="sparkles" size={20} color="#f6e9cf" />
+              <Text style={styles.xpBannerText}>+{sessionResult.xpGained} XP</Text>
+              <Text style={styles.xpBannerDetail}>Tổng: {sessionResult.totalXP} • Hạng: {sessionResult.currentRank}</Text>
+            </View>
+            {sessionResult.rankChanged && (
+              <Text style={styles.xpRankUp}>
+                🎉 Thăng hạng: {sessionResult.previousRank} → {sessionResult.currentRank}!
+              </Text>
+            )}
+            {sessionResult.newBadges.length > 0 && (
+              <View style={styles.xpBadgesRow}>
+                {sessionResult.newBadges.map((badge: BadgeDefinition) => (
+                  <View key={badge.id} style={styles.xpBadgeChip}>
+                    <Ionicons name={badge.icon as any} size={14} color={SuVietColors.son} />
+                    <Text style={styles.xpBadgeLabel}>{badge.name}</Text>
+                  </View>
+                ))}
               </View>
             )}
+          </LinearGradient>
+        )}
 
-            <ScrollView style={styles.modalTimeline} showsVerticalScrollIndicator={false}>
-              {sortedEvents.map((event, idx) => (
-                <View key={idx} style={styles.modalRow}>
-                  <Text style={[styles.modalYear, { color: colors.primary }]}>{event.year}</Text>
-                  <Text style={[styles.modalName, { color: colors.text }]}>{event.name}</Text>
-                </View>
-              ))}
-            </ScrollView>
-          </Card>
+        <ScrollView style={styles.modalTimeline} showsVerticalScrollIndicator={false}>
+          {sortedEvents.map((event, idx) => (
+            <View key={idx} style={styles.modalRow}>
+              <Text style={styles.modalYear}>{event.year}</Text>
+              <Text style={styles.modalName}>{event.name}</Text>
+            </View>
+          ))}
+        </ScrollView>
+
+        <View style={styles.modalActions}>
+          {!isReviewMode && (
+            <TouchableOpacity onPress={() => era?.events && setupGame(era.events)} activeOpacity={0.8} style={styles.retryBtn}>
+              <Text style={styles.retryBtnText}>Chơi lại</Text>
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity 
+            onPress={() => isReviewMode ? router.back() : router.replace('/(tabs)/game')} 
+            activeOpacity={0.8}
+          >
+            <LinearGradient
+              colors={[SuVietColors.son, SuVietColors.son2]}
+              start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+              style={styles.doneBtn}
+            >
+              <Text style={styles.doneBtnText}>{isReviewMode ? 'Quay lại' : 'Về trang trò chơi'}</Text>
+            </LinearGradient>
+          </TouchableOpacity>
         </View>
+      </View>
+    </View>
+  );
+
+  if (isReviewMode) {
+    return (
+      <Screen style={{ backgroundColor: SuVietColors.giay }}>
+        <AppHeader title="Xem lại kết quả" showThemeToggle={false} />
+        {renderResultModal()}
       </Screen>
     );
   }
@@ -414,10 +452,10 @@ export default function TimelinePlayScreen() {
             onPress={() => router.back()}
             style={[styles.backButton, { top: topInset + 14 }]}
           >
-            <Ionicons name="chevron-back" size={34} color="#3A3A3A" />
+            <Ionicons name="chevron-back" size={28} color="#3A3A3A" />
           </TouchableOpacity>
 
-          <View style={[styles.titlePill, { top: topInset + 18 }]}>
+          <View style={[styles.titlePill, { top: topInset + 14 }]}>
             <Text style={styles.titleText} numberOfLines={1}>
               {era?.title ?? 'Timeline Puzzle'}
             </Text>
@@ -507,411 +545,124 @@ export default function TimelinePlayScreen() {
         </ImageBackground>
       </View>
 
-      {status !== 'playing' && (
-        <View style={[styles.overlay, { backgroundColor: colors.overlay }]}>
-          <Card highlighted style={styles.modal}>
-            <Ionicons
-              name={status === 'won' ? 'trophy' : 'skull-outline'}
-              size={56}
-              color={status === 'won' ? colors.primary : colors.error}
-            />
-            <Text
-              style={[
-                styles.modalTitle,
-                { color: status === 'won' ? colors.primary : colors.error },
-              ]}
-            >
-              {status === 'won' ? 'Hoàn thành!' : 'Thua mất rồi!'}
-            </Text>
-
-            {/* XP Notification */}
-            {sessionResult && (
-              <View
-                style={[
-                  styles.xpBanner,
-                  { backgroundColor: colors.primaryDim, borderColor: colors.primary },
-                ]}
-              >
-                <View style={styles.xpBannerRow}>
-                  <Ionicons name="sparkles" size={20} color={colors.primary} />
-                  <Text style={[styles.xpBannerText, { color: colors.primary }]}>
-                    +{sessionResult.xpGained} XP
-                  </Text>
-                  <Text style={[styles.xpBannerDetail, { color: colors.textSecondary }]}>
-                    Tổng: {sessionResult.totalXP} • {sessionResult.currentRank}
-                  </Text>
-                </View>
-                {sessionResult.rankChanged && (
-                  <Text style={[styles.xpRankUp, { color: colors.success }]}>
-                    🎉 Thăng hạng: {sessionResult.previousRank} → {sessionResult.currentRank}!
-                  </Text>
-                )}
-                {sessionResult.newBadges.length > 0 && (
-                  <View style={styles.xpBadgesRow}>
-                    {sessionResult.newBadges.map((badge: BadgeDefinition) => (
-                      <View key={badge.id} style={[styles.xpBadgeChip, { backgroundColor: colors.surface }]}>
-                        <Ionicons
-                          name={badge.icon as keyof typeof Ionicons.glyphMap}
-                          size={14}
-                          color={colors.primary}
-                        />
-                        <Text style={[styles.xpBadgeLabel, { color: colors.text }]}>
-                          {badge.name}
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
-                )}
-              </View>
-            )}
-
-            <ScrollView style={styles.modalTimeline} showsVerticalScrollIndicator={false}>
-              {sortedEvents.map((event) => (
-                <View key={`${event.order}-${event.name}`} style={styles.modalRow}>
-                  <Text style={[styles.modalYear, { color: colors.primary }]}>{event.year}</Text>
-                  <Text style={[styles.modalName, { color: colors.text }]}>{event.name}</Text>
-                </View>
-              ))}
-            </ScrollView>
-            <View style={styles.modalActions}>
-              <Button
-                label="Chơi lại"
-                icon="refresh"
-                variant="outline"
-                onPress={() => era?.events && setupGame(era.events)}
-              />
-              <Button
-                label="Về trang trò chơi"
-                icon="grid-outline"
-                onPress={() => router.replace('/(tabs)/game')}
-              />
-            </View>
-          </Card>
-        </View>
-      )}
+      {status !== 'playing' && renderResultModal()}
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    backgroundColor: '#000000',
-  },
-  gameRoot: {
-    flex: 1,
-    backgroundColor: '#000000',
-  },
-  battleBg: {
-    flex: 0.42,
-  },
-  tableBg: {
-    flex: 0.58,
-    paddingTop: SPACING[5],
-    paddingBottom: SPACING[4],
-  },
+  screen: { backgroundColor: '#000' },
+  gameRoot: { flex: 1, backgroundColor: '#000' },
+  battleBg: { flex: 0.42 },
+  tableBg: { flex: 0.58, paddingTop: 20, paddingBottom: 16 },
+
   backButton: {
-    position: 'absolute',
-    left: 18,
-    zIndex: 30,
-    width: 64,
-    height: 64,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#B2B2B2',
-    shadowColor: '#000',
-    shadowOpacity: 0.28,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 8,
+    position: 'absolute', left: 16, zIndex: 30,
+    width: 44, height: 44, borderRadius: 22,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.7)',
+    shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 4, shadowOffset: { width: 0, height: 2 },
   },
   titlePill: {
-    position: 'absolute',
-    left: 96,
-    right: 18,
-    zIndex: 20,
-    minHeight: 42,
-    paddingHorizontal: 14,
-    borderRadius: BORDER_RADIUS.full,
-    backgroundColor: 'rgba(36, 28, 20, 0.46)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 214, 116, 0.32)',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: SPACING[2],
+    position: 'absolute', left: 70, right: 16, zIndex: 20,
+    minHeight: 44, paddingHorizontal: 16, borderRadius: 22,
+    backgroundColor: 'rgba(36, 28, 20, 0.6)', borderWidth: 1, borderColor: 'rgba(255, 214, 116, 0.4)',
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8,
   },
-  titleText: {
-    flex: 1,
-    color: '#FFF1C7',
-    fontSize: FONT_SIZES.sm,
-    fontWeight: FONT_WEIGHTS.bold,
-  },
-  progressText: {
-    color: '#FFD45A',
-    fontSize: FONT_SIZES.sm,
-    fontWeight: FONT_WEIGHTS.black,
-  },
-  battleLayer: {
-    flex: 1,
-    position: 'relative',
-  },
-  battleLayerEnded: {
-    opacity: 0.45,
-  },
+  titleText: { flex: 1, fontFamily: Fonts.bold, color: '#FFF1C7', fontSize: 14 },
+  progressText: { fontFamily: Fonts.bold, color: '#FFD45A', fontSize: 14 },
+
+  battleLayer: { flex: 1, position: 'relative' },
+  battleLayerEnded: { opacity: 0.45 },
   hpWrap: {
-    position: 'absolute',
-    left: 50,
-    bottom: 126,
-    zIndex: 12,
-    flexDirection: 'row',
-    padding: 4,
-    borderRadius: 18,
-    backgroundColor: '#0a0a0a',
-    shadowColor: '#000',
-    shadowOpacity: 0.35,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 12,
+    position: 'absolute', left: 50, bottom: 126, zIndex: 12,
+    flexDirection: 'row', padding: 4, borderRadius: 18, backgroundColor: '#0a0a0a',
+    shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 4, shadowOffset: { width: 0, height: 2 },
   },
-  hpSegment: {
-    width: 43,
-    height: 16,
-    borderLeftWidth: 5,
-    borderLeftColor: '#0a0a0a',
-  },
-  hpLeft: {
-    borderTopLeftRadius: 12,
-    borderBottomLeftRadius: 12,
-    borderLeftWidth: 0,
-  },
-  hpRight: {
-    borderTopRightRadius: 12,
-    borderBottomRightRadius: 12,
-  },
-  turretWrap: {
-    position: 'absolute',
-    left: 58,
-    bottom: 54,
-    zIndex: 10,
-  },
-  turret: {
-    width: 106,
-    height: 121,
-  },
-  enemyWrap: {
-    position: 'absolute',
-    right: 48,
-    bottom: 62,
-    zIndex: 11,
-  },
-  enemy: {
-    width: 82,
-    height: 88,
-    transform: [{ scaleX: -1 }],
-  },
+  hpSegment: { width: 43, height: 16, borderLeftWidth: 5, borderLeftColor: '#0a0a0a' },
+  hpLeft: { borderTopLeftRadius: 12, borderBottomLeftRadius: 12, borderLeftWidth: 0 },
+  hpRight: { borderTopRightRadius: 12, borderBottomRightRadius: 12 },
+
+  turretWrap: { position: 'absolute', left: 58, bottom: 54, zIndex: 10 },
+  turret: { width: 106, height: 121 },
+  enemyWrap: { position: 'absolute', right: 48, bottom: 62, zIndex: 11 },
+  enemy: { width: 82, height: 88, transform: [{ scaleX: -1 }] },
+
   slotGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignSelf: 'stretch',
-    paddingHorizontal: 22,
-    justifyContent: 'space-between',
-    rowGap: 8,
+    flexDirection: 'row', flexWrap: 'wrap', alignSelf: 'stretch',
+    paddingHorizontal: 22, justifyContent: 'space-between', rowGap: 8,
   },
-  slotCell: {
-    width: '23.2%',
-    aspectRatio: 0.82,
-  },
+  slotCell: { width: '23.2%', aspectRatio: 0.82 },
   emptySlot: {
-    flex: 1,
-    borderWidth: 1.4,
-    borderStyle: 'dashed',
-    borderColor: '#F4BD00',
-    backgroundColor: 'rgba(227, 151, 65, 0.12)',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flex: 1, borderWidth: 1.4, borderStyle: 'dashed', borderColor: '#F4BD00',
+    backgroundColor: 'rgba(227, 151, 65, 0.12)', alignItems: 'center', justifyContent: 'center',
   },
-  nextSlot: {
-    backgroundColor: 'rgba(255, 205, 74, 0.18)',
-  },
-  emptySlotMark: {
-    width: 20,
-    height: 20,
-    backgroundColor: 'rgba(123, 74, 31, 0.16)',
-  },
-  handScroller: {
-    marginTop: 'auto',
-    maxHeight: 238,
-  },
-  handContent: {
-    paddingHorizontal: 18,
-    gap: 10,
-    alignItems: 'flex-end',
-    paddingBottom: 8,
-  },
-  handPressable: {
-    width: 142,
-    height: 230,
-  },
-  handImageCard: {
-    width: 142,
-    height: 230,
-    paddingTop: 20,
-    paddingHorizontal: 14,
-  },
-  slotImageCard: {
-    flex: 1,
-    paddingTop: 8,
-    paddingHorizontal: 8,
-  },
-  pixelCardImage: {
-    borderRadius: 4,
-  },
-  handCardTitle: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    lineHeight: 16,
-    fontWeight: FONT_WEIGHTS.black,
-    textAlign: 'center',
-    includeFontPadding: false,
-  },
-  handTitleBox: {
-    height: 48,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  slotCardTitle: {
-    color: '#FFFFFF',
-    fontSize: 9,
-    lineHeight: 11,
-    fontWeight: FONT_WEIGHTS.black,
-    textAlign: 'center',
-    includeFontPadding: false,
-  },
-  slotTitleBox: {
-    minHeight: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  handYear: {
-    marginTop: 4,
-    color: '#FFC107',
-    fontSize: 16,
-    fontWeight: FONT_WEIGHTS.black,
-    textAlign: 'center',
-  },
-  slotYear: {
-    marginTop: 1,
-    color: '#FFC107',
-    fontSize: 9,
-    fontWeight: FONT_WEIGHTS.black,
-    textAlign: 'center',
-  },
-  cardDivider: {
-    height: 1,
-    marginTop: 3,
-    marginHorizontal: 3,
-    backgroundColor: '#FFC107',
-  },
-  handCardDesc: {
-    marginTop: 8,
-    color: '#D7D4DF',
-    fontSize: 12,
-    lineHeight: 16,
-    fontWeight: FONT_WEIGHTS.bold,
-  },
-  slotCardDesc: {
-    marginTop: 3,
-    color: '#D7D4DF',
-    fontSize: 7,
-    lineHeight: 9,
-    fontWeight: FONT_WEIGHTS.semibold,
-  },
+  nextSlot: { backgroundColor: 'rgba(255, 205, 74, 0.25)' },
+  emptySlotMark: { width: 20, height: 20, backgroundColor: 'rgba(123, 74, 31, 0.16)' },
+
+  handScroller: { marginTop: 'auto', maxHeight: 238 },
+  handContent: { paddingHorizontal: 18, gap: 10, alignItems: 'flex-end', paddingBottom: 8 },
+  handPressable: { width: 142, height: 230 },
+  handImageCard: { width: 142, height: 230, paddingTop: 20, paddingHorizontal: 14 },
+  slotImageCard: { flex: 1, paddingTop: 8, paddingHorizontal: 8 },
+  pixelCardImage: { borderRadius: 4 },
+
+  handCardTitle: { color: '#FFFFFF', fontFamily: Fonts.bold, fontSize: 12, lineHeight: 16, textAlign: 'center' },
+  handTitleBox: { height: 48, alignItems: 'center', justifyContent: 'center' },
+  slotCardTitle: { color: '#FFFFFF', fontFamily: Fonts.bold, fontSize: 9, lineHeight: 11, textAlign: 'center' },
+  slotTitleBox: { minHeight: 24, alignItems: 'center', justifyContent: 'center' },
+
+  handYear: { marginTop: 4, color: '#FFC107', fontFamily: Fonts.bold, fontSize: 16, textAlign: 'center' },
+  slotYear: { marginTop: 1, color: '#FFC107', fontFamily: Fonts.bold, fontSize: 9, textAlign: 'center' },
+  cardDivider: { height: 1, marginTop: 3, marginHorizontal: 3, backgroundColor: '#FFC107' },
+
+  handCardDesc: { marginTop: 8, color: '#D7D4DF', fontFamily: Fonts.bold, fontSize: 12, lineHeight: 16 },
+  slotCardDesc: { marginTop: 3, color: '#D7D4DF', fontFamily: Fonts.semibold, fontSize: 7, lineHeight: 9 },
+
+  // Result modal overlay
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    zIndex: 1000,
-    elevation: 1000,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: SPACING[5],
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    alignItems: 'center', justifyContent: 'center', padding: 24, zIndex: 1000,
   },
   modal: {
-    width: '100%',
-    maxWidth: 420,
-    alignItems: 'center',
-    gap: SPACING[2],
-    paddingVertical: SPACING[6],
+    width: '100%', maxWidth: 400, backgroundColor: SuVietColors.card,
+    borderRadius: 24, borderWidth: 1, borderColor: SuVietColors.line,
+    alignItems: 'center', padding: 24,
   },
-  modalTitle: {
-    fontSize: FONT_SIZES['2xl'],
-    fontWeight: FONT_WEIGHTS.bold,
-  },
-  modalTimeline: {
-    maxHeight: 220,
-    alignSelf: 'stretch',
-    marginVertical: SPACING[3],
-  },
-  modalRow: {
-    flexDirection: 'row',
-    gap: SPACING[3],
-    paddingVertical: 6,
-    alignItems: 'flex-start',
-  },
-  modalYear: {
-    width: 52,
-    fontSize: FONT_SIZES.sm,
-    fontWeight: FONT_WEIGHTS.bold,
-  },
-  modalName: {
-    flex: 1,
-    fontSize: FONT_SIZES.sm,
-    lineHeight: 20,
-  },
-  modalActions: {
-    alignSelf: 'stretch',
-    gap: SPACING[3],
-  },
-  // Gamification XP banner in modal
+  modalTitle: { fontFamily: Fonts.serifBold, fontSize: 28, marginTop: 8, marginBottom: 20 },
+
+  // XP Banner
   xpBanner: {
-    alignSelf: 'stretch',
-    borderRadius: BORDER_RADIUS.lg,
-    borderWidth: 1,
-    padding: SPACING[3],
-    gap: SPACING[1],
+    width: '100%', borderRadius: 16, padding: 16, marginBottom: 20, gap: 8,
   },
-  xpBannerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING[2],
-    flexWrap: 'wrap',
-  },
-  xpBannerText: {
-    fontSize: FONT_SIZES.lg,
-    fontWeight: FONT_WEIGHTS.black,
-  },
-  xpBannerDetail: {
-    fontSize: FONT_SIZES.xs,
-  },
-  xpRankUp: {
-    fontSize: FONT_SIZES.xs,
-    fontWeight: FONT_WEIGHTS.bold,
-  },
-  xpBadgesRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: SPACING[1],
-    marginTop: SPACING[1],
-  },
+  xpBannerRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8 },
+  xpBannerText: { fontFamily: Fonts.bold, fontSize: 18, color: '#f6e9cf' },
+  xpBannerDetail: { fontFamily: Fonts.regular, fontSize: 13, color: 'rgba(255,255,255,0.8)' },
+  xpRankUp: { fontFamily: Fonts.bold, fontSize: 13, color: '#4ade80' },
+  xpBadgesRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 },
   xpBadgeChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: SPACING[2],
-    paddingVertical: 3,
-    borderRadius: BORDER_RADIUS.full,
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: '#fff', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12,
   },
-  xpBadgeLabel: {
-    fontSize: 10,
-    fontWeight: FONT_WEIGHTS.bold,
+  xpBadgeLabel: { fontFamily: Fonts.bold, fontSize: 11, color: SuVietColors.muc },
+
+  modalTimeline: { maxHeight: 450, alignSelf: 'stretch', marginBottom: 24 },
+  modalRow: {
+    flexDirection: 'row', gap: 16, paddingVertical: 8,
+    borderBottomWidth: 1, borderBottomColor: SuVietColors.line,
   },
+  modalYear: { width: 50, fontFamily: Fonts.bold, fontSize: 14, color: SuVietColors.do },
+  modalName: { flex: 1, fontFamily: Fonts.regular, fontSize: 14, color: SuVietColors.muc, lineHeight: 22 },
+
+  modalActions: { width: '100%', gap: 12 },
+  retryBtn: {
+    width: '100%', paddingVertical: 14, borderRadius: 20,
+    borderWidth: 1, borderColor: SuVietColors.dong, alignItems: 'center',
+  },
+  retryBtnText: { fontFamily: Fonts.bold, fontSize: 15, color: SuVietColors.dong },
+  doneBtn: {
+    width: '100%', paddingVertical: 14, borderRadius: 20, alignItems: 'center',
+  },
+  doneBtnText: { fontFamily: Fonts.bold, fontSize: 15, color: '#f6e9cf' },
 });

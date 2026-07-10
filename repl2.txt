@@ -1,0 +1,122 @@
+  const ratio = total > 0 ? score / total : 0;
+  const resultGrade = ratio >= 0.9 ? 'Xuất Sắc!' : ratio >= 0.6 ? 'Đạt Rồi!' : 'Cần Cố Gắng';
+  const resultSub = ratio >= 0.9 ? 'Bậc thầy sử Việt, thật đáng nể!' : ratio >= 0.6 ? 'Kiến thức vững vàng, tiếp tục nhé.' : 'Ôn thêm rồi thử lại nào!';
+  const xpGained = sessionResult?.xpGained ?? 0;
+
+  return (
+    <Screen style={styles.screen}>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Header gradient đỏ — giống HTML */}
+        <LinearGradient
+          colors={[SuVietColors.son, SuVietColors.son2]}
+          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+          style={styles.header}
+        >
+          {/* Star decorative circle (top, semi-transparent) */}
+          <View style={styles.headerDecoration} />
+          <View style={styles.headerContent}>
+            {/* Trophy star icon */}
+            <View style={styles.resultIcon}>
+              <Ionicons name="star" size={34} color={SuVietColors.sao} />
+            </View>
+            <Text style={styles.resultGrade}>{resultGrade}</Text>
+            <Text style={styles.resultSub}>{resultSub}</Text>
+          </View>
+        </LinearGradient>
+
+        <View style={styles.content}>
+          {/* 3 stat cards — giống HTML */}
+          <View style={styles.statRow}>
+            <View style={[styles.statCard, HTML_SHADOWS.card]}>
+              <Text style={styles.statValue}>{score}/{total}</Text>
+              <Text style={styles.statLabel}>câu đúng</Text>
+            </View>
+            <View style={[styles.statCard, HTML_SHADOWS.card]}>
+              <Text style={styles.statValue}>{score * 10}</Text>
+              <Text style={styles.statLabel}>điểm</Text>
+            </View>
+            {/* XP card — gradient vàng */}
+            <Animated.View style={[styles.xpCard, HTML_SHADOWS.card, {
+              opacity: xpAnim,
+              transform: [{ translateY: xpAnim.interpolate({ inputRange: [0,1], outputRange:[20,0] }) }]
+            }]}>
+              <LinearGradient
+                colors={[SuVietColors.dong, '#8f6e2c']}
+                start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                style={styles.xpGradient}
+              >
+                <Text style={styles.xpValue}>+{xpGained}</Text>
+                <Text style={styles.xpLabel}>XP</Text>
+              </LinearGradient>
+            </Animated.View>
+          </View>
+
+          {/* Badge mới nếu có — nền #fff6e0, viền vàng */}
+          {!isReviewMode && sessionResult && sessionResult.newBadges.length > 0 && (
+            <Animated.View style={[styles.newBadgeCard, {
+              opacity: badgeAnim,
+              transform: [{ translateY: badgeAnim.interpolate({ inputRange:[0,1], outputRange:[20,0] }) }]
+            }]}>
+              {sessionResult.newBadges.map((badge: BadgeDefinition) => (
+                <View key={badge.id} style={styles.newBadgeRow}>
+                  <View style={styles.newBadgeIconCircle}>
+                    <Ionicons name={badge.icon as keyof typeof Ionicons.glyphMap} size={18} color={SuVietColors.sao} />
+                  </View>
+                  <View>
+                    <Text style={styles.newBadgeLabel}>HUY HIỆU MỚI</Text>
+                    <Text style={styles.newBadgeName}>{badge.name}</Text>
+                  </View>
+                </View>
+              ))}
+            </Animated.View>
+          )}
+
+          {/* Review từng câu — border-left xành/đỏ */}
+          <Text style={styles.reviewTitle}>Xem lại bài làm</Text>
+          {review.questions.map((q, qi) => {
+            const userChoice = review.answers[qi] ?? -1;
+            const isCorrect = userChoice === q.correctAnswer;
+            const isTimeout = userChoice === -1;
+            const borderColor = isCorrect ? SuVietColors.correct : SuVietColors.wrong;
+            const status = isCorrect ? 'Đúng' : isTimeout ? 'Hết giờ' : 'Sai';
+            return (
+              <View key={q.id} style={[styles.reviewCard, { borderLeftColor: borderColor }]}>
+                <Text style={styles.reviewQuestion}>{q.question}</Text>
+                <Text style={styles.reviewStatus}>
+                  <Text style={{ color: borderColor }}>{status}</Text>
+                  {' — Đáp án đúng: '}
+                  <Text style={{ color: SuVietColors.son }}>{q.options[q.correctAnswer]}</Text>
+                </Text>
+              </View>
+            );
+          })}
+
+          {/* Nút hành động — 2 nút giống HTML */}
+          <View style={styles.actionRow}>
+            {!isReviewMode && (
+              <TouchableOpacity
+                style={styles.replayBtn}
+                onPress={() => router.replace({ pathname: '/quiz/[quizSlug]/play', params: { quizSlug: params.quizSlug! } })}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.replayBtnText}>Chơi lại</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              onPress={() => isReviewMode ? router.back() : router.replace('/(tabs)/game')}
+              activeOpacity={0.85}
+            >
+              <LinearGradient
+                colors={[SuVietColors.son, SuVietColors.son2]}
+                start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                style={[styles.homeBtn, HTML_SHADOWS.button]}
+              >
+                <Text style={styles.homeBtnText}>{isReviewMode ? 'Quảy lại' : 'Trở về'}</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </ScrollView>
+    </Screen>
+  );
+}

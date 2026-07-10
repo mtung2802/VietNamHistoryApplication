@@ -10,9 +10,9 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { AppHeader, Screen } from '@/components/ui';
-import { BORDER_RADIUS, FONT_SIZES, FONT_WEIGHTS, SHADOWS, SPACING } from '@/constants/theme';
-import { useThemeColors } from '@/contexts/ThemeContext';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Screen } from '@/components/ui';
+import { Fonts, HTML_SHADOWS, SuVietColors, SPACING } from '@/constants/theme';
 import { getUserSession } from '@/services/userSession';
 import { getUserPlayHistory } from '@/services';
 import { DisplaySession } from '@/models/GamificationModels';
@@ -39,7 +39,6 @@ function formatSessionDate(date: Date): string {
 
 export default function PlayHistoryScreen() {
   const router = useRouter();
-  const colors = useThemeColors();
   const [sessions, setSessions] = useState<DisplaySession[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -76,36 +75,46 @@ export default function PlayHistoryScreen() {
   }, [router]);
 
   return (
-    <Screen>
-      <AppHeader title="Lịch sử chơi" />
+    <Screen style={styles.screen}>
+      <LinearGradient
+        colors={[SuVietColors.son, SuVietColors.son2]}
+        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+        style={styles.headerBar}
+      >
+        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={24} color="#f6e9cf" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Lịch sử chơi</Text>
+        <View style={{ width: 40 }} />
+      </LinearGradient>
 
       {loading ? (
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color={colors.primary} />
+          <ActivityIndicator size="large" color={SuVietColors.son} />
         </View>
       ) : sessions.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <View style={[styles.emptyIconCircle, { backgroundColor: colors.primaryDim }]}>
-            <Ionicons name="game-controller-outline" size={48} color={colors.primary} />
+          <View style={styles.emptyIconCircle}>
+            <Ionicons name="game-controller-outline" size={48} color={SuVietColors.son} />
           </View>
-          <Text style={[styles.emptyText, { color: colors.text }]}>Chưa có lịch sử chơi</Text>
-          <Text style={[styles.emptySubtext, { color: colors.textSecondary }]}>
+          <Text style={styles.emptyText}>Chưa có lịch sử chơi</Text>
+          <Text style={styles.emptySubtext}>
             Hãy tham gia làm câu đố hoặc ghép niên đại lịch sử để tích lũy XP nhé!
           </Text>
         </View>
       ) : (
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           <View style={styles.headerInfo}>
-            <Text style={[styles.historyCountText, { color: colors.textSecondary }]}>
-              Bạn đã hoàn thành tổng cộng <Text style={{ color: colors.primary, fontWeight: 'bold' }}>{sessions.length}</Text> lượt chơi
+            <Text style={styles.historyCountText}>
+              Bạn đã hoàn thành tổng cộng <Text style={styles.historyCountHighlight}>{sessions.length}</Text> lượt chơi
             </Text>
           </View>
 
-          <View style={[styles.historyCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View style={[styles.historyCard, HTML_SHADOWS.card]}>
             {sessions.map((session, idx) => (
               <React.Fragment key={session.id}>
                 {idx > 0 && (
-                  <View style={[styles.historyDivider, { backgroundColor: colors.border }]} />
+                  <View style={styles.historyDivider} />
                 )}
                 <TouchableOpacity
                   style={styles.historyRow}
@@ -138,55 +147,38 @@ export default function PlayHistoryScreen() {
                     }
                   }}
                 >
-                  {/* Left: Icon container */}
-                  <View
-                    style={[
-                      styles.historyIconBox,
-                      {
-                        backgroundColor:
-                          session.type === 'quiz' ? `${colors.primary}12` : `${colors.info}12`,
-                      },
-                    ]}
-                  >
+                  <View style={[styles.historyIconBox, session.type === 'quiz' ? styles.iconQuiz : styles.iconGame]}>
                     <Ionicons
                       name={session.type === 'quiz' ? 'help-circle' : 'time'}
                       size={20}
-                      color={session.type === 'quiz' ? colors.primary : colors.info}
+                      color={session.type === 'quiz' ? SuVietColors.do : SuVietColors.dong}
                     />
                   </View>
 
-                  {/* Middle: Title & Metadata */}
                   <View style={styles.historyMiddle}>
-                    <Text style={[styles.historyTitle, { color: colors.text }]} numberOfLines={1}>
+                    <Text style={styles.historyTitle} numberOfLines={1}>
                       {session.title || 'Không rõ'}
                     </Text>
                     <View style={styles.historyMetaRow}>
                       <View style={styles.historyMetaItem}>
-                        <Ionicons name="checkmark-circle-outline" size={11} color={colors.textSecondary} />
-                        <Text style={[styles.historyMetaText, { color: colors.textSecondary }]}>
+                        <Ionicons name="checkmark-circle" size={12} color={SuVietColors.muc2} />
+                        <Text style={styles.historyMetaText}>
                           {session.correctAnswers}/{session.totalQuestions} đúng
                         </Text>
                       </View>
-                      <Text style={[styles.historyMetaDivider, { color: colors.textMuted }]}>•</Text>
+                      <Text style={styles.historyMetaDivider}>•</Text>
                       <View style={styles.historyMetaItem}>
-                        <Ionicons name="timer-outline" size={11} color={colors.textSecondary} />
-                        <Text style={[styles.historyMetaText, { color: colors.textSecondary }]}>
-                          {session.timeTaken}s
-                        </Text>
+                        <Ionicons name="timer" size={12} color={SuVietColors.muc2} />
+                        <Text style={styles.historyMetaText}>{session.timeTaken}s</Text>
                       </View>
                     </View>
                   </View>
 
-                  {/* Right: XP Pill & Date */}
                   <View style={styles.historyRight}>
-                    <View style={[styles.xpPill, { backgroundColor: colors.primaryDim }]}>
-                      <Text style={[styles.xpPillText, { color: colors.primary }]}>
-                        +{session.xpGained} XP
-                      </Text>
+                    <View style={styles.xpPill}>
+                      <Text style={styles.xpPillText}>+{session.xpGained} XP</Text>
                     </View>
-                    <Text style={[styles.historyDate, { color: colors.textMuted }]}>
-                      {formatSessionDate(session.playedAt)}
-                    </Text>
+                    <Text style={styles.historyDate}>{formatSessionDate(session.playedAt)}</Text>
                   </View>
                 </TouchableOpacity>
               </React.Fragment>
@@ -199,110 +191,64 @@ export default function PlayHistoryScreen() {
 }
 
 const styles = StyleSheet.create({
+  screen: { backgroundColor: SuVietColors.giay },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  content: { padding: SPACING[5], paddingBottom: SPACING[10] },
-  headerInfo: {
-    marginBottom: SPACING[4],
+  
+  headerBar: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingTop: 48, paddingBottom: 16, paddingHorizontal: 16,
+    borderBottomLeftRadius: 24, borderBottomRightRadius: 24,
+    shadowColor: SuVietColors.son, shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2, shadowRadius: 8, elevation: 4, zIndex: 10,
   },
-  historyCountText: {
-    fontSize: FONT_SIZES.sm,
-    lineHeight: 20,
-  },
-  emptyContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: SPACING[6],
-    gap: SPACING[4],
-  },
+  backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  headerTitle: { fontFamily: Fonts.serifBold, fontSize: 18, color: '#f6e9cf' },
+
+  content: { padding: 22, paddingBottom: 60, paddingTop: 30 },
+  headerInfo: { marginBottom: 16 },
+  historyCountText: { fontFamily: Fonts.regular, fontSize: 14, color: SuVietColors.muc2, lineHeight: 20 },
+  historyCountHighlight: { fontFamily: Fonts.bold, color: SuVietColors.son },
+  
+  emptyContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40, marginTop: 40 },
   emptyIconCircle: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: SPACING[2],
+    width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(101,19,16,0.05)',
+    alignItems: 'center', justifyContent: 'center', marginBottom: 16,
   },
-  emptyText: {
-    fontSize: FONT_SIZES.xl,
-    fontWeight: FONT_WEIGHTS.bold,
-  },
-  emptySubtext: {
-    fontSize: FONT_SIZES.sm,
-    textAlign: 'center',
-    lineHeight: 22,
-    paddingHorizontal: SPACING[4],
-  },
+  emptyText: { fontFamily: Fonts.bold, fontSize: 18, color: SuVietColors.muc, marginBottom: 8 },
+  emptySubtext: { fontFamily: Fonts.regular, fontSize: 14, color: SuVietColors.muc2, textAlign: 'center', lineHeight: 22 },
 
   // History styles
   historyCard: {
-    borderRadius: BORDER_RADIUS.xl,
-    borderWidth: 1,
+    backgroundColor: SuVietColors.card,
+    borderRadius: 22, borderWidth: 1, borderColor: SuVietColors.line,
     overflow: 'hidden',
-    ...SHADOWS.sm,
   },
   historyRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: SPACING[4],
-    paddingVertical: 14,
-    gap: SPACING[3],
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 20, paddingVertical: 16, gap: 14,
   },
   historyDivider: {
-    height: 1,
-    marginHorizontal: SPACING[4],
+    height: 1, backgroundColor: SuVietColors.line, marginHorizontal: 20,
   },
   historyIconBox: {
-    width: 38,
-    height: 38,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
+    width: 44, height: 44, borderRadius: 22,
+    alignItems: 'center', justifyContent: 'center', flexShrink: 0,
   },
-  historyMiddle: {
-    flex: 1,
-    gap: 4,
-    justifyContent: 'center',
-  },
-  historyTitle: {
-    fontSize: FONT_SIZES.sm,
-    fontWeight: FONT_WEIGHTS.bold,
-  },
-  historyMetaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  historyMetaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-  },
-  historyMetaText: {
-    fontSize: 11,
-  },
-  historyMetaDivider: {
-    fontSize: 10,
-  },
-  historyRight: {
-    alignItems: 'flex-end',
-    justifyContent: 'center',
-    gap: 4,
-    flexShrink: 0,
-  },
+  iconQuiz: { backgroundColor: 'rgba(179,30,36,0.08)' },
+  iconGame: { backgroundColor: 'rgba(168,130,58,0.1)' },
+  
+  historyMiddle: { flex: 1, gap: 6, justifyContent: 'center' },
+  historyTitle: { fontFamily: Fonts.bold, fontSize: 15, color: SuVietColors.muc },
+  historyMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  historyMetaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  historyMetaText: { fontFamily: Fonts.regular, fontSize: 12, color: SuVietColors.muc2 },
+  historyMetaDivider: { fontFamily: Fonts.regular, fontSize: 12, color: SuVietColors.muc2 },
+  
+  historyRight: { alignItems: 'flex-end', justifyContent: 'center', gap: 6, flexShrink: 0 },
   xpPill: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: BORDER_RADIUS.full,
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: '#f7e6e4', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12,
+    alignItems: 'center', justifyContent: 'center',
   },
-  xpPillText: {
-    fontSize: 11,
-    fontWeight: FONT_WEIGHTS.black,
-  },
-  historyDate: {
-    fontSize: 10,
-  },
+  xpPillText: { fontFamily: Fonts.bold, fontSize: 11, color: SuVietColors.son },
+  historyDate: { fontFamily: Fonts.regular, fontSize: 11, color: SuVietColors.muc2 },
 });
