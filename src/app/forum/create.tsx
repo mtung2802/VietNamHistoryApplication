@@ -1,8 +1,6 @@
 /**
- * CreatePostScreen — Tạo bài viết mới trên diễn đàn
+ * CreatePostScreen — Tạo bài viết mới trên diễn đàn (Thiết kế Sử đàn)
  * Route: /forum/create
- *
- * Form nhập tiêu đề + nội dung, validate, submit lên Firestore.
  */
 
 import React, { useState } from 'react';
@@ -20,9 +18,9 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { AppHeader, Screen } from '@/components/ui';
-import { BORDER_RADIUS, FONT_SIZES, FONT_WEIGHTS, SPACING } from '@/constants/theme';
-import { useThemeColors } from '@/contexts/ThemeContext';
+import { Fonts, HTML_SHADOWS, SuVietColors, SPACING } from '@/constants/theme';
 import { useAuth } from '@/contexts/AuthContext';
 import { useGamification } from '@/contexts/GamificationContext';
 import { createPost } from '@/services/forumService';
@@ -32,7 +30,6 @@ const CONTENT_MAX = 1000;
 
 export default function CreatePostScreen() {
   const router = useRouter();
-  const colors = useThemeColors();
   const { user } = useAuth();
   const { profile } = useGamification();
 
@@ -75,28 +72,35 @@ export default function CreatePostScreen() {
     <TouchableOpacity
       onPress={handleSubmit}
       disabled={!canSubmit}
-      style={[
-        styles.postButton,
-        {
-          backgroundColor: canSubmit ? colors.primary : colors.border,
-        },
-      ]}
+      activeOpacity={0.8}
     >
-      {submitting ? (
-        <ActivityIndicator size="small" color="#FFF" />
-      ) : (
-        <Text style={styles.postButtonText}>Đăng</Text>
-      )}
+      <LinearGradient
+        colors={canSubmit ? [SuVietColors.son, SuVietColors.son2] : ['rgba(101,19,16,0.3)', 'rgba(101,19,16,0.3)']}
+        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+        style={[styles.postButton, canSubmit && HTML_SHADOWS.button]}
+      >
+        {submitting ? (
+          <ActivityIndicator size="small" color="#FFF" />
+        ) : (
+          <Text style={styles.postButtonText}>Đăng bài</Text>
+        )}
+      </LinearGradient>
     </TouchableOpacity>
   );
 
   return (
-    <Screen>
-      <AppHeader
-        title="Tạo bài viết"
-        showThemeToggle={false}
-        right={<PostButton />}
-      />
+    <Screen style={styles.screen}>
+      <LinearGradient
+        colors={[SuVietColors.son, SuVietColors.son2]}
+        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+        style={styles.headerBar}
+      >
+        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+          <Ionicons name="close" size={24} color="#f6e9cf" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Viết bài mới</Text>
+        <View style={{ width: 40 }} />
+      </LinearGradient>
 
       <KeyboardAvoidingView
         style={styles.flex}
@@ -110,22 +114,15 @@ export default function CreatePostScreen() {
           {/* Title */}
           <View style={styles.field}>
             <View style={styles.labelRow}>
-              <Text style={[styles.label, { color: colors.text }]}>Tiêu đề</Text>
-              <Text style={[styles.charCount, { color: title.length > TITLE_MAX ? colors.error : colors.textMuted }]}>
+              <Text style={styles.label}>Tiêu đề</Text>
+              <Text style={[styles.charCount, title.length > TITLE_MAX && { color: SuVietColors.wrong }]}>
                 {title.length}/{TITLE_MAX}
               </Text>
             </View>
             <TextInput
-              style={[
-                styles.input,
-                {
-                  color: colors.text,
-                  backgroundColor: colors.surface,
-                  borderColor: colors.border,
-                },
-              ]}
+              style={styles.input}
               placeholder="Nhập tiêu đề bài viết..."
-              placeholderTextColor={colors.textMuted}
+              placeholderTextColor={SuVietColors.muc2}
               value={title}
               onChangeText={(t) => setTitle(t.slice(0, TITLE_MAX))}
               maxLength={TITLE_MAX}
@@ -136,23 +133,15 @@ export default function CreatePostScreen() {
           {/* Content */}
           <View style={styles.field}>
             <View style={styles.labelRow}>
-              <Text style={[styles.label, { color: colors.text }]}>Nội dung</Text>
-              <Text style={[styles.charCount, { color: content.length > CONTENT_MAX ? colors.error : colors.textMuted }]}>
+              <Text style={styles.label}>Nội dung</Text>
+              <Text style={[styles.charCount, content.length > CONTENT_MAX && { color: SuVietColors.wrong }]}>
                 {content.length}/{CONTENT_MAX}
               </Text>
             </View>
             <TextInput
-              style={[
-                styles.input,
-                styles.textArea,
-                {
-                  color: colors.text,
-                  backgroundColor: colors.surface,
-                  borderColor: colors.border,
-                },
-              ]}
+              style={[styles.input, styles.textArea]}
               placeholder="Chia sẻ suy nghĩ của bạn về lịch sử Việt Nam..."
-              placeholderTextColor={colors.textMuted}
+              placeholderTextColor={SuVietColors.muc2}
               value={content}
               onChangeText={(t) => setContent(t.slice(0, CONTENT_MAX))}
               maxLength={CONTENT_MAX}
@@ -162,16 +151,20 @@ export default function CreatePostScreen() {
           </View>
 
           {/* Tips */}
-          <View style={[styles.tipsCard, { backgroundColor: colors.primaryDim, borderColor: colors.primary }]}>
-            <Ionicons name="bulb-outline" size={18} color={colors.primary} />
+          <View style={styles.tipsCard}>
+            <Ionicons name="bulb" size={20} color={SuVietColors.dong} />
             <View style={styles.tipsContent}>
-              <Text style={[styles.tipsTitle, { color: colors.primary }]}>Mẹo viết bài hay</Text>
-              <Text style={[styles.tipsText, { color: colors.textSecondary }]}>
+              <Text style={styles.tipsTitle}>Mẹo viết bài hay</Text>
+              <Text style={styles.tipsText}>
                 • Đặt tiêu đề rõ ràng, thu hút{'\n'}
                 • Chia sẻ kiến thức hoặc câu hỏi thú vị{'\n'}
                 • Tôn trọng cộng đồng và lịch sử
               </Text>
             </View>
+          </View>
+
+          <View style={styles.actionRow}>
+            <PostButton />
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -182,69 +175,51 @@ export default function CreatePostScreen() {
 // ── Styles ───────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
+  screen: { backgroundColor: SuVietColors.giay },
   flex: { flex: 1 },
-  content: {
-    padding: SPACING[4],
-    gap: SPACING[5],
-    paddingBottom: SPACING[10],
-  },
 
-  field: { gap: SPACING[2] },
-  labelRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  headerBar: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingTop: 48, paddingBottom: 16, paddingHorizontal: 16,
+    borderBottomLeftRadius: 24, borderBottomRightRadius: 24,
+    shadowColor: SuVietColors.son, shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2, shadowRadius: 8, elevation: 4, zIndex: 10,
   },
-  label: {
-    fontSize: FONT_SIZES.sm,
-    fontWeight: FONT_WEIGHTS.bold,
-  },
-  charCount: {
-    fontSize: FONT_SIZES.xs,
-  },
+  backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  headerTitle: { fontFamily: Fonts.serifBold, fontSize: 18, color: '#f6e9cf' },
+
+  content: { padding: 22, paddingTop: 30, gap: 24, paddingBottom: 100 },
+
+  field: { gap: 10 },
+  labelRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  label: { fontFamily: Fonts.bold, fontSize: 14, color: SuVietColors.muc, letterSpacing: 0.5 },
+  charCount: { fontFamily: Fonts.regular, fontSize: 12, color: SuVietColors.muc2 },
+  
   input: {
-    borderWidth: 1,
-    borderRadius: BORDER_RADIUS.lg,
-    paddingHorizontal: SPACING[4],
-    paddingVertical: SPACING[3],
-    fontSize: FONT_SIZES.base,
+    backgroundColor: SuVietColors.card,
+    borderWidth: 1, borderColor: SuVietColors.line,
+    borderRadius: 16, paddingHorizontal: 16, paddingVertical: 14,
+    fontFamily: Fonts.regular, fontSize: 15, color: SuVietColors.muc,
   },
   textArea: {
-    minHeight: 180,
-    lineHeight: 24,
-  },
-
-  // Post button
-  postButton: {
-    paddingHorizontal: SPACING[4],
-    paddingVertical: SPACING[2],
-    borderRadius: BORDER_RADIUS.full,
-    minWidth: 60,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  postButtonText: {
-    color: '#FFFFFF',
-    fontSize: FONT_SIZES.sm,
-    fontWeight: FONT_WEIGHTS.bold,
+    minHeight: 180, paddingTop: 16, lineHeight: 24,
   },
 
   // Tips
   tipsCard: {
-    flexDirection: 'row',
-    gap: SPACING[3],
-    padding: SPACING[4],
-    borderRadius: BORDER_RADIUS.lg,
-    borderWidth: 1,
-    borderStyle: 'dashed',
+    flexDirection: 'row', gap: 12, padding: 16,
+    backgroundColor: SuVietColors.rulesBg,
+    borderRadius: 16, borderWidth: 1, borderStyle: 'dashed', borderColor: SuVietColors.dong,
   },
   tipsContent: { flex: 1, gap: 4 },
-  tipsTitle: {
-    fontSize: FONT_SIZES.sm,
-    fontWeight: FONT_WEIGHTS.bold,
+  tipsTitle: { fontFamily: Fonts.bold, fontSize: 14, color: SuVietColors.dong },
+  tipsText: { fontFamily: Fonts.regular, fontSize: 13, color: SuVietColors.muc2, lineHeight: 22 },
+
+  // Post button
+  actionRow: { alignItems: 'center', marginTop: 16 },
+  postButton: {
+    paddingHorizontal: 40, paddingVertical: 14,
+    borderRadius: 25, minWidth: 160, alignItems: 'center', justifyContent: 'center',
   },
-  tipsText: {
-    fontSize: FONT_SIZES.xs,
-    lineHeight: 18,
-  },
+  postButtonText: { fontFamily: Fonts.bold, fontSize: 15, color: '#f6e9cf', letterSpacing: 0.5 },
 });

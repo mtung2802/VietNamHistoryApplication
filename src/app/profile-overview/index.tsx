@@ -11,27 +11,23 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { doc, getDoc } from 'firebase/firestore';
+
 import { db } from '@/services/firebase';
-import {
-  clearUserSession,
-  getUserSession,
-  saveUserSession,
-  SessionUser,
-} from '@/services/userSession';
-import { BORDER_RADIUS, FONT_SIZES, FONT_WEIGHTS, SHADOWS, SPACING } from '@/constants/theme';
-import { useThemeColors } from '@/contexts/ThemeContext';
+import { clearUserSession, getUserSession, saveUserSession, SessionUser } from '@/services/userSession';
+import { Fonts, HTML_SHADOWS, SuVietColors, SPACING } from '@/constants/theme';
 import { useGamification } from '@/contexts/GamificationContext';
 import { BADGE_DEFINITIONS } from '@/services/badgeService';
 import { getRankTier } from '@/services/rankService';
-import { DisplaySession } from '@/models/GamificationModels';
-import { AppHeader, Screen } from '@/components/ui';
+import { Screen } from '@/components/ui';
 import { BadgeModal } from '@/components/ui/BadgeModal';
 import { RankModal } from '@/components/ui/RankModal';
+import { useTopInset } from '@/components/ui';
 
 interface MenuItemProps {
-  icon: React.ComponentProps<typeof Ionicons>['name'];
+  icon: any;
   label: string;
   danger?: boolean;
   onPress: () => void;
@@ -47,7 +43,7 @@ export function ProfileOverviewContent({
   onLoggedOut,
 }: ProfileOverviewProps) {
   const router = useRouter();
-  const colors = useThemeColors();
+  const topInset = useTopInset();
   const { profile, loading: gamificationLoading } = useGamification();
   const [user, setUser] = useState<SessionUser | null>(null);
   const [loading, setLoading] = useState(true);
@@ -132,274 +128,202 @@ export function ProfileOverviewContent({
 
   const MenuItem = ({ icon, label, danger, onPress }: MenuItemProps) => (
     <TouchableOpacity
-      style={[
-        styles.menuItem,
-        {
-          backgroundColor: colors.surface,
-          borderColor: colors.border,
-        },
-      ]}
+      style={[styles.menuItem, HTML_SHADOWS.card]}
       onPress={onPress}
-      activeOpacity={0.8}
+      activeOpacity={0.7}
     >
-      <View
-        style={[
-          styles.menuIcon,
-          { backgroundColor: danger ? `${colors.error}18` : colors.primaryDim },
-        ]}
-      >
-        <Ionicons
-          name={icon}
-          size={21}
-          color={danger ? colors.error : colors.primary}
-        />
+      <View style={[styles.menuIconBox, danger ? styles.menuIconBoxDanger : styles.menuIconBoxNormal]}>
+        <Ionicons name={icon} size={20} color={danger ? SuVietColors.do : SuVietColors.son} />
       </View>
-      <Text style={[styles.menuLabel, { color: danger ? colors.error : colors.text }]}>
-        {label}
-      </Text>
-      <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+      <Text style={[styles.menuLabel, danger && { color: SuVietColors.do }]}>{label}</Text>
+      <Ionicons name="chevron-forward" size={18} color={SuVietColors.muc2} />
     </TouchableOpacity>
   );
 
   const avatarUri = user?.avatar || user?.photo;
   const displayName = user?.name || user?.displayName || user?.username || 'Người dùng';
+  const initials = displayName.substring(0, 1).toUpperCase();
 
-  // Rank info
   const rankTier = profile ? getRankTier(profile.currentRank) : null;
 
   return (
-    <Screen>
-      <AppHeader title="Hồ sơ" showBack={false} />
-
+    <Screen style={styles.screen}>
       {loading ? (
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color={colors.primary} />
+          <ActivityIndicator size="large" color={SuVietColors.son} />
         </View>
       ) : (
-        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          {/* ═══ Avatar + Name + Rank ═══ */}
-          <View style={styles.profileSection}>
-            <View
-              style={[
-                styles.avatarFrame,
-                { borderColor: rankTier?.color ?? colors.primary, backgroundColor: colors.surface },
-              ]}
-            >
-              {avatarUri ? (
-                <Image source={{ uri: avatarUri }} style={styles.avatar} />
-              ) : (
-                <Ionicons name="person" size={52} color={colors.textMuted} />
-              )}
-            </View>
-            <Text style={[styles.userName, { color: colors.text }]}>{displayName}</Text>
+        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} bounces={false}>
+          {/* ═══ Top Gradient Background ═══ */}
+          <LinearGradient
+            colors={[SuVietColors.son, SuVietColors.son2]}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+            style={[styles.topBg, { paddingTop: topInset + 20 }]}
+          >
+            <Text style={styles.headerTitle}>Hồ sơ</Text>
 
-            {/* Rank badge */}
-            {rankTier && (
-              <View style={[styles.rankBadge, { backgroundColor: `${rankTier.color}22` }]}>
-                <Ionicons
-                  name={rankTier.icon as keyof typeof Ionicons.glyphMap}
-                  size={16}
-                  color={rankTier.color}
-                />
-                <Text style={[styles.rankLabel, { color: rankTier.color }]}>
-                  {profile!.currentRank}
-                </Text>
-              </View>
-            )}
-          </View>
-
-          {/* ═══ XP Progress Bar ═══ */}
-          {profile && (
-            <TouchableOpacity
-              style={[styles.xpSection, { backgroundColor: colors.surface, borderColor: colors.border }]}
-              onPress={() => setShowRankModal(true)}
-              activeOpacity={0.7}
-            >
-              <View style={styles.xpHeader}>
-                <Text style={[styles.xpLabel, { color: colors.text }]}>
-                  <Ionicons name="sparkles" size={14} color={colors.primary} /> {profile.totalXP} XP
-                </Text>
-                {profile.nextRank ? (
-                  <Text style={[styles.xpToNext, { color: colors.textSecondary }]}>
-                    {profile.xpToNextRank} XP → {profile.nextRank}
-                  </Text>
+            <View style={styles.avatarRow}>
+              <View style={styles.avatarFrame}>
+                {avatarUri ? (
+                  <Image source={{ uri: avatarUri }} style={styles.avatar} />
                 ) : (
-                  <Text style={[styles.xpToNext, { color: colors.primary }]}>
-                    MAX RANK! 🏆
-                  </Text>
+                  <Text style={styles.initials}>{initials}</Text>
                 )}
               </View>
-              <View style={[styles.progressTrack, { backgroundColor: colors.border }]}>
-                <View
-                  style={[
-                    styles.progressFill,
-                    {
-                      backgroundColor: rankTier?.color ?? colors.primary,
-                      width: `${Math.max(2, profile.xpProgress * 100)}%`,
-                    },
-                  ]}
-                />
+              <View style={styles.nameContainer}>
+                <Text style={styles.userName}>{displayName}</Text>
+                <Text style={styles.usernameHandle}>@{user?.email?.split('@')[0] || 'user'}</Text>
               </View>
-            </TouchableOpacity>
-          )}
-
-          {/* ═══ Stats Row ═══ */}
-          {profile && (
-            <View style={styles.statsRow}>
-              <StatCard
-                icon="game-controller-outline"
-                value={String(profile.totalSessions)}
-                label="Lượt chơi"
-                color={colors}
-              />
-              <StatCard
-                icon="trophy-outline"
-                value={String(profile.highestScore * 10)}
-                label="Điểm cao nhất"
-                color={colors}
-              />
-              <StatCard
-                icon="flame-outline"
-                value={String(profile.currentStreak)}
-                label="Chuỗi"
-                color={colors}
-              />
-              <StatCard
-                icon="trending-up-outline"
-                value={String(profile.longestStreak)}
-                label="Chuỗi max"
-                color={colors}
-              />
             </View>
-          )}
+          </LinearGradient>
 
-          {/* ═══ Badges Grid ═══ */}
-          <View style={styles.sectionHeader}>
-            <Ionicons name="medal-outline" size={18} color={colors.primary} />
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Huy hiệu</Text>
-          </View>
+          <View style={styles.bodyContent}>
+            {/* ═══ Rank Card ═══ */}
+            {profile && (
+              <TouchableOpacity
+                style={[styles.rankCard, HTML_SHADOWS.cardLarge]}
+                onPress={() => setShowRankModal(true)}
+                activeOpacity={0.8}
+              >
+                <View style={styles.rankCardTop}>
+                  <View style={[styles.rankIconWrap, { backgroundColor: rankTier?.color || SuVietColors.dong }]}>
+                    <MaterialCommunityIcons name={rankTier?.icon as any || 'star'} size={28} color="#fff" />
+                  </View>
+                  <View style={styles.rankInfo}>
+                    <Text style={styles.rankSubtitle}>HẠNG HIỆN TẠI</Text>
+                    <Text style={styles.rankTitle}>{profile.currentRank}</Text>
+                  </View>
+                  <View style={styles.xpInfo}>
+                    <Text style={styles.xpValue}>{profile.totalXP}</Text>
+                    <Text style={styles.xpLabel}>XP</Text>
+                  </View>
+                </View>
 
-          <View style={styles.badgesGrid}>
-            {BADGE_DEFINITIONS.map((def) => {
-              const earned = profile?.badges.find((b) => b.badgeId === def.id);
-              const isEarned = !!earned;
-              return (
-                <TouchableOpacity
-                  key={def.id}
-                  style={[
-                    styles.badgeCell,
-                    {
-                      backgroundColor: isEarned ? colors.primaryDim : colors.surface,
-                      borderColor: isEarned ? colors.primary : colors.border,
-                    },
-                  ]}
-                  onPress={() => setSelectedBadge(def)}
-                  activeOpacity={0.7}
-                >
-                  <View
-                    style={[
-                      styles.badgeIconCircle,
-                      {
-                        backgroundColor: isEarned
-                          ? `${colors.primary}30`
-                          : `${colors.textMuted}15`,
-                      },
-                    ]}
-                  >
-                    <Ionicons
-                      name={def.icon as keyof typeof Ionicons.glyphMap}
-                      size={24}
-                      color={isEarned ? colors.primary : colors.textMuted}
+                <View style={styles.progressContainer}>
+                  <View style={styles.progressTrack}>
+                    <LinearGradient
+                      colors={[SuVietColors.dong, SuVietColors.son]}
+                      start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                      style={[styles.progressFill, { width: `${Math.max(2, profile.xpProgress * 100)}%` }]}
                     />
                   </View>
-                  <Text
-                    style={[
-                      styles.badgeCellName,
-                      { color: isEarned ? colors.text : colors.textMuted },
-                    ]}
-                    numberOfLines={2}
-                  >
-                    {def.name}
-                  </Text>
-                  {isEarned && earned?.earnedAt && (
-                    <Text style={[styles.badgeDate, { color: colors.textSecondary }]}>
-                      {earned.earnedAt.toDate?.()
-                        ? earned.earnedAt.toDate().toLocaleDateString('vi-VN')
-                        : ''}
-                    </Text>
-                  )}
-                  {!isEarned && (
-                    <Ionicons name="lock-closed" size={10} color={colors.textMuted} />
-                  )}
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+                  <View style={styles.progressTextRow}>
+                    {profile.nextRank ? (
+                      <>
+                        <Text style={styles.progressText}>Còn {profile.xpToNextRank} XP</Text>
+                        <Text style={styles.progressText}>Lên hạng {profile.nextRank}</Text>
+                      </>
+                    ) : (
+                      <Text style={[styles.progressText, { color: SuVietColors.son }]}>Đã đạt mức Rank cao nhất</Text>
+                    )}
+                  </View>
+                </View>
+              </TouchableOpacity>
+            )}
 
-          {/* ═══ Menu ═══ */}
-          <View style={styles.menuSection}>
-            <MenuItem
-              icon="time-outline"
-              label="Lịch sử chơi"
-              onPress={() => router.push('/play-history' as any)}
-            />
-            <MenuItem
-              icon="chatbubbles-outline"
-              label="Diễn đàn"
-              onPress={() => router.push('/forum' as any)}
-            />
-            <MenuItem
-              icon="create-outline"
-              label="Chỉnh sửa hồ sơ"
-              onPress={() => router.push('/edit-profile')}
-            />
-            <MenuItem
-              icon="log-out-outline"
-              label="Đăng xuất"
-              danger
-              onPress={handleLogout}
-            />
+            {/* ═══ Stats Row ═══ */}
+            {profile && (
+              <View style={styles.statsRow}>
+                <StatCard icon="game-controller" value={String(profile.totalSessions)} label="Lượt chơi" />
+                <StatCard icon="trophy" value={String(profile.highestScore)} label="Điểm cao nhất" />
+                <StatCard icon="flame" value={String(profile.currentStreak)} label="Chuỗi" />
+                <StatCard icon="trending-up" value={String(profile.longestStreak)} label="Chuỗi max" />
+              </View>
+            )}
+
+            {/* ═══ Badges Grid ═══ */}
+            <View style={styles.sectionHeader}>
+              <Ionicons name="medal" size={20} color={SuVietColors.dong} />
+              <Text style={styles.sectionTitle}>Huy hiệu</Text>
+            </View>
+
+            <View style={styles.badgesGrid}>
+              {BADGE_DEFINITIONS.map((def) => {
+                const earned = profile?.badges.find((b) => b.badgeId === def.id);
+                const isEarned = !!earned;
+                return (
+                  <TouchableOpacity
+                    key={def.id}
+                    style={[
+                      styles.badgeCell,
+                      isEarned ? styles.badgeEarned : styles.badgeLocked
+                    ]}
+                    onPress={() => setSelectedBadge(def)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={[styles.badgeIconCircle, isEarned ? styles.badgeIconEarned : styles.badgeIconLocked]}>
+                      <Ionicons
+                        name={isEarned ? def.icon as any : 'lock-closed'}
+                        size={isEarned ? 24 : 16}
+                        color={isEarned ? '#fff' : SuVietColors.muc2}
+                      />
+                    </View>
+                    <Text style={[styles.badgeCellName, !isEarned && { color: SuVietColors.muc2 }]} numberOfLines={2}>
+                      {def.name}
+                    </Text>
+                    {isEarned && earned?.earnedAt && (
+                      <Text style={styles.badgeDate}>
+                        {earned.earnedAt.toDate?.() ? earned.earnedAt.toDate().toLocaleDateString('vi-VN') : ''}
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {/* ═══ Menu ═══ */}
+            <View style={styles.menuSection}>
+              <MenuItem
+                icon="time"
+                label="Lịch sử chơi"
+                onPress={() => router.push('/play-history' as any)}
+              />
+              <MenuItem
+                icon="chatbubbles"
+                label="Diễn đàn"
+                onPress={() => router.push('/forum' as any)}
+              />
+              <MenuItem
+                icon="create"
+                label="Chỉnh sửa hồ sơ"
+                onPress={() => router.push('/edit-profile')}
+              />
+              <MenuItem
+                icon="log-out"
+                label="Đăng xuất"
+                danger
+                onPress={handleLogout}
+              />
+            </View>
           </View>
         </ScrollView>
       )}
 
-      {/* Modals */}
-      <RankModal 
-        visible={showRankModal} 
-        currentRankName={profile?.currentRank ?? null} 
-        onClose={() => setShowRankModal(false)} 
+      <RankModal
+        visible={showRankModal}
+        currentRankName={profile?.currentRank ?? null}
+        onClose={() => setShowRankModal(false)}
       />
-      
-      <BadgeModal 
-        visible={!!selectedBadge} 
+
+      <BadgeModal
+        visible={!!selectedBadge}
         badge={selectedBadge ? {
           ...selectedBadge,
           isEarned: !!(profile?.badges.find(b => b.badgeId === selectedBadge.id)),
           earnedAt: profile?.badges.find(b => b.badgeId === selectedBadge.id)?.earnedAt?.toDate?.()
-        } : null} 
-        onClose={() => setSelectedBadge(null)} 
+        } : null}
+        onClose={() => setSelectedBadge(null)}
       />
     </Screen>
   );
 }
 
-/** Stat card mini component */
-function StatCard({
-  icon,
-  value,
-  label,
-  color,
-}: {
-  icon: keyof typeof Ionicons.glyphMap;
-  value: string;
-  label: string;
-  color: ReturnType<typeof useThemeColors>;
-}) {
+function StatCard({ icon, value, label }: { icon: any; value: string; label: string }) {
   return (
-    <View style={[styles.statCard, { backgroundColor: color.surface, borderColor: color.border }]}>
-      <Ionicons name={icon} size={18} color={color.primary} />
-      <Text style={[styles.statValue, { color: color.text }]}>{value}</Text>
-      <Text style={[styles.statLabel, { color: color.textMuted }]}>{label}</Text>
+    <View style={styles.statCard}>
+      <Ionicons name={icon} size={20} color={SuVietColors.son} />
+      <Text style={styles.statValue}>{value}</Text>
+      <Text style={styles.statLabel}>{label}</Text>
     </View>
   );
 }
@@ -409,166 +333,101 @@ export default function ProfileOverviewScreen() {
 }
 
 const styles = StyleSheet.create({
+  screen: { backgroundColor: SuVietColors.giay },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  content: { padding: SPACING[5], paddingBottom: SPACING[10] },
+  content: { paddingBottom: 40 },
 
-  // Profile section
-  profileSection: { alignItems: 'center' },
+  topBg: {
+    paddingHorizontal: 22, paddingBottom: 60,
+    borderBottomLeftRadius: 40, borderBottomRightRadius: 40,
+    shadowColor: SuVietColors.son, shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.3, shadowRadius: 24, elevation: 10,
+  },
+  headerTitle: { fontFamily: Fonts.serifExtraBold, fontSize: 32, color: '#f6e9cf', marginBottom: 12 },
+
+  avatarRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
   avatarFrame: {
-    width: 112,
-    height: 112,
-    borderRadius: 56,
-    borderWidth: 3,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-    ...SHADOWS.md,
+    width: 76, height: 76, borderRadius: 38,
+    backgroundColor: SuVietColors.card,
+    borderWidth: 3, borderColor: '#fdf8ec',
+    alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
   },
   avatar: { width: '100%', height: '100%' },
-  userName: {
-    fontSize: FONT_SIZES['2xl'],
-    fontWeight: FONT_WEIGHTS.bold,
-    marginTop: SPACING[4],
-    textAlign: 'center',
-  },
-  username: { fontSize: FONT_SIZES.sm, marginTop: 3 },
-  rankBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING[1],
-    marginTop: SPACING[2],
-    paddingHorizontal: SPACING[3],
-    paddingVertical: SPACING[1],
-    borderRadius: BORDER_RADIUS.full,
-  },
-  rankLabel: {
-    fontSize: FONT_SIZES.sm,
-    fontWeight: FONT_WEIGHTS.bold,
-  },
+  initials: { fontFamily: Fonts.serifExtraBold, fontSize: 32, color: SuVietColors.son },
 
-  // XP Section
-  xpSection: {
-    marginTop: SPACING[4],
-    borderRadius: BORDER_RADIUS.xl,
-    borderWidth: 1,
-    padding: SPACING[4],
-    gap: SPACING[2],
+  nameContainer: { flex: 1 },
+  userName: { fontFamily: Fonts.serifExtraBold, fontSize: 24, color: '#f6e9cf', marginBottom: 2 },
+  usernameHandle: { fontFamily: Fonts.regular, fontSize: 14, color: SuVietColors.dong },
+
+  bodyContent: { paddingHorizontal: 22, marginTop: -40 },
+
+  // Rank Card
+  rankCard: {
+    backgroundColor: SuVietColors.card,
+    borderRadius: 22, borderWidth: 1, borderColor: SuVietColors.line,
+    padding: 20, marginBottom: 20,
   },
-  xpHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  rankCardTop: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  rankIconWrap: {
+    width: 52, height: 52, borderRadius: 26,
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 2, borderColor: '#fdf8ec',
   },
-  xpLabel: {
-    fontSize: FONT_SIZES.base,
-    fontWeight: FONT_WEIGHTS.bold,
-  },
-  xpToNext: {
-    fontSize: FONT_SIZES.xs,
-  },
-  progressTrack: {
-    height: 8,
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: 4,
-  },
+  rankInfo: { flex: 1 },
+  rankSubtitle: { fontFamily: Fonts.bold, fontSize: 10, color: SuVietColors.dong, letterSpacing: 0.5 },
+  rankTitle: { fontFamily: Fonts.serifExtraBold, fontSize: 18, color: SuVietColors.muc },
+  xpInfo: { alignItems: 'flex-end' },
+  xpValue: { fontFamily: Fonts.serifExtraBold, fontSize: 18, color: SuVietColors.son },
+  xpLabel: { fontFamily: Fonts.regular, fontSize: 11, color: SuVietColors.muc2 },
+
+  progressContainer: { marginTop: 16 },
+  progressTrack: { height: 8, borderRadius: 4, backgroundColor: SuVietColors.line, overflow: 'hidden' },
+  progressFill: { height: '100%', borderRadius: 4 },
+  progressTextRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 },
+  progressText: { fontFamily: Fonts.regular, fontSize: 11.5, color: SuVietColors.muc2 },
 
   // Stats Row
-  statsRow: {
-    flexDirection: 'row',
-    gap: SPACING[2],
-    marginTop: SPACING[4],
-  },
+  statsRow: { flexDirection: 'row', gap: 8, marginBottom: 24 },
   statCard: {
-    flex: 1,
-    alignItems: 'center',
-    gap: 4,
-    paddingVertical: SPACING[3],
-    borderRadius: BORDER_RADIUS.lg,
-    borderWidth: 1,
+    flex: 1, alignItems: 'center', gap: 4, paddingVertical: 12,
+    backgroundColor: SuVietColors.card, borderRadius: 16, borderWidth: 1, borderColor: SuVietColors.line,
   },
-  statValue: {
-    fontSize: FONT_SIZES.lg,
-    fontWeight: FONT_WEIGHTS.black,
-  },
-  statLabel: {
-    fontSize: 10,
-    fontWeight: FONT_WEIGHTS.semibold,
-  },
+  statValue: { fontFamily: Fonts.serifExtraBold, fontSize: 18, color: SuVietColors.muc },
+  statLabel: { fontFamily: Fonts.semibold, fontSize: 10, color: SuVietColors.muc2 },
 
   // Section header
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING[2],
-    marginTop: SPACING[6],
-    marginBottom: SPACING[3],
-  },
-  sectionTitle: {
-    fontSize: FONT_SIZES.lg,
-    fontWeight: FONT_WEIGHTS.bold,
-  },
+  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
+  sectionTitle: { fontFamily: Fonts.serifBold, fontSize: 18, color: SuVietColors.muc },
 
   // Badges grid
-  badgesGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: SPACING[2],
-  },
+  badgesGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, justifyContent: 'flex-start' },
   badgeCell: {
-    width: '31%',
-    alignItems: 'center',
-    gap: 4,
-    padding: SPACING[3],
-    borderRadius: BORDER_RADIUS.lg,
-    borderWidth: 1,
+    width: '31%', alignItems: 'center', padding: 10, paddingVertical: 14,
+    borderRadius: 20, borderWidth: 1, minHeight: 130, marginBottom: 10,
   },
+  badgeEarned: { backgroundColor: SuVietColors.card, borderColor: 'rgba(168,130,58,0.3)' },
+  badgeLocked: { backgroundColor: 'transparent', borderColor: SuVietColors.line },
   badgeIconCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 52, height: 52, borderRadius: 26,
+    alignItems: 'center', justifyContent: 'center', marginBottom: 6,
   },
-  badgeCellName: {
-    fontSize: 10,
-    fontWeight: FONT_WEIGHTS.bold,
-    textAlign: 'center',
-    lineHeight: 14,
-    width: '100%',
-    flexShrink: 1,
-    minHeight: 28,
-  },
-  badgeDate: {
-    fontSize: 9,
-  },
-
-
+  badgeIconEarned: { backgroundColor: SuVietColors.dong },
+  badgeIconLocked: { backgroundColor: 'rgba(42,32,26,0.06)' },
+  badgeCellName: { fontFamily: Fonts.bold, fontSize: 11, color: SuVietColors.muc, textAlign: 'center', lineHeight: 16 },
+  badgeDate: { fontFamily: Fonts.regular, fontSize: 10, color: SuVietColors.muc2, marginTop: 'auto' },
 
   // Menu
-  menuSection: { gap: SPACING[3], marginTop: SPACING[6] },
+  menuSection: { gap: 12, marginTop: 32 },
   menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: BORDER_RADIUS.xl,
-    borderWidth: 1,
-    padding: SPACING[3],
-    ...SHADOWS.sm,
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: SuVietColors.card, borderRadius: 18, borderWidth: 1, borderColor: SuVietColors.line,
+    padding: 16,
   },
-  menuIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    alignItems: 'center',
-    justifyContent: 'center',
+  menuIconBox: {
+    width: 40, height: 40, borderRadius: 14,
+    alignItems: 'center', justifyContent: 'center',
   },
-  menuLabel: {
-    flex: 1,
-    marginLeft: SPACING[3],
-    fontSize: FONT_SIZES.base,
-    fontWeight: FONT_WEIGHTS.semibold,
-  },
+  menuIconBoxNormal: { backgroundColor: 'rgba(179,30,36,0.08)' },
+  menuIconBoxDanger: { backgroundColor: 'rgba(211,47,47,0.08)' },
+  menuLabel: { flex: 1, marginLeft: 16, fontFamily: Fonts.bold, fontSize: 15, color: SuVietColors.muc },
 });
