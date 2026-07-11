@@ -2,7 +2,7 @@ import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Platform } from 'react-native';
 import { useThemeColors } from '@/contexts/ThemeContext';
-import { FONT_WEIGHTS } from '@/constants/theme';
+import { FONT_WEIGHTS, Fonts } from '@/constants/theme';
 
 export default function TabLayout() {
   const colors = useThemeColors();
@@ -22,7 +22,11 @@ export default function TabLayout() {
         },
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textMuted,
-        tabBarLabelStyle: { fontSize: 11, fontWeight: FONT_WEIGHTS.semibold },
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: FONT_WEIGHTS.semibold,
+          fontFamily: Fonts.semibold,
+        },
       }}
     >
       <Tabs.Screen

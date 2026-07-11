@@ -40,23 +40,23 @@ const NAV_ITEMS: NavItemConfig[] = [
 ];
 
 const DARK_MENU = {
-  background: '#2F2A24',
-  border: 'rgba(255, 244, 216, 0.14)',
-  inactive: '#E8DCC8',
-  active: '#D6A84F',
-  activeBackground: 'rgba(214, 168, 79, 0.18)',
-  centerBackground: 'rgba(214, 168, 79, 0.18)',
-  centerBorder: 'rgba(214, 168, 79, 0.28)',
+  background: '#34261F',
+  border: 'rgba(180, 155, 107, 0.24)',
+  inactive: '#D6C5AA',
+  active: '#E9C46A',
+  activeBackground: 'rgba(233, 196, 106, 0.16)',
+  centerBackground: 'rgba(233, 196, 106, 0.16)',
+  centerBorder: 'rgba(233, 196, 106, 0.30)',
 };
 
-const BEIGE_MENU = {
-  background: '#FFF4E6',
-  border: 'rgba(92, 81, 70, 0.22)',
-  inactive: '#5C5146',
-  active: '#B8860B',
-  activeBackground: 'rgba(184, 134, 11, 0.16)',
-  centerBackground: 'rgba(184, 134, 11, 0.12)',
-  centerBorder: 'rgba(184, 134, 11, 0.30)',
+const LIGHT_MENU = {
+  background: '#FDF8EC',
+  border: 'rgba(101, 19, 16, 0.12)',
+  inactive: '#7D6D5C',
+  active: '#82151B',
+  activeBackground: 'rgba(130, 21, 27, 0.10)',
+  centerBackground: 'rgba(180, 155, 107, 0.18)',
+  centerBorder: 'rgba(180, 155, 107, 0.38)',
 };
 
 function MuseumNavItem({
@@ -69,7 +69,7 @@ function MuseumNavItem({
   onPress: () => void;
 }) {
   const { isDark } = useThemeContext();
-  const menuColors = isDark ? BEIGE_MENU : DARK_MENU;
+  const menuColors = isDark ? DARK_MENU : LIGHT_MENU;
   const pressScale = useSharedValue(1);
   const activeProgress = useSharedValue(active ? 1 : 0);
   const isCenter = item.key === 'games';
@@ -137,7 +137,7 @@ export function MuseumBottomNav({ activeKey, style }: MuseumBottomNavProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { isDark } = useThemeContext();
-  const menuColors = isDark ? BEIGE_MENU : DARK_MENU;
+  const menuColors = isDark ? DARK_MENU : LIGHT_MENU;
   const entrance = useSharedValue(0);
 
   useEffect(() => {
@@ -190,7 +190,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     borderRadius: 22,
     borderWidth: 1,
-    shadowColor: '#000000',
+    shadowColor: 'rgba(101,19,16,1)',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.22,
     shadowRadius: 16,

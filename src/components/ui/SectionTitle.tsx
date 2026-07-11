@@ -4,7 +4,7 @@
 
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { FONT_SIZES, FONT_WEIGHTS, SPACING } from '@/constants/theme';
+import { FONT_SIZES, FONT_WEIGHTS, Fonts, SPACING } from '@/constants/theme';
 import { useThemeColors } from '@/contexts/ThemeContext';
 
 interface SectionTitleProps {
@@ -37,6 +37,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: FONT_SIZES.lg,
     fontWeight: FONT_WEIGHTS.bold,
+    fontFamily: Fonts.serifBold,
     letterSpacing: 0.2,
   },
 });

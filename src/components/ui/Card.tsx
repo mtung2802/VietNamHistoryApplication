@@ -11,7 +11,7 @@ import {
   View,
   ViewStyle,
 } from 'react-native';
-import { BORDER_RADIUS, SPACING } from '@/constants/theme';
+import { BORDER_RADIUS, HTML_SHADOWS, SPACING } from '@/constants/theme';
 import { useThemeColors } from '@/contexts/ThemeContext';
 
 interface CardProps {
@@ -39,7 +39,7 @@ export function Card({
       backgroundColor: colors.surface,
       borderColor: highlighted ? colors.primary : colors.border,
       borderWidth: highlighted ? 1.2 : StyleSheet.hairlineWidth,
-      shadowColor: colors.black,
+      shadowColor: HTML_SHADOWS.card.shadowColor,
     },
     !noPadding && styles.padded,
     style,
@@ -60,10 +60,7 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: BORDER_RADIUS.xl,
     overflow: 'hidden',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
-    elevation: 5,
+    ...HTML_SHADOWS.card,
   },
   padded: {
     padding: SPACING[4],

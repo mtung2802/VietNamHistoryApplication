@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
-import { BORDER_RADIUS, FONT_SIZES, FONT_WEIGHTS, SPACING } from '@/constants/theme';
+import { BORDER_RADIUS, FONT_SIZES, FONT_WEIGHTS, Fonts, SPACING } from '@/constants/theme';
 import { useThemeColors } from '@/contexts/ThemeContext';
 
 interface BadgeProps {
@@ -24,13 +24,13 @@ export function Badge({ label, tone = 'gold', color, outline, style }: BadgeProp
   const base =
     color ??
     (tone === 'gold'
-      ? colors.primary
+      ? colors.secondary
       : tone === 'red'
-        ? colors.secondary
+        ? colors.primary
         : colors.textMuted);
 
   const bg = outline ? 'transparent' : base;
-  const fg = outline ? base : tone === 'gold' ? colors.onPrimary : colors.white;
+  const fg = outline ? base : tone === 'gold' ? colors.onSecondary : colors.onPrimary;
 
   return (
     <View
@@ -59,6 +59,7 @@ const styles = StyleSheet.create({
   text: {
     fontSize: FONT_SIZES.xs,
     fontWeight: FONT_WEIGHTS.bold,
+    fontFamily: Fonts.bold,
     letterSpacing: 0.4,
   },
 });

@@ -11,7 +11,7 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { FONT_SIZES, FONT_WEIGHTS, SPACING } from '@/constants/theme';
+import { FONT_SIZES, FONT_WEIGHTS, Fonts, SPACING } from '@/constants/theme';
 import { useThemeColors } from '@/contexts/ThemeContext';
 import { Button } from './Button';
 
@@ -83,6 +83,7 @@ const styles = StyleSheet.create({
   text: {
     fontSize: FONT_SIZES.base,
     fontWeight: FONT_WEIGHTS.medium,
+    fontFamily: Fonts.regular,
     textAlign: 'center',
     lineHeight: 24,
   },

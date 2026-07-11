@@ -8,30 +8,30 @@ import { Platform } from 'react-native';
 
 // ===== ĐỊNH NGHĨA MÀU SẮC =====
 export const COLORS = {
-  // Màu chính
-  primary: '#C8102E', // Đỏ PTIT
-  accent: '#FFFFFF', // Trắng thay vì Vàng
-  lightBg: '#FFFFFF', // Nền sáng
-  tabInactive: '#E5E7EB', // Tab không hoạt động
+  // Sử Việt: đỏ son, vàng đồng và giấy cổ
+  primary: '#82151b',
+  accent: '#b49b6b',
+  lightBg: '#f4ebd8',
+  tabInactive: '#7d6d5c',
 
   // Màu hỗ trợ
-  white: '#FFFFFF',
+  white: '#f6e9cf',
   black: '#000000',
-  gray100: '#F3F4F6',
-  gray200: '#E5E7EB',
-  gray300: '#D1D5DB',
-  gray400: '#9CA3AF',
-  gray500: '#6B7280',
-  gray600: '#4B5563',
-  gray700: '#374151',
-  gray800: '#1F2937',
-  gray900: '#111827',
+  gray100: '#f4ead2',
+  gray200: '#e7d8bd',
+  gray300: '#d6c5aa',
+  gray400: '#a89783',
+  gray500: '#7d6d5c',
+  gray600: '#625448',
+  gray700: '#493c32',
+  gray800: '#352a22',
+  gray900: '#2a201a',
 
   // Màu trạng thái
-  success: '#10B981',
-  warning: '#F59E0B',
-  error: '#EF4444',
-  info: '#3B82F6',
+  success: '#3d7a4e',
+  warning: '#b49b6b',
+  error: '#a83232',
+  info: '#7d6d5c',
 } as const;
 
 // ===== PALETTE THEME ĐỘNG (Light + Dark) =====
@@ -71,62 +71,62 @@ export interface ThemeColors {
 }
 
 export const DARK_COLORS: ThemeColors = {
-  background: '#121212',
-  surface: '#1E1E1E',
-  surfaceElevated: '#2A2A2A',
+  background: '#1F1714',
+  surface: '#2A201A',
+  surfaceElevated: '#34261F',
 
-  primary: '#C8102E', // Đỏ PTIT
-  primaryBright: '#E53935',
-  primaryDim: 'rgba(200, 16, 46, 0.16)',
-  onPrimary: '#FFFFFF',
-  secondary: '#E5E7EB', // Xám sáng
-  onSecondary: '#111827',
+  primary: '#B23A2B',
+  primaryBright: '#E9C46A',
+  primaryDim: 'rgba(180, 155, 107, 0.18)',
+  onPrimary: '#F6E9CF',
+  secondary: '#B49B6B',
+  onSecondary: '#2A201A',
 
-  text: '#F5F5F5',
-  textSecondary: '#B0B0B0',
-  textMuted: '#6B6B6B',
+  text: '#F6E9CF',
+  textSecondary: '#D6C5AA',
+  textMuted: '#A89783',
 
-  border: '#333333',
-  borderStrong: '#4A4A4A',
+  border: 'rgba(180, 155, 107, 0.24)',
+  borderStrong: '#B49B6B',
 
   overlay: 'rgba(0,0,0,0.6)',
 
-  success: '#34D399',
-  warning: '#FBBF24',
-  error: '#F87171',
-  info: '#60A5FA',
+  success: '#75B987',
+  warning: '#E9C46A',
+  error: '#D87878',
+  info: '#D6C5AA',
 
-  white: '#FFFFFF',
+  white: '#F6E9CF',
   black: '#000000',
 };
 
 export const LIGHT_COLORS: ThemeColors = {
-  background: '#FFFFFF', // Trắng PTIT
-  surface: '#FFFFFF',
-  surfaceElevated: '#F9FAFB', // Trắng xám nhạt
+  background: '#F4EBD8',
+  surface: '#FDF8EC',
+  surfaceElevated: '#F4EAD2',
 
-  primary: '#C8102E', // Đỏ PTIT
-  primaryBright: '#E53935',
-  primaryDim: 'rgba(200, 16, 46, 0.08)',
-  onPrimary: '#FFFFFF',
-  secondary: '#1F2937', // Chữ/Icon phụ màu tối
-  onSecondary: '#FFFFFF',
+  primary: '#82151B',
+  primaryBright: '#B23A2B',
+  primaryDim: 'rgba(130, 21, 27, 0.10)',
+  onPrimary: '#F6E9CF',
+  secondary: '#B49B6B',
+  onSecondary: '#2A201A',
 
-  text: '#1A1A1A',
-  textSecondary: '#4B5563',
-  textMuted: '#9CA3AF',
+  text: '#2A201A',
+  textSecondary: '#7D6D5C',
+  textMuted: '#A89783',
 
-  border: '#E5E7EB',
-  borderStrong: '#D1D5DB',
+  border: 'rgba(101, 19, 16, 0.12)',
+  borderStrong: '#B49B6B',
 
   overlay: 'rgba(0,0,0,0.4)',
 
-  success: '#059669',
-  warning: '#D97706',
-  error: '#DC2626',
-  info: '#2563EB',
+  success: '#3D7A4E',
+  warning: '#B49B6B',
+  error: '#A83232',
+  info: '#7D6D5C',
 
-  white: '#FFFFFF',
+  white: '#F6E9CF',
   black: '#000000',
 };
 
@@ -196,28 +196,28 @@ export const BORDER_RADIUS = {
 // ===== BÓNG ĐỔ =====
 export const SHADOWS = {
   none: {
-    shadowColor: '#000',
+    shadowColor: 'rgba(101,19,16,1)',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0,
     shadowRadius: 0,
     elevation: 0,
   },
   sm: {
-    shadowColor: '#000',
+    shadowColor: 'rgba(101,19,16,1)',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
     shadowRadius: 1.41,
     elevation: 2,
   },
   md: {
-    shadowColor: '#000',
+    shadowColor: 'rgba(101,19,16,1)',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
   },
   lg: {
-    shadowColor: '#000',
+    shadowColor: 'rgba(101,19,16,1)',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 4.65,
@@ -227,26 +227,27 @@ export const SHADOWS = {
 
 // ===== FONTS =====
 export const Fonts = {
-  regular: 'BeVietnamPro_400Regular',
-  medium: 'BeVietnamPro_500Medium',
-  semibold: 'BeVietnamPro_600SemiBold',
-  bold: 'BeVietnamPro_700Bold',
+  regular: 'Nunito_400Regular',
+  medium: 'Nunito_500Medium',
+  semibold: 'Nunito_600SemiBold',
+  bold: 'Nunito_700Bold',
   serifRegular: 'PlayfairDisplay_400Regular',
   serifSemiBold: 'PlayfairDisplay_600SemiBold',
   serifBold: 'PlayfairDisplay_700Bold',
   serifExtraBold: 'PlayfairDisplay_800ExtraBold',
+  mono: Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' }),
 };
 
 // ===== PALETTE MÀU GỐC HTML (Thiết kế Sử Việt) =====
 // Ánh xạ trực tiếp từ CSS variables trong file Sử Việt.dc.html
 export const SuVietColors = {
-  son: '#8b1c17',       // --son: Đỏ sẫm chính (gradient start)
+  son: '#82151b',       // --son: Đỏ son
   son2: '#651310',      // --son-2: Đỏ tối (gradient end)
   do: '#b23a2b',        // --do: Đỏ sáng
-  dong: '#a8823a',      // --dong: Vàng đồng
+  dong: '#b49b6b',      // --dong: Vàng đồng
   dong2: '#d8bd79',     // --dong-2: Vàng nhạt
-  sao: '#f0c04c',       // --sao: Vàng sao
-  giay: '#f3ead6',      // --giay: Nền giấy cổ
+  sao: '#e9c46a',       // --sao: Vàng sao
+  giay: '#f4ebd8',      // --giay: Nền giấy cổ
   card: '#fdf8ec',      // --card: Nền thẻ bài
   muc: '#2a201a',       // --muc: Mực đen (text chính)
   muc2: '#7d6d5c',      // --muc-2: Mực nhạt (text phụ)
@@ -320,18 +321,18 @@ export const THEME = {
 // ===== LEGACY EXPORTS (để tương thích với code cũ) =====
 export const Colors = {
   light: {
-    text: COLORS.black,
-    background: COLORS.white,
+    text: COLORS.gray900,
+    background: COLORS.lightBg,
     backgroundElement: COLORS.gray100,
     backgroundSelected: COLORS.gray200,
     textSecondary: COLORS.gray600,
   },
   dark: {
-    text: COLORS.white,
-    background: COLORS.black,
-    backgroundElement: COLORS.gray800,
-    backgroundSelected: COLORS.gray700,
-    textSecondary: COLORS.gray400,
+    text: '#F6E9CF',
+    background: '#1F1714',
+    backgroundElement: '#2A201A',
+    backgroundSelected: '#34261F',
+    textSecondary: '#D6C5AA',
   },
 } as const;
 

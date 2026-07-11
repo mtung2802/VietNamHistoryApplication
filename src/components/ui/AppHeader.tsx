@@ -11,8 +11,9 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { FONT_SIZES, FONT_WEIGHTS, SPACING } from '@/constants/theme';
+import { FONT_SIZES, FONT_WEIGHTS, Fonts, SPACING, SuVietColors } from '@/constants/theme';
 import { useThemeColors, useThemeContext } from '@/contexts/ThemeContext';
 import { useTopInset } from './Screen';
 
@@ -47,20 +48,23 @@ export function AppHeader({
   const canBack = showBack && router.canGoBack();
 
   return (
-    <View
+    <LinearGradient
+      colors={[SuVietColors.son, SuVietColors.son2]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
       style={[
         styles.wrap,
-        { backgroundColor: colors.surfaceElevated, paddingTop: topInset + 8 },
+        { paddingTop: topInset + 8 },
       ]}
     >
       <View style={styles.row}>
         {canBack ? (
           <TouchableOpacity
             onPress={onBack ?? (() => router.back())}
-            style={[styles.iconBtn, { backgroundColor: colors.primaryDim }]}
+            style={styles.iconBtn}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <Ionicons name="chevron-back" size={22} color={colors.primary} />
+            <Ionicons name="chevron-back" size={22} color={colors.onPrimary} />
           </TouchableOpacity>
         ) : (
           <View style={styles.iconSpacer} />
@@ -75,7 +79,7 @@ export function AppHeader({
           <Text
             style={[
               styles.title,
-              { color: colors.text },
+              { color: colors.onPrimary },
               centerTitle && styles.textCenter,
             ]}
             numberOfLines={1}
@@ -86,7 +90,7 @@ export function AppHeader({
             <Text
               style={[
                 styles.subtitle,
-                { color: colors.primary },
+                { color: SuVietColors.dong2 },
                 centerTitle && styles.textCenter,
               ]}
               numberOfLines={1}
@@ -101,13 +105,13 @@ export function AppHeader({
         ) : showThemeToggle ? (
           <TouchableOpacity
             onPress={toggleTheme}
-            style={[styles.iconBtn, { backgroundColor: colors.primaryDim }]}
+            style={styles.iconBtn}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
             <Ionicons
               name={isDark ? 'sunny-outline' : 'moon-outline'}
               size={20}
-              color={colors.primary}
+              color={colors.onPrimary}
             />
           </TouchableOpacity>
         ) : (
@@ -116,8 +120,8 @@ export function AppHeader({
       </View>
 
       {/* Dải gold mảnh */}
-      <View style={[styles.accent, { backgroundColor: colors.primary }]} />
-    </View>
+      <View style={[styles.accent, { backgroundColor: SuVietColors.dong }]} />
+    </LinearGradient>
   );
 }
 
@@ -138,6 +142,7 @@ const styles = StyleSheet.create({
     borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.10)',
   },
   iconSpacer: { width: 38, height: 38 },
   titleBox: { flex: 1 },
@@ -146,11 +151,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: FONT_SIZES.xl,
     fontWeight: FONT_WEIGHTS.bold,
+    fontFamily: Fonts.serifBold,
     letterSpacing: 0.3,
   },
   subtitle: {
     fontSize: FONT_SIZES.xs,
     fontWeight: FONT_WEIGHTS.semibold,
+    fontFamily: Fonts.semibold,
     marginTop: 2,
     letterSpacing: 0.4,
     textTransform: 'uppercase',

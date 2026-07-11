@@ -19,11 +19,11 @@ import {
   PALETTES,
   ThemeColors,
   ThemeMode,
-  DARK_COLORS,
+  LIGHT_COLORS,
 } from '@/constants/theme';
 
 const THEME_MODE_KEY = '@vietnam_history_app_theme_mode';
-const DEFAULT_MODE: ThemeMode = 'dark';
+const DEFAULT_MODE: ThemeMode = 'light';
 
 interface ThemeContextValue {
   mode: ThemeMode;
@@ -37,8 +37,8 @@ interface ThemeContextValue {
 
 const ThemeContext = createContext<ThemeContextValue>({
   mode: DEFAULT_MODE,
-  colors: DARK_COLORS,
-  isDark: true,
+  colors: LIGHT_COLORS,
+  isDark: false,
   toggleTheme: () => {},
   setMode: () => {},
   loading: true,

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Modal, StyleSheet, Text, TouchableOpacity, View, Pressable, ScrollView } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { BORDER_RADIUS, FONT_SIZES, FONT_WEIGHTS, SHADOWS, SPACING } from '@/constants/theme';
+import { BORDER_RADIUS, FONT_SIZES, FONT_WEIGHTS, Fonts, HTML_SHADOWS, SPACING } from '@/constants/theme';
 import { useThemeColors } from '@/contexts/ThemeContext';
 import { RANK_TIERS } from '@/services/rankService';
 
@@ -91,7 +91,7 @@ const styles = StyleSheet.create({
     paddingBottom: SPACING[4],
     paddingHorizontal: SPACING[4],
     alignItems: 'center',
-    ...SHADOWS.lg,
+    ...HTML_SHADOWS.cardLarge,
   },
   closeButton: {
     position: 'absolute',
@@ -103,6 +103,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: FONT_SIZES.xl,
     fontWeight: FONT_WEIGHTS.bold,
+    fontFamily: Fonts.serifBold,
     marginBottom: SPACING[5],
   },
   listContainer: {
@@ -134,6 +135,7 @@ const styles = StyleSheet.create({
   rankName: {
     fontSize: FONT_SIZES.base,
     fontWeight: FONT_WEIGHTS.bold,
+    fontFamily: Fonts.bold,
   },
   currentBadge: {
     paddingHorizontal: 6,
@@ -147,6 +149,7 @@ const styles = StyleSheet.create({
   },
   xpText: {
     fontSize: FONT_SIZES.sm,
+    fontFamily: Fonts.regular,
     marginTop: 2,
   },
 });

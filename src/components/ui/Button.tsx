@@ -17,7 +17,14 @@ import {
   ViewStyle,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { BORDER_RADIUS, FONT_SIZES, FONT_WEIGHTS, SPACING } from '@/constants/theme';
+import {
+  BORDER_RADIUS,
+  FONT_SIZES,
+  FONT_WEIGHTS,
+  Fonts,
+  HTML_SHADOWS,
+  SPACING,
+} from '@/constants/theme';
 import { useThemeColors } from '@/contexts/ThemeContext';
 
 type Variant = 'primary' | 'secondary' | 'outline' | 'ghost';
@@ -92,6 +99,7 @@ export function Button({
           paddingHorizontal: sizeStyle.px,
           opacity: isDisabled ? 0.55 : 1,
         },
+        variant === 'primary' && !isDisabled && HTML_SHADOWS.button,
         fullWidth && styles.fullWidth,
         style,
       ]}
@@ -130,6 +138,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontWeight: FONT_WEIGHTS.bold,
+    fontFamily: Fonts.bold,
     letterSpacing: 0.3,
   },
 });

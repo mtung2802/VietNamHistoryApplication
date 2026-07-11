@@ -13,12 +13,12 @@ import {
   PlayfairDisplay_800ExtraBold,
 } from '@expo-google-fonts/playfair-display';
 import {
-  useFonts as useBeVietnam,
-  BeVietnamPro_400Regular,
-  BeVietnamPro_500Medium,
-  BeVietnamPro_600SemiBold,
-  BeVietnamPro_700Bold,
-} from '@expo-google-fonts/be-vietnam-pro';
+  useFonts as useNunito,
+  Nunito_400Regular,
+  Nunito_500Medium,
+  Nunito_600SemiBold,
+  Nunito_700Bold,
+} from '@expo-google-fonts/nunito';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -86,20 +86,20 @@ export default function RootLayout() {
     PlayfairDisplay_800ExtraBold,
   });
 
-  const [beVietnamLoaded] = useBeVietnam({
-    BeVietnamPro_400Regular,
-    BeVietnamPro_500Medium,
-    BeVietnamPro_600SemiBold,
-    BeVietnamPro_700Bold,
+  const [nunitoLoaded] = useNunito({
+    Nunito_400Regular,
+    Nunito_500Medium,
+    Nunito_600SemiBold,
+    Nunito_700Bold,
   });
 
   useEffect(() => {
-    if (playfairLoaded && beVietnamLoaded) {
+    if (playfairLoaded && nunitoLoaded) {
       SplashScreen.hideAsync();
     }
-  }, [playfairLoaded, beVietnamLoaded]);
+  }, [playfairLoaded, nunitoLoaded]);
 
-  if (!playfairLoaded || !beVietnamLoaded) {
+  if (!playfairLoaded || !nunitoLoaded) {
     return null;
   }
 

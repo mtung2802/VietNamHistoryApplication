@@ -1,7 +1,7 @@
 import React from 'react';
 import { Modal, StyleSheet, Text, TouchableOpacity, View, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { BORDER_RADIUS, FONT_SIZES, FONT_WEIGHTS, SHADOWS, SPACING } from '@/constants/theme';
+import { BORDER_RADIUS, FONT_SIZES, FONT_WEIGHTS, Fonts, HTML_SHADOWS, SPACING } from '@/constants/theme';
 import { useThemeColors } from '@/contexts/ThemeContext';
 import { BadgeDefinition } from '@/models/GamificationModels';
 
@@ -109,7 +109,7 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUS['2xl'],
     padding: SPACING[6],
     alignItems: 'center',
-    ...SHADOWS.lg,
+    ...HTML_SHADOWS.cardLarge,
   },
   closeButton: {
     position: 'absolute',
@@ -143,11 +143,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: FONT_SIZES.xl,
     fontWeight: FONT_WEIGHTS.bold,
+    fontFamily: Fonts.serifBold,
     textAlign: 'center',
     marginBottom: SPACING[2],
   },
   description: {
     fontSize: FONT_SIZES.base,
+    fontFamily: Fonts.regular,
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: SPACING[6],
@@ -165,5 +167,6 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: FONT_SIZES.sm,
     fontWeight: FONT_WEIGHTS.medium,
+    fontFamily: Fonts.semibold,
   },
 });
