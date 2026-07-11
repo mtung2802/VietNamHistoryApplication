@@ -20,10 +20,17 @@ export interface Stage {
   title: string;        // Tên giai đoạn
   description?: string; // Mô tả (một số dữ liệu cũ dùng key này)
   overview?: string;    // Mô tả ngắn đúng schema Firestore hiện tại
-  coverMediaRef: string; // URL ảnh bìa
+  summary?: string;     // Fallback mô tả cho dữ liệu không đồng nhất
+  coverMediaRef?: string; // URL ảnh bìa
+  image?: string;       // Fallback URL ảnh cho dữ liệu cũ
+  thumbnail?: string;   // Fallback thumbnail cho dữ liệu cũ
   images?: MediaItem[];
   startDate: FirestoreDateValue; // ISO string hoặc Firestore Timestamp
   endDate: FirestoreDateValue;   // ISO string hoặc Firestore Timestamp
+  startYear?: string | number;
+  endYear?: string | number;
+  yearRange?: string;
+  dateRange?: string;
   sortOrder: number;
   // Chi tiết (dùng trong StageDetail)
   details?: string[];

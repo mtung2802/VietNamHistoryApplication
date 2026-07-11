@@ -15,6 +15,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import YoutubePlayer from 'react-native-youtube-iframe';
 import { useLocalSearchParams } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Event, MediaItem, WarSummaryItem } from '@/models/Event';
 import { getEventsByStage } from '@/services/stageService';
 import { yearFromIso, formatYear } from '@/models/Period';
@@ -32,6 +33,10 @@ import {
 } from '@/components/ui';
 import { getPrimaryImageRef } from '@/utils/media';
 import { extractYoutubeId } from '@/utils/youtube';
+import {
+  MuseumBottomNav,
+  MUSEUM_BOTTOM_NAV_CONTENT_SPACE,
+} from '@/components/navigation';
 
 type SideContent = {
   vn?: string[];
@@ -237,6 +242,7 @@ export default function EventDetailScreen() {
     eventSlug: string;
   }>();
   const colors = useThemeColors();
+  const insets = useSafeAreaInsets();
 
   const [event, setEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
@@ -289,8 +295,9 @@ export default function EventDetailScreen() {
   if (loading) {
     return (
       <Screen>
-        <AppHeader title="Sự kiện" />
+        <AppHeader title="" />
         <LoadingState message="Đang tải sự kiện…" />
+        <MuseumBottomNav activeKey="periods" />
       </Screen>
     );
   }
@@ -298,8 +305,9 @@ export default function EventDetailScreen() {
   if (error || !event || !eventSections) {
     return (
       <Screen>
-        <AppHeader title="Sự kiện" />
+        <AppHeader title="" />
         <ErrorState message={error ?? 'Không tìm thấy sự kiện.'} onRetry={load} />
+        <MuseumBottomNav activeKey="periods" />
       </Screen>
     );
   }
@@ -310,13 +318,15 @@ export default function EventDetailScreen() {
 
   return (
     <Screen>
-      <AppHeader
-        title={event.title}
-        subtitle={`${formatYear(sy)} – ${formatYear(ey)}`}
-        centerTitle
-      />
+      <AppHeader title="" />
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: MUSEUM_BOTTOM_NAV_CONTENT_SPACE + insets.bottom },
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.hero}>
           <HistoryImage
             uri={getPrimaryImageRef(event)}
@@ -327,11 +337,6 @@ export default function EventDetailScreen() {
           <View style={styles.heroContent}>
             <Badge label={`${formatYear(sy)} – ${formatYear(ey)}`} tone="red" />
             <Text style={styles.heroTitle}>{event.title}</Text>
-            {!!summary && (
-              <Text style={styles.heroSummary} numberOfLines={4}>
-                {summary}
-              </Text>
-            )}
           </View>
         </View>
 
@@ -385,6 +390,7 @@ export default function EventDetailScreen() {
 
         <VideoSection event={event} />
       </ScrollView>
+      <MuseumBottomNav activeKey="periods" />
     </Screen>
   );
 }
@@ -420,11 +426,6 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES['2xl'],
     fontWeight: FONT_WEIGHTS.bold,
     lineHeight: 32,
-  },
-  heroSummary: {
-    color: '#F5F5F5',
-    fontSize: FONT_SIZES.sm,
-    lineHeight: 22,
   },
   introCard: {
     borderRadius: BORDER_RADIUS.md,

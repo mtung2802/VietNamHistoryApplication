@@ -10,7 +10,9 @@ import { getFirestore, Firestore } from 'firebase/firestore';
 
 // Đọc config từ biến môi trường
 const firebaseConfig = {
-  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
+  apiKey:
+    process.env.EXPO_PUBLIC_FIREBASE_API_KEY ??
+    process.env.EXPO_PUBLIC_FIREBASE_APIKEY,
   authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
   projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
   storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,

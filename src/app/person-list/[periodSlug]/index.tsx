@@ -153,7 +153,7 @@ const styles = StyleSheet.create({
     gap: SPACING[3],
   },
   card: {
-    flexDirection: 'row',
+    flexDirection: 'row', 
     alignItems: 'center',
     gap: SPACING[3],
   },

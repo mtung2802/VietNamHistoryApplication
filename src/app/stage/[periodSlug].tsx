@@ -1,115 +1,53 @@
 /**
- * Danh sách giai đoạn của một thời kỳ.
- * Port từ Java StageActivity + stages_items.xml:
- * header đơn giản, list dọc, card ảnh phía trên và nền chữ tối.
+ * Timeline các giai đoạn thuộc một thời kỳ lịch sử.
+ * Dữ liệu và navigation giữ nguyên từ luồng period -> stage -> stage detail.
  */
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  ActivityIndicator,
   FlatList,
   ListRenderItemInfo,
+  Pressable,
   RefreshControl,
   StyleSheet,
   Text,
-  TouchableOpacity,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { StatusBar } from 'expo-status-bar';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Stage } from '@/models/Stage';
-import { Period, yearFromIso, formatYear } from '@/models/Period';
+import { Period } from '@/models/Period';
 import { getStagesByPeriod } from '@/services/stageService';
 import { getPeriodById } from '@/services/periodService';
-import { BORDER_RADIUS, FONT_SIZES, FONT_WEIGHTS, SHADOWS, SPACING } from '@/constants/theme';
-import { useThemeColors } from '@/contexts/ThemeContext';
+import { Screen } from '@/components/ui';
 import {
-  Screen,
-  HistoryImage,
-  LoadingState,
-  ErrorState,
-  EmptyState,
-} from '@/components/ui';
-import { getPrimaryImageRef } from '@/utils/media';
+  TimelineHeader,
+  TimelineItem,
+  useTimelineColors,
+} from '@/components/period-timeline';
+import { FONT_SIZES, FONT_WEIGHTS, SPACING } from '@/constants/theme';
+import {
+  MuseumBottomNav,
+  MUSEUM_BOTTOM_NAV_CONTENT_SPACE,
+} from '@/components/navigation';
+import { useThemeContext } from '@/contexts/ThemeContext';
 
-function StageCard({
-  item,
-  onPress,
-}: {
-  item: Stage;
-  onPress: () => void;
-}) {
-  const colors = useThemeColors();
-  const startYear = yearFromIso(item.startDate);
-  const endYear = yearFromIso(item.endDate);
-  const yearLabel = `${formatYear(startYear)}–${formatYear(endYear)}`;
-  const overview = item.overview ?? item.description;
-
-  return (
-    <TouchableOpacity
-      activeOpacity={0.86}
-      onPress={onPress}
-      style={[
-        styles.stageCard,
-        {
-          backgroundColor: colors.surface,
-          borderColor: colors.border,
-        },
-      ]}
-    >
-      <HistoryImage
-        uri={getPrimaryImageRef(item)}
-        style={styles.stageImage}
-        fallbackIcon="image-outline"
-      />
-
-      <View style={styles.stageBody}>
-        <Text style={styles.stageTitle} numberOfLines={2}>
-          {item.title ?? 'No Title'}
-        </Text>
-        <Text style={styles.stagePeriod} numberOfLines={1}>
-          {yearLabel}
-        </Text>
-        <Text style={styles.stageDescription} numberOfLines={4}>
-          {overview ?? 'No Overview'}
-        </Text>
-      </View>
-    </TouchableOpacity>
+export default function PeriodTimelineScreen() {
+  const { periodSlug } = useLocalSearchParams<{ periodSlug?: string }>();
+  const periodId = useMemo(
+    () => (typeof periodSlug === 'string' ? periodSlug : ''),
+    [periodSlug],
   );
-}
-
-function StageHeader({
-  title,
-  onBack,
-}: {
-  title?: string;
-  onBack: () => void;
-}) {
-  const colors = useThemeColors();
-
-  return (
-    <View style={styles.header}>
-      <TouchableOpacity
-        onPress={onBack}
-        style={styles.backButton}
-        activeOpacity={0.75}
-        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-      >
-        <Ionicons name="chevron-back" size={22} color="#3A3A3A" />
-      </TouchableOpacity>
-
-      <Text style={[styles.headerTitle, { color: colors.secondary }]} numberOfLines={1}>
-        {title ?? 'Giai đoạn'}
-      </Text>
-
-      <View style={styles.headerSpacer} />
-    </View>
-  );
-}
-
-export default function StageScreen() {
-  const { periodSlug } = useLocalSearchParams<{ periodSlug: string }>();
   const router = useRouter();
-  const colors = useThemeColors();
+  const insets = useSafeAreaInsets();
+  const { isDark } = useThemeContext();
+  const timelineColors = useTimelineColors();
+  const { width: screenWidth } = useWindowDimensions();
+  const contentWidth = Math.min(screenWidth, 720);
 
   const [stages, setStages] = useState<Stage[]>([]);
   const [period, setPeriod] = useState<Period | null>(null);
@@ -117,160 +55,169 @@ export default function StageScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(
-    async (isRefresh = false) => {
-      if (!periodSlug) return;
+  const load = useCallback(async (isRefresh = false) => {
+    if (!periodId) {
+      setError('Không tìm thấy thời kỳ lịch sử.');
+      setLoading(false);
+      return;
+    }
 
-      try {
-        if (isRefresh) setRefreshing(true);
-        else setLoading(true);
-        setError(null);
+    try {
+      if (isRefresh) setRefreshing(true);
+      else setLoading(true);
+      setError(null);
 
-        const [stagesData, periodData] = await Promise.all([
-          getStagesByPeriod(periodSlug),
-          getPeriodById(periodSlug),
-        ]);
+      const [stagesData, periodData] = await Promise.all([
+        getStagesByPeriod(periodId),
+        getPeriodById(periodId),
+      ]);
 
-        setStages(stagesData);
-        setPeriod(periodData);
-      } catch (err) {
-        console.error('Lỗi tải giai đoạn:', err);
-        setError('Không thể tải giai đoạn.\nVui lòng thử lại.');
-      } finally {
-        setLoading(false);
-        setRefreshing(false);
-      }
-    },
-    [periodSlug],
-  );
+      setStages(stagesData);
+      setPeriod(periodData);
+    } catch (err) {
+      console.error('Lỗi tải giai đoạn:', err);
+      setError('Không thể tải dòng thời gian.\nVui lòng thử lại.');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [periodId]);
 
   useEffect(() => {
     load();
   }, [load]);
 
-  const handlePressStage = (stage: Stage) => {
+  const handlePressStage = useCallback((stage: Stage) => {
     router.push({
       pathname: '/stage-detail/[periodSlug]/[stageSlug]',
-      params: { periodSlug, stageSlug: stage.id },
+      params: { periodSlug: periodId, stageSlug: stage.id },
     });
-  };
+  }, [periodId, router]);
 
-  const renderItem = ({ item }: ListRenderItemInfo<Stage>) => (
-    <StageCard item={item} onPress={() => handlePressStage(item)} />
+  const renderItem = useCallback(
+    ({ item, index }: ListRenderItemInfo<Stage>) => (
+      <TimelineItem
+        item={item}
+        index={index}
+        width={contentWidth}
+        isLast={index === stages.length - 1}
+        onPress={() => handlePressStage(item)}
+      />
+    ),
+    [contentWidth, handlePressStage, stages.length],
   );
 
-  if (loading) {
-    return (
-      <Screen safeArea edges={['top', 'bottom']} style={styles.screen}>
-        <StageHeader title="Giai đoạn" onBack={() => router.back()} />
-        <LoadingState message="Đang tải giai đoạn…" />
-      </Screen>
-    );
-  }
-
-  if (error) {
-    return (
-      <Screen safeArea edges={['top', 'bottom']} style={styles.screen}>
-        <StageHeader title={period?.title ?? 'Giai đoạn'} onBack={() => router.back()} />
-        <ErrorState message={error} onRetry={() => load()} />
-      </Screen>
-    );
-  }
+  const header = (
+    <TimelineHeader
+      title={period?.title ?? 'Các giai đoạn lịch sử'}
+      stageCount={loading ? undefined : stages.length}
+      onBack={() => router.back()}
+    />
+  );
 
   return (
-    <Screen safeArea edges={['top', 'bottom']} style={styles.screen}>
-      <FlatList
-        data={stages}
-        keyExtractor={(stage) => stage.id}
-        renderItem={renderItem}
-        showsVerticalScrollIndicator
-        contentContainerStyle={styles.listContent}
-        ListHeaderComponent={
-          <StageHeader title={period?.title ?? 'Giai đoạn'} onBack={() => router.back()} />
-        }
-        ListEmptyComponent={
-          <View style={styles.emptyWrapper}>
-            <EmptyState message="Không có stages để hiển thị" />
-          </View>
-        }
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={() => load(true)}
-            colors={[colors.primary]}
-            tintColor={colors.primary}
-          />
-        }
-      />
+    <Screen
+      safeArea
+      edges={['top']}
+      style={[styles.screen, { backgroundColor: timelineColors.background }]}
+    >
+      <StatusBar style={isDark ? 'light' : 'dark'} />
+      {header}
+
+      {loading ? (
+        <View style={[styles.state, { backgroundColor: timelineColors.background }]}>
+          <ActivityIndicator size="large" color={timelineColors.gold} />
+          <Text style={[styles.stateText, { color: timelineColors.textMuted }]}>
+            Đang mở dòng thời gian…
+          </Text>
+        </View>
+      ) : error ? (
+        <View style={[styles.state, { backgroundColor: timelineColors.background }]}>
+          <Ionicons name="alert-circle-outline" size={52} color={timelineColors.deepRed} />
+          <Text style={[styles.stateText, { color: timelineColors.textMuted }]}>{error}</Text>
+          <Pressable
+            onPress={() => load()}
+            style={({ pressed }) => [
+              styles.retryButton,
+              { backgroundColor: timelineColors.primaryRed },
+              pressed && styles.retryPressed,
+            ]}
+          >
+            <Ionicons name="refresh" size={18} color={timelineColors.actionText} />
+            <Text style={[styles.retryText, { color: timelineColors.actionText }]}>Thử lại</Text>
+          </Pressable>
+        </View>
+      ) : (
+        <FlatList
+          data={stages}
+          keyExtractor={(stage) => stage.id}
+          renderItem={renderItem}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={[
+            styles.listContent,
+            { paddingBottom: MUSEUM_BOTTOM_NAV_CONTENT_SPACE + insets.bottom },
+          ]}
+          initialNumToRender={4}
+          windowSize={7}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => load(true)}
+              colors={[timelineColors.gold]}
+              tintColor={timelineColors.gold}
+              progressBackgroundColor={timelineColors.paper}
+            />
+          }
+          ListEmptyComponent={
+            <View style={[styles.state, { backgroundColor: timelineColors.background }]}>
+              <Ionicons name="time-outline" size={52} color={timelineColors.line} />
+              <Text style={[styles.stateText, { color: timelineColors.textMuted }]}>
+                Chưa có giai đoạn lịch sử nào.
+              </Text>
+            </View>
+          }
+        />
+      )}
+      <MuseumBottomNav activeKey="periods" />
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    paddingHorizontal: SPACING[4],
+  screen: {},
+  listContent: {
+    flexGrow: 1,
+    paddingTop: SPACING[2],
+    paddingBottom: SPACING[10],
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: SPACING[4],
-  },
-  backButton: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: '#B2B2B2',
+  state: {
+    flex: 1,
+    minHeight: 320,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: SPACING[6],
+    gap: SPACING[3],
   },
-  headerTitle: {
-    flex: 1,
-    textAlign: 'center',
-    fontSize: FONT_SIZES['2xl'],
-    fontWeight: FONT_WEIGHTS.bold,
-  },
-  headerSpacer: {
-    width: 34,
-    height: 34,
-  },
-  listContent: {
-    paddingBottom: SPACING[8],
-  },
-  stageCard: {
-    marginBottom: SPACING[4],
-    borderRadius: BORDER_RADIUS.md,
-    borderWidth: StyleSheet.hairlineWidth,
-    overflow: 'hidden',
-    ...SHADOWS.md,
-  },
-  stageImage: {
-    width: '100%',
-    height: 200,
-  },
-  stageBody: {
-    backgroundColor: '#333333',
-    padding: SPACING[2],
-  },
-  stageTitle: {
-    color: '#FFFFFF',
-    fontSize: FONT_SIZES.lg,
-    fontWeight: FONT_WEIGHTS.bold,
+  stateText: {
+    fontSize: FONT_SIZES.base,
+    fontWeight: FONT_WEIGHTS.medium,
     lineHeight: 24,
-    marginTop: SPACING[2],
+    textAlign: 'center',
   },
-  stagePeriod: {
-    color: '#FFFFFF',
+  retryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING[2],
+    paddingHorizontal: SPACING[4],
+    paddingVertical: SPACING[3],
+    borderRadius: 6,
+  },
+  retryPressed: {
+    opacity: 0.78,
+    transform: [{ scale: 0.98 }],
+  },
+  retryText: {
     fontSize: FONT_SIZES.sm,
-    lineHeight: 20,
-    marginTop: SPACING[1],
-  },
-  stageDescription: {
-    color: '#FFFFFF',
-    fontSize: FONT_SIZES.sm,
-    lineHeight: 20,
-    marginTop: SPACING[2],
-  },
-  emptyWrapper: {
-    minHeight: 360,
+    fontWeight: FONT_WEIGHTS.bold,
   },
 });

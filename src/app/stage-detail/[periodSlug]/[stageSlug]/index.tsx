@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Stage } from '@/models/Stage';
 import { Event } from '@/models/Event';
 import { getStageById, getEventsByStage } from '@/services/stageService';
@@ -33,6 +34,10 @@ import {
   SectionTitle,
 } from '@/components/ui';
 import { getPrimaryImageRef } from '@/utils/media';
+import {
+  MuseumBottomNav,
+  MUSEUM_BOTTOM_NAV_CONTENT_SPACE,
+} from '@/components/navigation';
 
 function BulletList({ items }: { items?: string[] | string }) {
   const colors = useThemeColors();
@@ -118,6 +123,7 @@ export default function StageDetailScreen() {
   }>();
   const router = useRouter();
   const colors = useThemeColors();
+  const insets = useSafeAreaInsets();
 
   const [stage, setStage] = useState<Stage | null>(null);
   const [events, setEvents] = useState<Event[]>([]);
@@ -151,8 +157,9 @@ export default function StageDetailScreen() {
   if (loading) {
     return (
       <Screen>
-        <AppHeader title="Giai đoạn" />
+        <AppHeader title="" />
         <LoadingState message="Đang tải giai đoạn…" />
+        <MuseumBottomNav activeKey="periods" />
       </Screen>
     );
   }
@@ -160,8 +167,9 @@ export default function StageDetailScreen() {
   if (error || !stage) {
     return (
       <Screen>
-        <AppHeader title="Giai đoạn" />
+        <AppHeader title="" />
         <ErrorState message={error ?? 'Không tìm thấy giai đoạn.'} onRetry={load} />
+        <MuseumBottomNav activeKey="periods" />
       </Screen>
     );
   }
@@ -182,17 +190,16 @@ export default function StageDetailScreen() {
 
   return (
     <Screen>
-      <AppHeader
-        title={stage.title}
-        subtitle={`${formatYear(sy)} – ${formatYear(ey)}`}
-        centerTitle
-      />
+      <AppHeader title="" />
 
       <FlatList
         data={events}
         keyExtractor={(event) => event.id}
         renderItem={renderEvent}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[
+          styles.listContent,
+          { paddingBottom: MUSEUM_BOTTOM_NAV_CONTENT_SPACE + insets.bottom },
+        ]}
         ListHeaderComponent={
           <>
             <View style={styles.hero}>
@@ -205,11 +212,6 @@ export default function StageDetailScreen() {
               <View style={styles.heroContent}>
                 <Badge label={`${formatYear(sy)} – ${formatYear(ey)}`} tone="red" />
                 <Text style={styles.heroTitle}>{stage.title}</Text>
-                {!!overview && (
-                  <Text style={styles.heroSummary} numberOfLines={4}>
-                    {overview}
-                  </Text>
-                )}
               </View>
             </View>
 
@@ -255,6 +257,7 @@ export default function StageDetailScreen() {
         ListFooterComponent={<View style={styles.footerSpace} />}
         showsVerticalScrollIndicator={false}
       />
+      <MuseumBottomNav activeKey="periods" />
     </Screen>
   );
 }
@@ -289,11 +292,6 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES['2xl'],
     fontWeight: FONT_WEIGHTS.bold,
     lineHeight: 32,
-  },
-  heroSummary: {
-    color: '#F5F5F5',
-    fontSize: FONT_SIZES.sm,
-    lineHeight: 22,
   },
   sectionCard: {
     marginBottom: SPACING[4],
