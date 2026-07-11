@@ -15,6 +15,7 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { deleteField, doc, setDoc } from 'firebase/firestore';
 import { db } from '@/services/firebase';
 import { uploadUserAvatar } from '@/services/userService';
@@ -23,13 +24,11 @@ import {
   saveUserSession,
   SessionUser,
 } from '@/services/userSession';
-import { BORDER_RADIUS, FONT_SIZES, FONT_WEIGHTS, SHADOWS, SPACING } from '@/constants/theme';
-import { useThemeColors } from '@/contexts/ThemeContext';
-import { AppHeader, Button, Screen } from '@/components/ui';
+import { Fonts, HTML_SHADOWS, SuVietColors, SPACING } from '@/constants/theme';
+import { AppHeader, Screen } from '@/components/ui';
 
 export default function EditProfileScreen() {
   const router = useRouter();
-  const colors = useThemeColors();
   const [user, setUser] = useState<SessionUser | null>(null);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -140,103 +139,107 @@ export default function EditProfileScreen() {
   };
 
   const displayedAvatar = newAvatarUri || avatarUri;
-  const inputStyle = [
-    styles.input,
-    {
-      backgroundColor: colors.surface,
-      borderColor: colors.border,
-      color: colors.text,
-    },
-  ];
 
   return (
-    <Screen>
-      <AppHeader title="Chỉnh sửa hồ sơ" />
+    <Screen style={styles.screen}>
+      <LinearGradient
+        colors={[SuVietColors.son, SuVietColors.son2]}
+        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+        style={styles.headerBar}
+      >
+        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={24} color="#f6e9cf" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Chỉnh sửa hồ sơ</Text>
+        <View style={{ width: 40 }} />
+      </LinearGradient>
+
       {loadingProfile ? (
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color={colors.primary} />
+          <ActivityIndicator size="large" color={SuVietColors.son} />
         </View>
       ) : (
         <KeyboardAvoidingView
           style={styles.flex}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
-          <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
+          <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
             <View style={styles.avatarSection}>
               <TouchableOpacity onPress={pickAvatar} activeOpacity={0.85}>
-                <View
-                  style={[
-                    styles.avatarFrame,
-                    { backgroundColor: colors.surface, borderColor: colors.primary },
-                  ]}
+                <LinearGradient
+                  colors={[SuVietColors.dong, SuVietColors.son]}
+                  start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                  style={styles.avatarRing}
                 >
-                  {displayedAvatar ? (
-                    <Image source={{ uri: displayedAvatar }} style={styles.avatar} />
-                  ) : (
-                    <Ionicons name="person" size={52} color={colors.textMuted} />
-                  )}
-                </View>
-                <View style={[styles.editAvatarButton, { backgroundColor: colors.primary }]}>
-                  <Ionicons name="camera" size={18} color={colors.onPrimary} />
+                  <View style={styles.avatarFrame}>
+                    {displayedAvatar ? (
+                      <Image source={{ uri: displayedAvatar }} style={styles.avatar} />
+                    ) : (
+                      <Ionicons name="person" size={52} color={SuVietColors.muc2} />
+                    )}
+                  </View>
+                </LinearGradient>
+                <View style={styles.editAvatarButton}>
+                  <Ionicons name="camera" size={16} color="#fff" />
                 </View>
               </TouchableOpacity>
-              <Text style={[styles.avatarHint, { color: colors.textSecondary }]}>
-                Chạm để đổi ảnh đại diện
-              </Text>
+              <Text style={styles.avatarHint}>Chạm để đổi ảnh đại diện</Text>
             </View>
 
             <View style={styles.field}>
-              <Text style={[styles.label, { color: colors.textSecondary }]}>Họ và tên *</Text>
+              <Text style={styles.label}>Họ và tên *</Text>
               <TextInput
-                style={inputStyle}
+                style={styles.input}
                 value={name}
                 onChangeText={setName}
                 placeholder="Nhập họ và tên"
-                placeholderTextColor={colors.textMuted}
+                placeholderTextColor={SuVietColors.muc2}
               />
             </View>
 
             <View style={styles.field}>
-              <Text style={[styles.label, { color: colors.textSecondary }]}>Email</Text>
+              <Text style={styles.label}>Email</Text>
               <TextInput
-                style={inputStyle}
+                style={styles.input}
                 value={email}
                 onChangeText={setEmail}
                 placeholder="Nhập email"
-                placeholderTextColor={colors.textMuted}
+                placeholderTextColor={SuVietColors.muc2}
                 keyboardType="email-address"
                 autoCapitalize="none"
               />
             </View>
 
-
-
             <View style={styles.field}>
-              <Text style={[styles.label, { color: colors.textSecondary }]}>Giới thiệu</Text>
+              <Text style={styles.label}>Giới thiệu</Text>
               <TextInput
-                style={[inputStyle, styles.bioInput]}
+                style={[styles.input, styles.bioInput]}
                 value={bio}
                 onChangeText={setBio}
                 placeholder="Viết vài dòng về bạn"
-                placeholderTextColor={colors.textMuted}
+                placeholderTextColor={SuVietColors.muc2}
                 multiline
                 maxLength={200}
                 textAlignVertical="top"
               />
-              <Text style={[styles.characterCount, { color: colors.textMuted }]}>
+              <Text style={styles.characterCount}>
                 {bio.length}/200
               </Text>
             </View>
 
-            <Button
-              label="Lưu thay đổi"
-              icon="save-outline"
-              loading={saving}
-              disabled={saving}
-              onPress={handleSave}
-              size="lg"
-              style={styles.saveButton}
-            />
+            <TouchableOpacity onPress={handleSave} disabled={saving} activeOpacity={0.8} style={styles.saveBtnWrap}>
+              <LinearGradient
+                colors={saving ? ['rgba(101,19,16,0.3)', 'rgba(101,19,16,0.3)'] : [SuVietColors.son, SuVietColors.son2]}
+                start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                style={[styles.saveBtn, !saving && HTML_SHADOWS.button]}
+              >
+                {saving ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={styles.saveBtnText}>Lưu thay đổi</Text>
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
           </ScrollView>
         </KeyboardAvoidingView>
       )}
@@ -245,50 +248,63 @@ export default function EditProfileScreen() {
 }
 
 const styles = StyleSheet.create({
+  screen: { backgroundColor: SuVietColors.giay },
   flex: { flex: 1 },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  form: { padding: SPACING[5], paddingBottom: SPACING[10] },
-  avatarSection: { alignItems: 'center', marginBottom: SPACING[6] },
+  
+  headerBar: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingTop: 48, paddingBottom: 16, paddingHorizontal: 16,
+    borderBottomLeftRadius: 24, borderBottomRightRadius: 24,
+    shadowColor: SuVietColors.son, shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2, shadowRadius: 8, elevation: 4, zIndex: 10,
+  },
+  backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  headerTitle: { fontFamily: Fonts.serifBold, fontSize: 18, color: '#f6e9cf' },
+
+  form: { padding: 24, paddingTop: 32, paddingBottom: 60 },
+  
+  avatarSection: { alignItems: 'center', marginBottom: 32 },
+  avatarRing: {
+    width: 116, height: 116, borderRadius: 58,
+    padding: 3, alignItems: 'center', justifyContent: 'center',
+    shadowColor: SuVietColors.son, shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3, shadowRadius: 8, elevation: 5,
+  },
   avatarFrame: {
-    width: 112,
-    height: 112,
-    borderRadius: 56,
-    borderWidth: 3,
-    overflow: 'hidden',
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...SHADOWS.md,
+    width: '100%', height: '100%', borderRadius: 55,
+    backgroundColor: SuVietColors.card,
+    borderWidth: 3, borderColor: '#fdf8ec',
+    overflow: 'hidden', alignItems: 'center', justifyContent: 'center',
   },
   avatar: { width: '100%', height: '100%' },
   editAvatarButton: {
-    position: 'absolute',
-    right: 0,
-    bottom: 2,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
+    position: 'absolute', right: 0, bottom: 4,
+    width: 32, height: 32, borderRadius: 16,
+    backgroundColor: SuVietColors.son,
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 2, borderColor: '#fdf8ec',
   },
-  avatarHint: { fontSize: FONT_SIZES.sm, marginTop: SPACING[3] },
-  field: { marginBottom: SPACING[4] },
-  label: {
-    fontSize: FONT_SIZES.sm,
-    fontWeight: FONT_WEIGHTS.semibold,
-    marginBottom: SPACING[2],
-  },
+  avatarHint: { fontFamily: Fonts.regular, fontSize: 13, color: SuVietColors.muc2, marginTop: 12 },
+  
+  field: { marginBottom: 20 },
+  label: { fontFamily: Fonts.bold, fontSize: 14, color: SuVietColors.muc, marginBottom: 8, letterSpacing: 0.5 },
   input: {
-    borderRadius: BORDER_RADIUS.lg,
-    borderWidth: 1,
-    paddingHorizontal: SPACING[4],
-    paddingVertical: 14,
-    fontSize: FONT_SIZES.base,
+    backgroundColor: SuVietColors.card,
+    borderWidth: 1, borderColor: SuVietColors.line,
+    borderRadius: 16, paddingHorizontal: 16, paddingVertical: 14,
+    fontFamily: Fonts.regular, fontSize: 15, color: SuVietColors.muc,
   },
-  bioInput: { minHeight: 108, paddingTop: 14 },
+  bioInput: { minHeight: 108, paddingTop: 14, lineHeight: 22 },
   characterCount: {
-    alignSelf: 'flex-end',
-    fontSize: FONT_SIZES.xs,
-    marginTop: SPACING[1],
+    alignSelf: 'flex-end', fontFamily: Fonts.regular, fontSize: 12,
+    color: SuVietColors.muc2, marginTop: 6,
   },
-  saveButton: { marginTop: SPACING[2] },
+  
+  saveBtnWrap: { marginTop: 16, alignItems: 'center' },
+  saveBtn: {
+    paddingHorizontal: 40, paddingVertical: 14,
+    borderRadius: 25, minWidth: 160, alignItems: 'center', justifyContent: 'center',
+  },
+  saveBtnText: { fontFamily: Fonts.bold, fontSize: 15, color: '#f6e9cf', letterSpacing: 0.5 },
 });

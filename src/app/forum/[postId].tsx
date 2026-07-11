@@ -1,9 +1,6 @@
 /**
- * ForumDetailScreen — Chi tiết bài viết + bình luận real-time
+ * ForumDetailScreen — Chi tiết bài viết + bình luận real-time (Thiết kế Sử đàn)
  * Route: /forum/[postId]
- *
- * Hiển thị nội dung đầy đủ, nút like, danh sách bình luận (onSnapshot),
- * và thanh nhập bình luận cố định ở đáy.
  */
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -22,9 +19,9 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { AppHeader, Screen } from '@/components/ui';
-import { BORDER_RADIUS, FONT_SIZES, FONT_WEIGHTS, SHADOWS, SPACING } from '@/constants/theme';
-import { useThemeColors } from '@/contexts/ThemeContext';
+import { Fonts, HTML_SHADOWS, SuVietColors, SPACING } from '@/constants/theme';
 import { useAuth } from '@/contexts/AuthContext';
 import { useGamification } from '@/contexts/GamificationContext';
 import { getRankTier } from '@/services/rankService';
@@ -75,59 +72,46 @@ function AvatarView({
   uri,
   name,
   size = 40,
-  primaryColor,
-  rankName,
 }: {
   uri?: string;
   name: string;
   size?: number;
-  primaryColor: string;
-  rankName?: string;
 }) {
-  const rankTier = rankName ? getRankTier(rankName) : null;
-  const frameColor = rankTier ? rankTier.color : primaryColor;
-  
-  // Size params
-  const frameSize = size + 4; // Add 4px for the border frame
-  const imgSize = size - 2; // Slight padding
+  const frameSize = size + 4;
+  const imgSize = size;
   const radius = frameSize / 2;
   const imgRadius = imgSize / 2;
 
   return (
-    <View
+    <LinearGradient
+      colors={[SuVietColors.dong, SuVietColors.son]}
+      start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
       style={{
-        width: frameSize,
-        height: frameSize,
-        borderRadius: radius,
-        borderWidth: rankTier ? 2 : 0,
-        borderColor: frameColor,
-        alignItems: 'center',
-        justifyContent: 'center',
-        overflow: 'hidden',
+        width: frameSize, height: frameSize, borderRadius: radius,
+        padding: 2, alignItems: 'center', justifyContent: 'center',
+        shadowColor: SuVietColors.son, shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3, shadowRadius: 6, elevation: 3,
       }}
     >
       {uri ? (
         <Image
           source={{ uri }}
-          style={{ width: imgSize, height: imgSize, borderRadius: imgRadius }}
+          style={{ width: imgSize, height: imgSize, borderRadius: imgRadius, borderWidth: 2, borderColor: SuVietColors.card }}
         />
       ) : (
         <View
           style={{
-            width: imgSize,
-            height: imgSize,
-            borderRadius: imgRadius,
-            backgroundColor: frameColor,
-            alignItems: 'center',
-            justifyContent: 'center',
+            width: imgSize, height: imgSize, borderRadius: imgRadius,
+            backgroundColor: SuVietColors.dong, alignItems: 'center', justifyContent: 'center',
+            borderWidth: 2, borderColor: SuVietColors.card
           }}
         >
-          <Text style={{ color: '#FFF', fontSize: imgSize * 0.35, fontWeight: '700' }}>
+          <Text style={{ color: '#FFF', fontSize: imgSize * 0.4, fontFamily: Fonts.bold }}>
             {getInitials(name)}
           </Text>
         </View>
       )}
-    </View>
+    </LinearGradient>
   );
 }
 
@@ -136,7 +120,6 @@ function AvatarView({
 export default function ForumDetailScreen() {
   const { postId } = useLocalSearchParams<{ postId: string }>();
   const router = useRouter();
-  const colors = useThemeColors();
   const { user } = useAuth();
   const { profile } = useGamification();
 
@@ -183,7 +166,6 @@ export default function ForumDetailScreen() {
     if (!user?.id || !post || liking) return;
     if (!postId) return;
 
-    // Optimistic UI
     const wasLiked = post.likes.includes(user.id);
     setPost((prev) => {
       if (!prev) return prev;
@@ -203,7 +185,6 @@ export default function ForumDetailScreen() {
       await toggleLike(postId, user.id);
     } catch (err) {
       console.error('Like toggle failed:', err);
-      // Revert
       setPost((prev) => {
         if (!prev) return prev;
         return {
@@ -236,7 +217,6 @@ export default function ForumDetailScreen() {
         authorRank: profile?.currentRank ?? 'Newcomer',
       });
       setReplyText('');
-      // Cập nhật replyCount local
       setPost((prev) => prev ? { ...prev, replyCount: prev.replyCount + 1 } : prev);
     } catch (err) {
       console.error('Send reply failed:', err);
@@ -256,49 +236,29 @@ export default function ForumDetailScreen() {
     const authorName = isMe && user ? (user.name || user.displayName || user.username || 'Ẩn danh') : (item.authorName || 'Ẩn danh');
     const authorPhoto = isMe && user ? (user.avatar || user.photo || '') : item.authorPhoto;
 
-    const rankTier = getRankTier(authorRank);
     return (
-      <View style={[styles.replyCard, { borderBottomColor: colors.border }]}>
+      <View style={styles.replyRow}>
         <TouchableOpacity
           activeOpacity={0.7}
           onPress={() => router.push(`/user-profile/${item.authorId}` as any)}
         >
-          <AvatarView
-            uri={authorPhoto}
-            name={authorName}
-            size={34}
-            primaryColor={colors.primary}
-            rankName={authorRank}
-          />
+          <AvatarView uri={authorPhoto} name={authorName} size={34} />
         </TouchableOpacity>
-        <View style={styles.replyBody}>
+        <View style={styles.replyBubble}>
           <View style={styles.replyHeader}>
             <TouchableOpacity
               style={styles.nameRow}
               activeOpacity={0.7}
               onPress={() => router.push(`/user-profile/${item.authorId}` as any)}
             >
-              <Text style={[styles.replyAuthor, { color: colors.text }]} numberOfLines={1}>
-                {authorName}
-              </Text>
-              <View style={[styles.rankBadge, { backgroundColor: `${rankTier.color}22` }]}>
-                <Ionicons
-                  name={rankTier.icon as keyof typeof Ionicons.glyphMap}
-                  size={10}
-                  color={rankTier.color}
-                />
-                <Text style={[styles.rankText, { color: rankTier.color }]}>
-                  {authorRank}
-                </Text>
+              <Text style={styles.replyAuthor} numberOfLines={1}>{authorName}</Text>
+              <View style={styles.rankBadge}>
+                <Text style={styles.rankText}>{authorRank || 'Sĩ Tử'}</Text>
               </View>
             </TouchableOpacity>
-            <Text style={[styles.replyTime, { color: colors.textMuted }]}>
-              {timeAgo(item.createdAt)}
-            </Text>
+            <Text style={styles.replyTime}>{timeAgo(item.createdAt)}</Text>
           </View>
-          <Text style={[styles.replyContent, { color: colors.textSecondary }]}>
-            {item.content}
-          </Text>
+          <Text style={styles.replyContent}>{item.content}</Text>
         </View>
       </View>
     );
@@ -311,88 +271,60 @@ export default function ForumDetailScreen() {
     const authorRank = isMe && profile ? profile.currentRank : post.authorRank;
     const authorName = isMe && user ? (user.name || user.displayName || user.username || 'Ẩn danh') : (post.authorName || 'Ẩn danh');
     const authorPhoto = isMe && user ? (user.avatar || user.photo || '') : post.authorPhoto;
-    const rankTier = getRankTier(authorRank);
 
     return (
       <View style={styles.headerContent}>
         {/* Post full content */}
-        <View style={[styles.postCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <View style={styles.postCard}>
+          <View style={styles.postBgDecoration} />
           <TouchableOpacity 
             style={styles.authorRow}
             activeOpacity={0.7}
             onPress={() => router.push(`/user-profile/${post.authorId}` as any)}
           >
-            <AvatarView
-              uri={authorPhoto}
-              name={authorName}
-              size={44}
-              primaryColor={colors.primary}
-              rankName={authorRank}
-            />
+            <AvatarView uri={authorPhoto} name={authorName} size={44} />
             <View style={styles.authorInfo}>
               <View style={styles.nameRow}>
-                <Text style={[styles.authorName, { color: colors.text }]}>
-                  {authorName}
-                </Text>
-                {authorRank && (
-                  <View style={[styles.rankBadge, { backgroundColor: `${rankTier.color}22` }]}>
-                    <Ionicons
-                      name={rankTier.icon as keyof typeof Ionicons.glyphMap}
-                      size={10}
-                      color={rankTier.color}
-                    />
-                    <Text style={[styles.rankText, { color: rankTier.color }]}>
-                      {authorRank}
-                    </Text>
-                  </View>
-                )}
+                <Text style={styles.authorName}>{authorName}</Text>
+                <View style={styles.rankBadge}>
+                  <Text style={styles.rankText}>{authorRank || 'Sĩ Tử'}</Text>
+                </View>
               </View>
-              <Text style={[styles.postTime, { color: colors.textMuted }]}>
-                {timeAgo(post.createdAt)}
-              </Text>
+              <Text style={styles.postTime}>{timeAgo(post.createdAt)}</Text>
             </View>
+            <TouchableOpacity style={styles.moreBtn}>
+              <Ionicons name="ellipsis-vertical" size={16} color={SuVietColors.muc2} />
+            </TouchableOpacity>
           </TouchableOpacity>
 
-          <Text style={[styles.postTitle, { color: colors.text }]}>{post.title}</Text>
-          <Text style={[styles.postContent, { color: colors.textSecondary }]}>{post.content}</Text>
+          <Text style={styles.postTitle}>{post.title}</Text>
+          <Text style={styles.postContentFull}>{post.content}</Text>
 
           {/* Like row */}
-          <View style={[styles.likeRow, { borderTopColor: colors.border }]}>
-            <TouchableOpacity
-              style={styles.likeButton}
-              onPress={handleLike}
-              activeOpacity={0.7}
-              disabled={!user?.id}
-            >
-              <Ionicons
-                name={isLiked ? 'heart' : 'heart-outline'}
-                size={22}
-                color={isLiked ? colors.primary : colors.textMuted}
-              />
-              <Text
-                style={[
-                  styles.likeCount,
-                  { color: isLiked ? colors.primary : colors.textMuted },
-                ]}
-              >
-                {post.likeCount}
-              </Text>
-            </TouchableOpacity>
-
-            <View style={styles.replyCountRow}>
-              <Ionicons name="chatbubble-outline" size={16} color={colors.textMuted} />
-              <Text style={[styles.likeCount, { color: colors.textMuted }]}>
-                {post.replyCount}
-              </Text>
+          <View style={styles.statsRow}>
+            <View style={styles.statsLeft}>
+              <TouchableOpacity style={styles.statBtn} onPress={handleLike} disabled={!user?.id}>
+                <View style={[styles.statIconWrap, isLiked && styles.statIconWrapActive]}>
+                  <Ionicons name="heart" size={16} color={isLiked ? SuVietColors.do : SuVietColors.muc2} />
+                </View>
+                <Text style={[styles.statTextHighlight, !isLiked && { color: SuVietColors.muc2 }]}>
+                  {post.likeCount}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.statBtn}>
+                <View style={styles.statIconWrapNormal}>
+                  <Ionicons name="chatbubble" size={15} color={SuVietColors.muc2} />
+                </View>
+                <Text style={styles.statTextNormal}>{post.replyCount}</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </View>
 
         {/* Replies section header */}
         <View style={styles.repliesHeader}>
-          <Ionicons name="chatbubbles-outline" size={16} color={colors.primary} />
-          <Text style={[styles.repliesTitle, { color: colors.text }]}>
-            Bình luận ({replies.length})
+          <Text style={styles.repliesTitle}>
+            Bình luận <Text style={{ color: SuVietColors.do }}>({replies.length})</Text>
           </Text>
         </View>
       </View>
@@ -401,10 +333,10 @@ export default function ForumDetailScreen() {
 
   if (loading) {
     return (
-      <Screen>
-        <AppHeader title="Bài viết" />
+      <Screen style={styles.screen}>
+        <AppHeader title="Chi tiết bài viết" showThemeToggle={false} />
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color={colors.primary} />
+          <ActivityIndicator size="large" color={SuVietColors.son} />
         </View>
       </Screen>
     );
@@ -412,21 +344,29 @@ export default function ForumDetailScreen() {
 
   if (!post) {
     return (
-      <Screen>
-        <AppHeader title="Bài viết" />
+      <Screen style={styles.screen}>
+        <AppHeader title="Chi tiết bài viết" showThemeToggle={false} />
         <View style={styles.centered}>
-          <Ionicons name="alert-circle-outline" size={48} color={colors.textMuted} />
-          <Text style={[styles.errorText, { color: colors.textSecondary }]}>
-            Bài viết không tồn tại hoặc đã bị xóa.
-          </Text>
+          <Ionicons name="alert-circle-outline" size={48} color={SuVietColors.muc2} />
+          <Text style={styles.errorText}>Bài viết không tồn tại hoặc đã bị xóa.</Text>
         </View>
       </Screen>
     );
   }
 
   return (
-    <Screen>
-      <AppHeader title="Bài viết" showThemeToggle={false} />
+    <Screen style={styles.screen}>
+      <LinearGradient
+        colors={[SuVietColors.son, SuVietColors.son2]}
+        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+        style={styles.headerBar}
+      >
+        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={24} color="#f6e9cf" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Chi tiết bài viết</Text>
+        <View style={{ width: 40 }} />
+      </LinearGradient>
 
       <KeyboardAvoidingView
         style={styles.flex}
@@ -442,20 +382,19 @@ export default function ForumDetailScreen() {
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
             <View style={styles.noReplies}>
-              <Text style={[styles.noRepliesText, { color: colors.textMuted }]}>
-                Chưa có bình luận nào. Hãy là người đầu tiên!
-              </Text>
+              <Ionicons name="chatbubble-ellipses-outline" size={40} color={'rgba(42,32,26,0.2)'} />
+              <Text style={styles.noRepliesText}>Chưa có bình luận nào.</Text>
             </View>
           }
         />
 
         {/* Reply input bar */}
-        <View style={[styles.inputBar, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
+        <View style={styles.inputBar}>
           <TextInput
             ref={inputRef}
-            style={[styles.inputField, { color: colors.text, backgroundColor: colors.background, borderColor: colors.border }]}
+            style={styles.inputField}
             placeholder="Viết bình luận..."
-            placeholderTextColor={colors.textMuted}
+            placeholderTextColor={SuVietColors.muc2}
             value={replyText}
             onChangeText={setReplyText}
             multiline
@@ -466,15 +405,13 @@ export default function ForumDetailScreen() {
             disabled={!replyText.trim() || sending}
             style={[
               styles.sendBtn,
-              {
-                backgroundColor: replyText.trim() ? colors.primary : colors.border,
-              },
+              replyText.trim() ? styles.sendBtnActive : styles.sendBtnDisabled
             ]}
           >
             {sending ? (
               <ActivityIndicator size="small" color="#FFF" />
             ) : (
-              <Ionicons name="send" size={18} color="#FFF" />
+              <Ionicons name="send" size={18} color={replyText.trim() ? "#FFF" : SuVietColors.muc2} />
             )}
           </TouchableOpacity>
         </View>
@@ -486,168 +423,113 @@ export default function ForumDetailScreen() {
 // ── Styles ───────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
+  screen: { backgroundColor: SuVietColors.giay },
   flex: { flex: 1 },
-  centered: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: SPACING[4],
-    padding: SPACING[6],
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: SPACING[6] },
+  errorText: { fontFamily: Fonts.regular, fontSize: 16, color: SuVietColors.muc2, textAlign: 'center', marginTop: 16 },
+
+  headerBar: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingTop: 48, paddingBottom: 16, paddingHorizontal: 16,
+    borderBottomLeftRadius: 24, borderBottomRightRadius: 24,
+    shadowColor: SuVietColors.son, shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2, shadowRadius: 8, elevation: 4, zIndex: 10,
   },
-  errorText: {
-    fontSize: FONT_SIZES.base,
-    textAlign: 'center',
-    lineHeight: 22,
+  backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  headerTitle: { fontFamily: Fonts.serifBold, fontSize: 18, color: '#f6e9cf' },
+
+  listContent: { padding: 16, paddingBottom: 24 },
+  headerContent: { gap: 16 },
+
+  // Post Card
+  postCard: {
+    backgroundColor: SuVietColors.card,
+    borderRadius: 22, padding: 20,
+    borderWidth: 1, borderColor: SuVietColors.line,
+    shadowColor: 'rgba(101,19,16,1)', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.5, shadowRadius: 12, elevation: 4,
+    position: 'relative', overflow: 'hidden',
   },
-  listContent: {
-    padding: SPACING[4],
-    paddingBottom: SPACING[4],
+  postBgDecoration: {
+    position: 'absolute', top: 0, right: 0,
+    width: 80, height: 80, backgroundColor: SuVietColors.son,
+    opacity: 0.04, borderBottomLeftRadius: 80,
   },
-  headerContent: {
-    gap: SPACING[4],
+  authorRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
+  authorInfo: { flex: 1 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  authorName: { fontFamily: Fonts.bold, fontSize: 15, color: SuVietColors.muc },
+  rankBadge: {
+    backgroundColor: 'rgba(168,130,58,0.1)',
+    borderWidth: 1, borderColor: 'rgba(168,130,58,0.2)',
+    paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12,
+  },
+  rankText: { fontFamily: Fonts.bold, fontSize: 9, color: SuVietColors.dong, textTransform: 'uppercase', letterSpacing: 0.5 },
+  postTime: { fontFamily: Fonts.regular, fontSize: 12, color: SuVietColors.muc2, marginTop: 2 },
+  moreBtn: {
+    width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(101,19,16,0.04)',
+    alignItems: 'center', justifyContent: 'center',
   },
 
-  // Post card
-  postCard: {
-    borderRadius: BORDER_RADIUS.xl,
-    borderWidth: 1,
-    padding: SPACING[4],
-    ...SHADOWS.sm,
+  postTitle: { fontFamily: Fonts.serifBold, fontSize: 20, color: SuVietColors.muc, lineHeight: 28, marginBottom: 12 },
+  postContentFull: { fontFamily: Fonts.regular, fontSize: 14.5, color: SuVietColors.muc, lineHeight: 24, marginBottom: 16 },
+
+  statsRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingTop: 16, borderTopWidth: 1, borderStyle: 'dashed', borderTopColor: SuVietColors.line,
   },
-  authorRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING[3],
+  statsLeft: { flexDirection: 'row', alignItems: 'center', gap: 20 },
+  statBtn: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  statIconWrap: {
+    width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(101,19,16,0.04)',
+    alignItems: 'center', justifyContent: 'center',
   },
-  authorInfo: { flex: 1 },
-  authorName: {
-    fontSize: FONT_SIZES.base,
-    fontWeight: FONT_WEIGHTS.bold,
+  statIconWrapActive: { backgroundColor: '#f7e6e4' },
+  statIconWrapNormal: {
+    width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(101,19,16,0.04)',
+    alignItems: 'center', justifyContent: 'center',
   },
-  nameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    flexWrap: 'wrap',
-  },
-  rankBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    paddingHorizontal: 6,
-    paddingVertical: 1,
-    borderRadius: BORDER_RADIUS.full,
-  },
-  rankText: {
-    fontSize: 9,
-    fontWeight: FONT_WEIGHTS.bold,
-  },
-  postTime: {
-    fontSize: FONT_SIZES.xs,
-    marginTop: 2,
-  },
-  postTitle: {
-    fontSize: FONT_SIZES.lg,
-    fontWeight: FONT_WEIGHTS.bold,
-    marginTop: SPACING[4],
-    lineHeight: 26,
-  },
-  postContent: {
-    fontSize: FONT_SIZES.base,
-    marginTop: SPACING[2],
-    lineHeight: 24,
-  },
-  likeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING[5],
-    marginTop: SPACING[4],
-    paddingTop: SPACING[3],
-    borderTopWidth: StyleSheet.hairlineWidth,
-  },
-  likeButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingVertical: 4,
-  },
-  likeCount: {
-    fontSize: FONT_SIZES.sm,
-    fontWeight: FONT_WEIGHTS.semibold,
-  },
-  replyCountRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
+  statTextHighlight: { fontFamily: Fonts.semibold, fontSize: 14, color: SuVietColors.do },
+  statTextNormal: { fontFamily: Fonts.semibold, fontSize: 14, color: SuVietColors.muc2 },
 
   // Replies
-  repliesHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING[2],
-    marginTop: SPACING[2],
+  repliesHeader: { marginTop: 8, paddingHorizontal: 4 },
+  repliesTitle: { fontFamily: Fonts.serifBold, fontSize: 18, color: SuVietColors.muc },
+  
+  noReplies: { paddingVertical: 40, alignItems: 'center', gap: 12 },
+  noRepliesText: { fontFamily: Fonts.regular, fontSize: 14, color: SuVietColors.muc2 },
+
+  replyRow: { flexDirection: 'row', gap: 12, marginBottom: 16 },
+  replyBubble: {
+    flex: 1, backgroundColor: SuVietColors.card,
+    borderWidth: 1, borderColor: SuVietColors.line,
+    borderRadius: 18, borderTopLeftRadius: 4, padding: 14,
   },
-  repliesTitle: {
-    fontSize: FONT_SIZES.base,
-    fontWeight: FONT_WEIGHTS.bold,
-  },
-  noReplies: {
-    paddingVertical: SPACING[6],
-    alignItems: 'center',
-  },
-  noRepliesText: {
-    fontSize: FONT_SIZES.sm,
-    fontStyle: 'italic',
-  },
-  replyCard: {
-    flexDirection: 'row',
-    gap: SPACING[3],
-    paddingVertical: SPACING[3],
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  replyBody: { flex: 1, gap: 4 },
-  replyHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  replyAuthor: {
-    fontSize: FONT_SIZES.sm,
-    fontWeight: FONT_WEIGHTS.bold,
-  },
-  replyTime: {
-    fontSize: FONT_SIZES.xs,
-    marginLeft: SPACING[2],
-  },
-  replyContent: {
-    fontSize: FONT_SIZES.sm,
-    lineHeight: 20,
-  },
+  replyHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 },
+  replyAuthor: { fontFamily: Fonts.bold, fontSize: 14, color: SuVietColors.muc },
+  replyTime: { fontFamily: Fonts.regular, fontSize: 11, color: SuVietColors.muc2 },
+  replyContent: { fontFamily: Fonts.regular, fontSize: 14, color: SuVietColors.muc, lineHeight: 20 },
 
   // Input bar
   inputBar: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: SPACING[2],
-    paddingHorizontal: SPACING[4],
-    paddingVertical: SPACING[2],
-    borderTopWidth: 1,
+    flexDirection: 'row', alignItems: 'flex-end', gap: 12,
+    paddingHorizontal: 16, paddingVertical: 12,
+    backgroundColor: SuVietColors.card,
+    borderTopWidth: 1, borderTopColor: SuVietColors.line,
   },
   inputField: {
     flex: 1,
-    borderWidth: 1,
-    borderRadius: BORDER_RADIUS.xl,
-    paddingHorizontal: SPACING[4],
-    paddingVertical: SPACING[2],
-    fontSize: FONT_SIZES.sm,
-    maxHeight: 100,
+    backgroundColor: SuVietColors.giay,
+    borderWidth: 1, borderColor: SuVietColors.line,
+    borderRadius: 20, paddingHorizontal: 16, paddingVertical: 10,
+    paddingTop: 12, // For iOS multiline
+    fontFamily: Fonts.regular, fontSize: 14, color: SuVietColors.muc,
+    maxHeight: 120,
   },
   sendBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 44, height: 44, borderRadius: 22,
+    alignItems: 'center', justifyContent: 'center',
+    marginBottom: 2,
   },
+  sendBtnActive: { backgroundColor: SuVietColors.son },
+  sendBtnDisabled: { backgroundColor: 'rgba(101,19,16,0.08)' },
 });

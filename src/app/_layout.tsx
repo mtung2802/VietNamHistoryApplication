@@ -1,9 +1,26 @@
-import { Stack } from 'expo-router';
+import { Stack, SplashScreen } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { ThemeProvider, useThemeContext } from '@/contexts/ThemeContext';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { GamificationProvider } from '@/contexts/GamificationContext';
+import { useEffect } from 'react';
+import {
+  useFonts as usePlayfair,
+  PlayfairDisplay_400Regular,
+  PlayfairDisplay_600SemiBold,
+  PlayfairDisplay_700Bold,
+  PlayfairDisplay_800ExtraBold,
+} from '@expo-google-fonts/playfair-display';
+import {
+  useFonts as useBeVietnam,
+  BeVietnamPro_400Regular,
+  BeVietnamPro_500Medium,
+  BeVietnamPro_600SemiBold,
+  BeVietnamPro_700Bold,
+} from '@expo-google-fonts/be-vietnam-pro';
+
+SplashScreen.preventAutoHideAsync();
 
 function RootNavigator() {
   const { colors, isDark } = useThemeContext();
@@ -62,6 +79,30 @@ function RootNavigator() {
 }
 
 export default function RootLayout() {
+  const [playfairLoaded] = usePlayfair({
+    PlayfairDisplay_400Regular,
+    PlayfairDisplay_600SemiBold,
+    PlayfairDisplay_700Bold,
+    PlayfairDisplay_800ExtraBold,
+  });
+
+  const [beVietnamLoaded] = useBeVietnam({
+    BeVietnamPro_400Regular,
+    BeVietnamPro_500Medium,
+    BeVietnamPro_600SemiBold,
+    BeVietnamPro_700Bold,
+  });
+
+  useEffect(() => {
+    if (playfairLoaded && beVietnamLoaded) {
+      SplashScreen.hideAsync();
+    }
+  }, [playfairLoaded, beVietnamLoaded]);
+
+  if (!playfairLoaded || !beVietnamLoaded) {
+    return null;
+  }
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider>
