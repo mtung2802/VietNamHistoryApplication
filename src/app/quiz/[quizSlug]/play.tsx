@@ -9,6 +9,8 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getQuizById, getQuestionsByQuiz } from '@/services/quizService';
 import { GameQuestion } from '@/models/GameQuestion';
 import { Fonts, HTML_SHADOWS, SuVietColors, SPACING } from '@/constants/theme';
@@ -20,6 +22,7 @@ const OPTION_LABELS = ['A', 'B', 'C', 'D'];
 export default function QuizPlayScreen() {
   const { quizSlug } = useLocalSearchParams<{ quizSlug: string }>();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   const [questions, setQuestions] = useState<GameQuestion[]>([]);
   const [title, setTitle] = useState('Câu Đố');
@@ -105,12 +108,27 @@ export default function QuizPlayScreen() {
 
   return (
     <Screen style={styles.screen}>
-      {/* Top bar: X + progress bar + câu số */}
-      <View style={styles.topBar}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.closeBtn}>
-          <Text style={styles.closeBtnText}>✕</Text>
-        </TouchableOpacity>
+      {/* Header gradient */}
+      <LinearGradient
+        colors={[SuVietColors.son, SuVietColors.son2]}
+        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+        style={[styles.header, { paddingTop: insets.top + 12 }]}
+      >
+        <View style={styles.headerDecoration} />
+        
+        <View style={styles.headerTopBar}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.iconBtn}>
+            <Ionicons name="arrow-back" size={26} color="#f6e9cf" />
+          </TouchableOpacity>
+          <View style={{flex: 1, alignItems: 'center', justifyContent: 'center'}}>
+            <Text style={styles.headerTitle} numberOfLines={1}>Thử Thách</Text>
+          </View>
+          <View style={{ width: 40 }} />
+        </View>
+      </LinearGradient>
 
+      {/* Progress Bar Container */}
+      <View style={styles.progressContainer}>
         {/* Progress bar gradient */}
         <View style={styles.progressTrack}>
           <LinearGradient
@@ -131,18 +149,22 @@ export default function QuizPlayScreen() {
           styles.timerCircle,
           timeRunningLow ? styles.timerCircleUrgent : styles.timerCircleNormal
         ]}>
-          <Text style={[styles.timerValue, timeRunningLow ? { color: SuVietColors.wrong } : { color: SuVietColors.son }]}>
-            {secondsLeft}
-          </Text>
-          <Text style={[styles.timerSuffix, timeRunningLow ? { color: SuVietColors.wrong } : { color: SuVietColors.son }]}>s</Text>
+          <View style={[styles.timerInner, timeRunningLow ? styles.timerInnerUrgent : styles.timerInnerNormal]}>
+            <Text style={[styles.timerValue, timeRunningLow ? { color: SuVietColors.wrong } : { color: SuVietColors.son }]}>
+              {secondsLeft}
+            </Text>
+            <Text style={[styles.timerSuffix, timeRunningLow ? { color: SuVietColors.wrong } : { color: SuVietColors.son }]}>s</Text>
+          </View>
         </View>
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* Câu hỏi card */}
-        <View style={[styles.questionCard, HTML_SHADOWS.card]}>
-          <Text style={styles.questionLabel}>Câu hỏi {currentIndex + 1}</Text>
-          <Text style={styles.questionText}>{q.question}</Text>
+        <View style={[styles.questionCard, HTML_SHADOWS.cardLarge]}>
+          <View style={styles.questionInner}>
+            <Text style={styles.questionLabel}>Câu hỏi {currentIndex + 1}</Text>
+            <Text style={styles.questionText}>{q.question}</Text>
+          </View>
         </View>
 
         {/* 4 đáp án */}
@@ -215,18 +237,28 @@ export default function QuizPlayScreen() {
 
 // Style helpers
 function optionStyle(state: 'idle' | 'correct' | 'wrong' | 'muted') {
-  if (state === 'correct') return { backgroundColor: SuVietColors.correctBg, borderColor: SuVietColors.correct, borderWidth: 2 };
-  if (state === 'wrong') return { backgroundColor: SuVietColors.wrongBg, borderColor: SuVietColors.wrong, borderWidth: 2 };
-  if (state === 'muted') return { backgroundColor: SuVietColors.card, borderColor: SuVietColors.line, borderWidth: 2, opacity: 0.6 };
-  return { backgroundColor: SuVietColors.card, borderColor: SuVietColors.line, borderWidth: 2 };
+  const base = {
+    shadowColor: 'rgba(101,19,16,1)',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 2,
+  };
+  if (state === 'correct') return { ...base, backgroundColor: SuVietColors.correctBg, borderColor: SuVietColors.correct, borderWidth: 2 };
+  if (state === 'wrong') return { ...base, backgroundColor: SuVietColors.wrongBg, borderColor: SuVietColors.wrong, borderWidth: 2 };
+  if (state === 'muted') return { ...base, backgroundColor: SuVietColors.card, borderColor: SuVietColors.line, borderWidth: 1.5, opacity: 0.5 };
+  return { ...base, backgroundColor: SuVietColors.card, borderColor: SuVietColors.line, borderWidth: 1.5 };
 }
 function badgeStyle(state: 'idle' | 'correct' | 'wrong' | 'muted') {
   if (state === 'correct') return { backgroundColor: SuVietColors.correct };
   if (state === 'wrong') return { backgroundColor: SuVietColors.wrong };
-  return { backgroundColor: '#efe2c9' };
+  return { backgroundColor: '#efe2c9', borderWidth: 1, borderColor: SuVietColors.dong };
 }
 function badgeTextStyle(state: 'idle' | 'correct' | 'wrong' | 'muted') {
-  return { color: (state === 'correct' || state === 'wrong') ? '#fff' : SuVietColors.son };
+  return {
+    color: (state === 'correct' || state === 'wrong') ? '#fff' : SuVietColors.son,
+    fontFamily: Fonts.serifBold,
+  };
 }
 function optionTextColor(state: 'idle' | 'correct' | 'wrong' | 'muted') {
   if (state === 'correct') return '#1f4d2e';
@@ -238,22 +270,53 @@ function optionTextColor(state: 'idle' | 'correct' | 'wrong' | 'muted') {
 const styles = StyleSheet.create({
   screen: { backgroundColor: SuVietColors.giay },
 
-  // Top bar
-  topBar: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    paddingHorizontal: SPACING[5], paddingTop: SPACING[2], paddingBottom: SPACING[4],
+  // Header
+  header: {
+    paddingBottom: 20,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+    position: 'relative', overflow: 'hidden',
+    shadowColor: SuVietColors.son,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25, shadowRadius: 10, elevation: 5,
+    marginBottom: 16,
   },
-  closeBtn: {
-    width: 34, height: 34, borderRadius: 17,
-    borderWidth: 1, borderColor: SuVietColors.line,
-    backgroundColor: SuVietColors.card,
+  headerDecoration: {
+    position: 'absolute', left: 0, right: 0, top: 0, bottom: 0,
+    opacity: 0.15,
+    backgroundColor: SuVietColors.sao,
+  },
+  headerTopBar: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    position: 'relative',
+    zIndex: 10,
+  },
+  iconBtn: {
+    width: 40, height: 40,
     alignItems: 'center', justifyContent: 'center',
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.1)',
   },
-  closeBtnText: { color: SuVietColors.son, fontSize: 18 },
+  headerTitle: {
+    fontFamily: Fonts.serifExtraBold,
+    fontSize: 22, color: '#f6e9cf',
+    textShadowColor: 'rgba(0,0,0,0.3)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
+  },
 
+  // Progress Container
+  progressContainer: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    paddingHorizontal: 22, marginBottom: 12,
+  },
   progressTrack: {
-    flex: 1, height: 9, backgroundColor: '#e6d6b8',
+    flex: 1, height: 10, backgroundColor: '#e6d6b8',
     borderRadius: 20, overflow: 'hidden',
+    borderWidth: 1, borderColor: 'rgba(101,19,16,0.1)',
   },
   progressFill: { height: '100%', borderRadius: 20 },
   progressCount: {
@@ -268,12 +331,23 @@ const styles = StyleSheet.create({
   },
   timerCircleNormal: {
     backgroundColor: SuVietColors.card,
-    shadowColor: SuVietColors.line, shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 1, shadowRadius: 0, borderWidth: 3, borderColor: SuVietColors.line,
+    borderWidth: 1.5, borderColor: SuVietColors.dong,
+    padding: 2,
   },
   timerCircleUrgent: {
     backgroundColor: SuVietColors.wrongBg,
-    borderWidth: 3, borderColor: 'rgba(168,50,50,0.27)',
+    borderWidth: 1.5, borderColor: SuVietColors.wrong,
+    padding: 2,
+  },
+  timerInner: {
+    flex: 1, width: '100%', height: '100%', borderRadius: 22,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+  },
+  timerInnerNormal: {
+    borderWidth: 1, borderStyle: 'dashed', borderColor: 'rgba(139,28,23,0.3)',
+  },
+  timerInnerUrgent: {
+    borderWidth: 1, borderStyle: 'dashed', borderColor: 'rgba(168,50,50,0.5)',
   },
   timerValue: { fontFamily: Fonts.serifExtraBold, fontSize: 20 },
   timerSuffix: { fontFamily: Fonts.regular, fontSize: 12, marginLeft: 1 },
@@ -284,7 +358,11 @@ const styles = StyleSheet.create({
   // Question
   questionCard: {
     backgroundColor: SuVietColors.card, borderRadius: 18,
-    borderWidth: 1, borderColor: SuVietColors.line, padding: 20, marginBottom: 7,
+    borderWidth: 1.5, borderColor: SuVietColors.line, padding: 6, marginBottom: 7,
+  },
+  questionInner: {
+    borderWidth: 1, borderStyle: 'dashed', borderColor: 'rgba(168,130,58,0.4)',
+    borderRadius: 14, padding: 16,
   },
   questionLabel: {
     fontFamily: Fonts.bold, fontSize: 11, letterSpacing: 1.5,

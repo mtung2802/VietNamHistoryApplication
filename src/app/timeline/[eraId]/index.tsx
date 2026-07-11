@@ -11,11 +11,12 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Era } from '@/models/Era';
 import { getEraById } from '@/services/timelinePuzzleService';
 import { Fonts, HTML_SHADOWS, SuVietColors, SPACING } from '@/constants/theme';
-import { Screen, LoadingState, ErrorState } from '@/components/ui';
+import { Screen, LoadingState, ErrorState, useTopInset } from '@/components/ui';
 
 export default function TimelineDetailScreen() {
   const { eraId } = useLocalSearchParams<{ eraId: string }>();
   const router = useRouter();
+  const topInset = useTopInset();
   const [era, setEra] = useState<Era | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -53,14 +54,17 @@ export default function TimelineDetailScreen() {
       <LinearGradient
         colors={[SuVietColors.son, SuVietColors.son2]}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-        style={styles.header}
+        style={[styles.header, { paddingTop: topInset + 12 }]}
       >
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Text style={styles.backBtnText}>‹</Text>
+          <Ionicons name="arrow-back" size={20} color="#f6e9cf" />
         </TouchableOpacity>
+        <Text style={styles.headerTitle}>Ghép niên đại</Text>
+        <View style={{ width: 38 }} />
       </LinearGradient>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* Card nổi — giống HTML */}
         <View style={[styles.card, HTML_SHADOWS.cardLarge]}>
           {heroImage ? (
             <ImageBackground
@@ -123,9 +127,16 @@ export default function TimelineDetailScreen() {
 const styles = StyleSheet.create({
   screen: { backgroundColor: SuVietColors.giay },
   header: {
-    paddingTop: SPACING[12],
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: SPACING[5],
     paddingBottom: SPACING[12] + SPACING[3],
+  },
+  headerTitle: {
+    fontFamily: Fonts.serifExtraBold,
+    fontSize: 20,
+    color: '#f6e9cf',
   },
   backBtn: {
     width: 38, height: 38, borderRadius: 19,
@@ -133,9 +144,15 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.14)',
     alignItems: 'center', justifyContent: 'center',
   },
-  backBtnText: { color: '#f6e9cf', fontSize: 22, lineHeight: 26 },
 
-  content: { paddingHorizontal: SPACING[5], paddingBottom: SPACING[8], marginTop: -42 },
+  // Centered card layout
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingHorizontal: SPACING[5],
+    paddingTop: SPACING[4],
+    paddingBottom: SPACING[8],
+  },
   card: {
     backgroundColor: SuVietColors.card,
     borderRadius: 22, borderWidth: 1, borderColor: SuVietColors.line, padding: 22,

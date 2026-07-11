@@ -11,13 +11,14 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { QuizItem } from '@/models/QuizzItem';
 import { getQuizById } from '@/services/quizService';
 import { Fonts, HTML_SHADOWS, SuVietColors, SPACING } from '@/constants/theme';
-import { Screen, LoadingState, ErrorState } from '@/components/ui';
+import { Screen, LoadingState, ErrorState, useTopInset } from '@/components/ui';
 
 const LEVEL_LABEL: Record<string, string> = { easy: 'Dễ', medium: 'Trung bình', hard: 'Khó' };
 
 export default function QuizDetailScreen() {
   const { quizSlug } = useLocalSearchParams<{ quizSlug: string }>();
   const router = useRouter();
+  const topInset = useTopInset();
   const [quiz, setQuiz] = useState<QuizItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -50,15 +51,17 @@ export default function QuizDetailScreen() {
       <LinearGradient
         colors={[SuVietColors.son, SuVietColors.son2]}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-        style={styles.header}
+        style={[styles.header, { paddingTop: topInset + 12 }]}
       >
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Text style={styles.backBtnText}>‹</Text>
+          <Ionicons name="arrow-back" size={20} color="#f6e9cf" />
         </TouchableOpacity>
+        <Text style={styles.headerTitle}>Trắc nghiệm</Text>
+        <View style={{ width: 38 }} />
       </LinearGradient>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Card nổi — float card giống HTML */}
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* Card nổi — giống HTML */}
         <View style={[styles.card, HTML_SHADOWS.cardLarge]}>
           {/* Icon ngôi sao vàng — giống HTML clip-path star */}
           <View style={styles.starIconWrap}>
@@ -81,7 +84,9 @@ export default function QuizDetailScreen() {
             </View>
             <View style={styles.statBox}>
               <Text style={styles.statValue}>{LEVEL_LABEL[quiz.level] ?? quiz.level}</Text>
-              <Text style={styles.statLabel}>độ khó</Text>
+              <Text style={styles.statLabel}>
+                {quiz.level === 'easy' || quiz.level === 'medium' || quiz.level === 'hard' ? 'độ khó' : 'phân loại'}
+              </Text>
             </View>
             <View style={styles.statBox}>
               <Text style={styles.statValue}>{timeLimit}s</Text>
@@ -119,11 +124,17 @@ export default function QuizDetailScreen() {
 const styles = StyleSheet.create({
   screen: { backgroundColor: SuVietColors.giay },
 
-  // Header
   header: {
-    paddingTop: SPACING[12],
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: SPACING[5],
     paddingBottom: SPACING[12] + SPACING[3],
+  },
+  headerTitle: {
+    fontFamily: Fonts.serifExtraBold,
+    fontSize: 20,
+    color: '#f6e9cf',
   },
   backBtn: {
     width: 38, height: 38, borderRadius: 19,
@@ -131,10 +142,15 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.14)',
     alignItems: 'center', justifyContent: 'center',
   },
-  backBtnText: { color: '#f6e9cf', fontSize: 22, lineHeight: 26 },
 
-  // Float card
-  content: { paddingHorizontal: SPACING[5], paddingBottom: SPACING[8], marginTop: -42 },
+  // Centered card layout
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingHorizontal: SPACING[5],
+    paddingTop: SPACING[4],
+    paddingBottom: SPACING[8],
+  },
   card: {
     backgroundColor: SuVietColors.card,
     borderRadius: 22,

@@ -99,7 +99,7 @@ export default function QuizResultScreen() {
       setSubmitting(true);
       try {
         const result = await submitSession({
-          userId: user?.uid || profile.id,
+          userId: user?.uid || user?.id || '',
           type: 'quiz',
           quizId: params.quizSlug as string,
           score: score * 10,
@@ -232,13 +232,27 @@ export default function QuizResultScreen() {
               const isTimeout = !ans.userAnswer;
               const borderColor = isCorrect ? SuVietColors.correct : SuVietColors.wrong;
               const status = isCorrect ? 'Đúng' : isTimeout ? 'Hết giờ' : 'Sai';
+              
+              let correctLetter = '';
+              if (ans.options) {
+                const opts = Array.isArray(ans.options) ? ans.options : Object.values(ans.options);
+                const idx = opts.indexOf(ans.correctAnswer);
+                if (idx >= 0 && idx < OPTION_LABELS.length) {
+                  correctLetter = `${OPTION_LABELS[idx]}. `;
+                }
+              }
+              // Prevent double prefix if the data already contains it
+              const displayAnswer = ans.correctAnswer?.startsWith(correctLetter) 
+                ? ans.correctAnswer 
+                : `${correctLetter}${ans.correctAnswer}`;
+
               return (
                 <View key={ans.questionId || qi} style={[styles.reviewCard, { borderLeftColor: borderColor }]}>
                   <Text style={styles.reviewQuestion}>{ans.questionText}</Text>
                   <Text style={styles.reviewStatus}>
                     <Text style={{ color: borderColor }}>{status}</Text>
                     {' — Đáp án đúng: '}
-                    <Text style={{ color: SuVietColors.son }}>{ans.correctAnswer}</Text>
+                    <Text style={{ color: SuVietColors.son }}>{displayAnswer}</Text>
                   </Text>
                 </View>
               );
@@ -250,13 +264,23 @@ export default function QuizResultScreen() {
               const isTimeout = userChoice === -1;
               const borderColor = isCorrect ? SuVietColors.correct : SuVietColors.wrong;
               const status = isCorrect ? 'Đúng' : isTimeout ? 'Hết giờ' : 'Sai';
+              
+              let correctLetter = '';
+              if (q.correctAnswer >= 0 && q.correctAnswer < OPTION_LABELS.length) {
+                correctLetter = `${OPTION_LABELS[q.correctAnswer]}. `;
+              }
+              const ansText = q.options[q.correctAnswer] || '';
+              const displayAnswer = ansText.startsWith(correctLetter) 
+                ? ansText 
+                : `${correctLetter}${ansText}`;
+
               return (
                 <View key={q.id || qi} style={[styles.reviewCard, { borderLeftColor: borderColor }]}>
                   <Text style={styles.reviewQuestion}>{q.question}</Text>
                   <Text style={styles.reviewStatus}>
                     <Text style={{ color: borderColor }}>{status}</Text>
                     {' — Đáp án đúng: '}
-                    <Text style={{ color: SuVietColors.son }}>{q.options[q.correctAnswer]}</Text>
+                    <Text style={{ color: SuVietColors.son }}>{displayAnswer}</Text>
                   </Text>
                 </View>
               );

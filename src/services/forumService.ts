@@ -122,12 +122,24 @@ function parsePost(doc: QueryDocumentSnapshot<DocumentData>): ForumPost {
 export async function getForumPosts(
   limitCount = 20,
   startAfterDoc?: QueryDocumentSnapshot<DocumentData> | null,
+  sortBy: 'newest' | 'popular' | 'oldest' = 'newest'
 ): Promise<ForumPostsResult> {
   const forumRef = collection(db, 'forum');
 
+  let orderField = 'createdAt';
+  let orderDirection: 'asc' | 'desc' = 'desc';
+
+  if (sortBy === 'oldest') {
+    orderField = 'createdAt';
+    orderDirection = 'asc';
+  } else if (sortBy === 'popular') {
+    orderField = 'likeCount';
+    orderDirection = 'desc';
+  }
+
   let q = startAfterDoc
-    ? query(forumRef, orderBy('createdAt', 'desc'), startAfter(startAfterDoc), limit(limitCount + 1))
-    : query(forumRef, orderBy('createdAt', 'desc'), limit(limitCount + 1));
+    ? query(forumRef, orderBy(orderField, orderDirection), startAfter(startAfterDoc), limit(limitCount + 1))
+    : query(forumRef, orderBy(orderField, orderDirection), limit(limitCount + 1));
 
   const snap = await getDocs(q);
   const allDocs = snap.docs;

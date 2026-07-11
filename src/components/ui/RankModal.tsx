@@ -1,6 +1,6 @@
 import React from 'react';
 import { Modal, StyleSheet, Text, TouchableOpacity, View, Pressable, ScrollView } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { BORDER_RADIUS, FONT_SIZES, FONT_WEIGHTS, SHADOWS, SPACING } from '@/constants/theme';
 import { useThemeColors } from '@/contexts/ThemeContext';
 import { RANK_TIERS } from '@/services/rankService';
@@ -49,7 +49,7 @@ export function RankModal({ visible, currentRankName, onClose }: RankModalProps)
                   ]}
                 >
                   <View style={[styles.iconWrapper, { backgroundColor: `${tier.color}22` }]}>
-                    <Ionicons name={tier.icon as any} size={24} color={tier.color} />
+                    <MaterialCommunityIcons name={tier.icon as any} size={24} color={tier.color} />
                   </View>
                   <View style={styles.rankInfo}>
                     <View style={styles.nameRow}>

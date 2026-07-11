@@ -15,7 +15,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { doc, getDoc } from 'firebase/firestore';
 
@@ -137,7 +137,7 @@ export default function UserProfileScreen() {
 
             {rankTier && (
               <View style={[styles.rankBadge, { backgroundColor: 'rgba(168,130,58,0.1)', borderColor: 'rgba(168,130,58,0.2)' }]}>
-                <Ionicons name={rankTier.icon as any} size={14} color={SuVietColors.dong} />
+                <MaterialCommunityIcons name={rankTier.icon as any} size={14} color={SuVietColors.dong} />
                 <Text style={styles.rankLabel}>{profile.currentRank}</Text>
               </View>
             )}
@@ -151,7 +151,7 @@ export default function UserProfileScreen() {
           >
             <View style={styles.rankCardTop}>
               <View style={[styles.rankIconWrap, { backgroundColor: rankTier?.color || SuVietColors.dong }]}>
-                <Ionicons name={rankTier?.icon as any || 'star'} size={28} color="#fff" />
+                <MaterialCommunityIcons name={rankTier?.icon as any || 'star'} size={28} color="#fff" />
               </View>
               <View style={styles.rankInfo}>
                 <Text style={styles.rankSubtitle}>HẠNG HIỆN TẠI</Text>
@@ -187,7 +187,7 @@ export default function UserProfileScreen() {
           {/* ═══ Stats Row ═══ */}
           <View style={styles.statsRow}>
             <StatCard icon="game-controller" value={String(profile.totalSessions)} label="Lượt chơi" />
-            <StatCard icon="trophy" value={String(profile.highestScore * 10)} label="Điểm cao" />
+            <StatCard icon="trophy" value={String(profile.highestScore)} label="Điểm cao" />
             <StatCard icon="flame" value={String(profile.currentStreak)} label="Chuỗi" />
             <StatCard icon="trending-up" value={String(profile.longestStreak)} label="Chuỗi max" />
           </View>

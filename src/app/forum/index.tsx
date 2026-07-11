@@ -10,9 +10,11 @@ import {
   Image,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
   ScrollView,
+  Modal,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -71,7 +73,20 @@ export default function ForumScreen() {
   const [lastDoc, setLastDoc] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
   const [hasMore, setHasMore] = useState(false);
 
-  const loadPosts = useCallback(async (isRefresh = true) => {
+  const [sortBy, setSortBy] = useState<'newest' | 'popular' | 'oldest'>('newest');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSearch, setShowSearch] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+
+  const sortOptions = [
+    { value: 'newest', label: 'Mới nhất' },
+    { value: 'popular', label: 'Nổi bật' },
+    { value: 'oldest', label: 'Cũ nhất' },
+  ] as const;
+
+  const currentSortLabel = sortOptions.find(o => o.value === sortBy)?.label;
+
+  const loadPosts = useCallback(async (isRefresh = true, sortMode: 'newest' | 'popular' | 'oldest' = sortBy) => {
     try {
       if (isRefresh) {
         setLoading(true);
@@ -80,7 +95,7 @@ export default function ForumScreen() {
         setLoadingMore(true);
       }
 
-      const result = await getForumPosts(20, isRefresh ? null : lastDoc);
+      const result = await getForumPosts(20, isRefresh ? null : lastDoc, sortMode);
 
       if (isRefresh) {
         setPosts(result.posts);
@@ -95,7 +110,12 @@ export default function ForumScreen() {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [lastDoc]);
+  }, [lastDoc, sortBy]);
+
+  const handleSortChange = (newSort: 'newest' | 'popular' | 'oldest') => {
+    setSortBy(newSort);
+    loadPosts(true, newSort);
+  };
 
   useFocusEffect(
     useCallback(() => {
@@ -202,6 +222,12 @@ export default function ForumScreen() {
     );
   };
 
+  const filteredPosts = posts.filter(p => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    return p.title.toLowerCase().includes(q) || p.content.toLowerCase().includes(q);
+  });
+
   return (
     <Screen style={styles.screen}>
       {/* Header gradient */}
@@ -211,42 +237,84 @@ export default function ForumScreen() {
         style={styles.header}
       >
         <View style={styles.headerDecoration} />
+
+        {/* Top bar */}
+        <View style={styles.headerTopBar}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.iconBtn}>
+            <Ionicons name="arrow-back" size={26} color="#f6e9cf" />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setShowSearch(!showSearch)} style={styles.iconBtn}>
+            <Ionicons name={showSearch ? "close" : "search"} size={24} color="#f6e9cf" />
+          </TouchableOpacity>
+        </View>
+
         <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>Sử đàn</Text>
-          <Text style={styles.headerSub}>
-            Nơi đàm đạo, chia sẻ kiến thức và luận bàn về các giai thoại lịch sử
-          </Text>
+          {showSearch ? (
+            <View style={styles.searchContainer}>
+              <Ionicons name="search" size={20} color={SuVietColors.muc2} style={{marginRight: 8}} />
+              <TextInput 
+                style={styles.searchInput}
+                placeholder="Tìm kiếm bài viết..."
+                placeholderTextColor={SuVietColors.muc2}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                autoFocus
+                returnKeyType="search"
+              />
+            </View>
+          ) : (
+            <>
+              <Text style={styles.headerTitle}>Sử đàn</Text>
+              <Text style={styles.headerSub}>
+                Nơi đàm đạo, chia sẻ kiến thức và luận bàn về các giai thoại lịch sử
+              </Text>
+            </>
+          )}
         </View>
       </LinearGradient>
 
-      {/* Filters */}
+      {/* Filters Dropdown Button */}
       <View style={styles.filterWrapper}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterContent}>
-          <TouchableOpacity style={styles.filterBtnActive}>
-            <LinearGradient
-              colors={[SuVietColors.son, SuVietColors.son2]}
-              start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-              style={styles.filterBtnGradient}
-            >
-              <Text style={styles.filterBtnActiveText}>Mới & Nổi bật</Text>
-            </LinearGradient>
+        <View style={{ paddingHorizontal: 22, alignItems: 'flex-start' }}>
+          <TouchableOpacity 
+            style={styles.dropdownToggleBtn}
+            onPress={() => setShowDropdown(true)}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="filter" size={16} color={SuVietColors.muc2} />
+            <Text style={styles.dropdownToggleText}>Sắp xếp: {currentSortLabel}</Text>
+            <Ionicons name="chevron-down" size={16} color={SuVietColors.muc2} />
           </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.filterBtnNormal}>
-            <Text style={styles.filterBtnNormalText}>Thời Lý - Trần</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.filterBtnNormal}>
-            <Text style={styles.filterBtnNormalText}>Thời Hậu Lê</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.filterBtnNormal}>
-            <Text style={styles.filterBtnNormalText}>Khởi Nghĩa</Text>
-          </TouchableOpacity>
-        </ScrollView>
+        </View>
       </View>
+
+      {/* Dropdown Menu Modal */}
+      <Modal visible={showDropdown} transparent animationType="fade">
+        <TouchableOpacity style={styles.modalOverlay} onPress={() => setShowDropdown(false)} activeOpacity={1}>
+          <View style={styles.dropdownMenu}>
+            {sortOptions.map(opt => {
+              const isActive = sortBy === opt.value;
+              return (
+                <TouchableOpacity 
+                  key={opt.value} 
+                  style={[styles.dropdownItem, isActive && styles.dropdownItemActive]}
+                  onPress={() => {
+                    handleSortChange(opt.value);
+                    setShowDropdown(false);
+                  }}
+                >
+                  <Text style={[styles.dropdownItemText, isActive && styles.dropdownItemTextActive]}>{opt.label}</Text>
+                  {isActive && <Ionicons name="checkmark" size={18} color={SuVietColors.son} />}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
       {/* Post List */}
       <FlatList
-        data={posts}
+        data={filteredPosts}
         keyExtractor={(item) => item.id}
         renderItem={renderPost}
         ListEmptyComponent={!loading ? renderEmpty : null}
@@ -303,7 +371,40 @@ const styles = StyleSheet.create({
     // Note: React Native doesn't support repeating-conic-gradient, fallback to semi-transparent overlay
     backgroundColor: SuVietColors.sao,
   },
-  headerContent: { alignItems: 'center', position: 'relative', paddingHorizontal: 24 },
+  headerTopBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    marginBottom: 8,
+    position: 'relative',
+    zIndex: 10,
+  },
+  iconBtn: {
+    width: 40, height: 40,
+    alignItems: 'center', justifyContent: 'center',
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fdf8ec',
+    borderRadius: 24,
+    paddingHorizontal: 16,
+    height: 48,
+    width: '100%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1, shadowRadius: 4, elevation: 2,
+  },
+  searchInput: {
+    flex: 1,
+    fontFamily: Fonts.regular,
+    fontSize: 15,
+    color: SuVietColors.muc,
+    paddingVertical: 0,
+  },
+  headerContent: { alignItems: 'center', position: 'relative', paddingHorizontal: 24, width: '100%' },
   headerTitle: {
     fontFamily: Fonts.serifExtraBold,
     fontSize: 34, color: '#f6e9cf',
@@ -320,24 +421,47 @@ const styles = StyleSheet.create({
 
   // Filters
   filterWrapper: { marginTop: -20, zIndex: 10, marginBottom: 8 },
-  filterContent: { paddingHorizontal: 22, gap: 8, paddingBottom: 8 },
-  filterBtnActive: {
-    borderRadius: 20, overflow: 'hidden',
-    shadowColor: SuVietColors.son, shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2, shadowRadius: 8, elevation: 4,
+  dropdownToggleBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 14, paddingVertical: 8,
+    backgroundColor: 'rgba(253, 248, 236, 0.85)',
+    borderRadius: 20,
+    borderWidth: 1, borderColor: 'rgba(101,19,16,0.12)',
+    shadowColor: SuVietColors.son, shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06, shadowRadius: 3, elevation: 1,
   },
-  filterBtnGradient: {
-    paddingHorizontal: 20, paddingVertical: 10,
-    borderWidth: 1, borderColor: 'rgba(240,192,76,0.3)', borderRadius: 20,
+  dropdownToggleText: {
+    fontFamily: Fonts.medium, fontSize: 13, color: SuVietColors.muc,
   },
-  filterBtnActiveText: { fontFamily: Fonts.bold, fontSize: 13.5, color: '#f6e9cf' },
-  filterBtnNormal: {
-    paddingHorizontal: 20, paddingVertical: 10,
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dropdownMenu: {
     backgroundColor: SuVietColors.card,
-    borderWidth: 1, borderColor: SuVietColors.line,
-    borderRadius: 20, opacity: 0.8,
+    borderRadius: 16,
+    width: 220,
+    padding: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2, shadowRadius: 12, elevation: 8,
   },
-  filterBtnNormalText: { fontFamily: Fonts.semibold, fontSize: 13.5, color: SuVietColors.muc2 },
+  dropdownItem: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 16, paddingVertical: 14,
+    borderRadius: 12,
+  },
+  dropdownItemActive: {
+    backgroundColor: 'rgba(200, 16, 46, 0.08)',
+  },
+  dropdownItemText: {
+    fontFamily: Fonts.medium, fontSize: 14.5, color: SuVietColors.muc2,
+  },
+  dropdownItemTextActive: {
+    fontFamily: Fonts.bold, color: SuVietColors.son,
+  },
 
   // List
   listContent: { padding: 22, paddingTop: 10, paddingBottom: 100 },

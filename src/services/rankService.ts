@@ -14,12 +14,12 @@ import { RankTier, NextRankInfo } from '@/models/GamificationModels';
 
 /** Bảng rank xếp theo thứ tự tăng dần */
 export const RANK_TIERS: RankTier[] = [
-  { name: 'Newcomer',  minXP: 0,    maxXP: 199,      icon: 'leaf-outline',           color: '#9CA3AF' },
-  { name: 'Bronze',    minXP: 200,  maxXP: 599,      icon: 'shield-outline',         color: '#CD7F32' },
-  { name: 'Silver',    minXP: 600,  maxXP: 1199,     icon: 'shield-half-outline',    color: '#C0C0C0' },
-  { name: 'Gold',      minXP: 1200, maxXP: 2499,     icon: 'shield',                 color: '#FFD700' },
-  { name: 'Platinum',  minXP: 2500, maxXP: 4999,     icon: 'diamond-outline',        color: '#E5E4E2' },
-  { name: 'Legend',    minXP: 5000, maxXP: Infinity,  icon: 'trophy',                 color: '#FF4500' },
+  { name: 'Newcomer',  minXP: 0,    maxXP: 199,      icon: 'seedling',           color: '#9CA3AF' },
+  { name: 'Bronze',    minXP: 200,  maxXP: 599,      icon: 'shield-outline',     color: '#CD7F32' },
+  { name: 'Silver',    minXP: 600,  maxXP: 1199,     icon: 'shield-half-full',   color: '#C0C0C0' },
+  { name: 'Gold',      minXP: 1200, maxXP: 2499,     icon: 'shield-star',        color: '#FFD700' },
+  { name: 'Platinum',  minXP: 2500, maxXP: 4999,     icon: 'diamond-stone',      color: '#E5E4E2' },
+  { name: 'Legend',    minXP: 5000, maxXP: Infinity, icon: 'crown',              color: '#FF4500' },
 ];
 
 /**

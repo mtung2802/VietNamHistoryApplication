@@ -19,7 +19,7 @@ import { QuizItem } from '@/models/QuizzItem';
 import { Era } from '@/models/Era';
 import { getQuizzes } from '@/services/quizService';
 import { getTimelineEras } from '@/services/timelinePuzzleService';
-import { BORDER_RADIUS, Fonts, FONT_SIZES, FONT_WEIGHTS, SPACING } from '@/constants/theme';
+import { BORDER_RADIUS, Fonts, FONT_SIZES, FONT_WEIGHTS, SPACING, SuVietColors } from '@/constants/theme';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useThemeColors } from '@/contexts/ThemeContext';
 import {
@@ -45,7 +45,6 @@ const LEVEL_LABEL: Record<string, string> = {
 };
 
 function QuizCard({ item, index, onPress }: { item: QuizItem; index: number; onPress: () => void }) {
-  const colors = useThemeColors();
   const formattedIndex = String(index + 1).padStart(2, '0');
   
   return (
@@ -54,11 +53,11 @@ function QuizCard({ item, index, onPress }: { item: QuizItem; index: number; onP
       onPress={onPress}
       style={[
         styles.newQuizCard,
-        { backgroundColor: colors.surface, borderColor: colors.border }
+        { backgroundColor: SuVietColors.card, borderColor: SuVietColors.line }
       ]}
     >
       <LinearGradient
-        colors={[colors.primary, colors.primaryBright || colors.primary]}
+        colors={[SuVietColors.son, SuVietColors.son2]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.quizIndexBox}
@@ -66,32 +65,31 @@ function QuizCard({ item, index, onPress }: { item: QuizItem; index: number; onP
         <Text style={styles.quizIndexText}>{formattedIndex}</Text>
       </LinearGradient>
       <View style={styles.quizContent}>
-        <Text style={[styles.quizTitleText, { color: colors.text }]} numberOfLines={2}>
+        <Text style={[styles.quizTitleText, { color: SuVietColors.muc }]} numberOfLines={2}>
           {item.description || item.id}
         </Text>
         <View style={styles.quizMetaRow}>
           <Badge
             label={LEVEL_LABEL[item.level] ?? item.level}
-            color={LEVEL_TONE[item.level] ?? colors.primary}
+            color={LEVEL_TONE[item.level] ?? SuVietColors.son}
             style={{ paddingHorizontal: 8, paddingVertical: 2 }}
           />
-          <View style={[styles.questionCountBadge, { backgroundColor: colors.surfaceElevated }]}>
-            <Text style={[styles.questionCountText, { color: colors.textSecondary }]}>
+          <View style={[styles.questionCountBadge, { backgroundColor: SuVietColors.rulesBg }]}>
+            <Text style={[styles.questionCountText, { color: SuVietColors.muc2 }]}>
               {item.questionCount} câu
             </Text>
           </View>
         </View>
       </View>
-      <Ionicons name="chevron-forward" size={20} color={colors.textMuted} style={{ marginLeft: 8 }} />
+      <Ionicons name="chevron-forward" size={20} color={SuVietColors.muc2} style={{ marginLeft: 8 }} />
     </TouchableOpacity>
   );
 }
 
 function EraCard({ item, onPress }: { item: Era; onPress: () => void }) {
-  const colors = useThemeColors();
   const imageUri = item.coverMediaRef ?? item.thumbnailUrl;
   return (
-    <Card onPress={onPress}>
+    <Card onPress={onPress} style={{ backgroundColor: SuVietColors.card, borderColor: SuVietColors.line }}>
       {imageUri ? (
         <ImageBackground
           source={{ uri: imageUri }}
@@ -105,19 +103,19 @@ function EraCard({ item, onPress }: { item: Era; onPress: () => void }) {
           </View>
         </ImageBackground>
       ) : (
-        <View style={[styles.eraIcon, { backgroundColor: colors.primaryDim }]}>
-          <Ionicons name="time-outline" size={26} color={colors.primary} />
+        <View style={[styles.eraIcon, { backgroundColor: 'rgba(139,28,23,0.08)' }]}>
+          <Ionicons name="time-outline" size={26} color={SuVietColors.son} />
         </View>
       )}
-      <Text style={[styles.cardTitle, { color: colors.text }]}>{item.title}</Text>
+      <Text style={[styles.cardTitle, { color: SuVietColors.muc }]}>{item.title}</Text>
       {!!item.description && (
-        <Text style={[styles.cardSub, { color: colors.textSecondary }]} numberOfLines={2}>
+        <Text style={[styles.cardSub, { color: SuVietColors.muc2 }]} numberOfLines={2}>
           {item.description}
         </Text>
       )}
-      <View style={[styles.cardFooter, { borderTopColor: colors.border }]}>
-        <Text style={[styles.cardAction, { color: colors.primary }]}>Ghép ngay</Text>
-        <Ionicons name="extension-puzzle-outline" size={20} color={colors.primary} />
+      <View style={[styles.cardFooter, { borderTopColor: SuVietColors.line }]}>
+        <Text style={[styles.cardAction, { color: SuVietColors.son }]}>Ghép ngay</Text>
+        <Ionicons name="extension-puzzle-outline" size={20} color={SuVietColors.son} />
       </View>
     </Card>
   );
@@ -164,7 +162,7 @@ export default function GameScreen() {
       <TouchableOpacity
         style={[
           styles.tab,
-          { backgroundColor: active ? colors.primary : 'transparent' },
+          { backgroundColor: active ? SuVietColors.son : 'transparent' },
         ]}
         onPress={() => setActiveTab(tab)}
         activeOpacity={0.85}
@@ -172,12 +170,12 @@ export default function GameScreen() {
         <Ionicons
           name={icon}
           size={18}
-          color={active ? colors.onPrimary : colors.textSecondary}
+          color={active ? '#FFFFFF' : SuVietColors.muc2}
         />
         <Text
           style={[
             styles.tabText,
-            { color: active ? colors.onPrimary : colors.textSecondary },
+            { color: active ? '#FFFFFF' : SuVietColors.muc2 },
           ]}
         >
           {label}
@@ -187,9 +185,9 @@ export default function GameScreen() {
   };
 
   return (
-    <Screen style={{ backgroundColor: colors.background }}>
+    <Screen style={{ backgroundColor: SuVietColors.giay }}>
       <LinearGradient
-        colors={[colors.primary, '#8b1c17']}
+        colors={[SuVietColors.son, SuVietColors.son2]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.customHeader}
@@ -204,7 +202,7 @@ export default function GameScreen() {
         </Text>
       </LinearGradient>
 
-      <View style={[styles.tabRow, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+      <View style={[styles.tabRow, { backgroundColor: SuVietColors.card, borderColor: SuVietColors.line }]}>
         <TabButton tab="quiz" icon="help-circle-outline" label="Trắc nghiệm" />
         <TabButton tab="timeline" icon="time-outline" label="Ghép niên đại" />
       </View>
@@ -290,21 +288,21 @@ const styles = StyleSheet.create({
     marginBottom: SPACING[2],
   },
   headerSubtitle: {
-    color: '#FFFFFF',
+    color: '#f6e9cf',
     fontSize: FONT_SIZES.sm,
     fontWeight: FONT_WEIGHTS.semibold,
     letterSpacing: 1,
   },
   headerTitle: {
-    color: '#FFFFFF',
+    color: '#f6e9cf',
     fontFamily: Fonts.serifExtraBold,
     fontSize: FONT_SIZES['3xl'],
     marginBottom: SPACING[1],
   },
   headerDesc: {
-    color: 'rgba(255,255,255,0.9)',
-    fontFamily: Fonts.regular,
+    color: '#f6e9cf',
     fontSize: FONT_SIZES.sm,
+    opacity: 0.9,
     lineHeight: 20,
   },
 

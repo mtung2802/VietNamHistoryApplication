@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { doc, getDoc } from 'firebase/firestore';
 
@@ -161,7 +161,7 @@ export function ProfileOverviewContent({
             style={[styles.topBg, { paddingTop: topInset + 20 }]}
           >
             <Text style={styles.headerTitle}>Hồ sơ</Text>
-            
+
             <View style={styles.avatarRow}>
               <View style={styles.avatarFrame}>
                 {avatarUri ? (
@@ -187,7 +187,7 @@ export function ProfileOverviewContent({
               >
                 <View style={styles.rankCardTop}>
                   <View style={[styles.rankIconWrap, { backgroundColor: rankTier?.color || SuVietColors.dong }]}>
-                    <Ionicons name={rankTier?.icon as any || 'star'} size={28} color="#fff" />
+                    <MaterialCommunityIcons name={rankTier?.icon as any || 'star'} size={28} color="#fff" />
                   </View>
                   <View style={styles.rankInfo}>
                     <Text style={styles.rankSubtitle}>HẠNG HIỆN TẠI</Text>
@@ -198,7 +198,7 @@ export function ProfileOverviewContent({
                     <Text style={styles.xpLabel}>XP</Text>
                   </View>
                 </View>
-                
+
                 <View style={styles.progressContainer}>
                   <View style={styles.progressTrack}>
                     <LinearGradient
@@ -225,7 +225,7 @@ export function ProfileOverviewContent({
             {profile && (
               <View style={styles.statsRow}>
                 <StatCard icon="game-controller" value={String(profile.totalSessions)} label="Lượt chơi" />
-                <StatCard icon="trophy" value={String(profile.highestScore * 10)} label="Điểm cao" />
+                <StatCard icon="trophy" value={String(profile.highestScore)} label="Điểm cao nhất" />
                 <StatCard icon="flame" value={String(profile.currentStreak)} label="Chuỗi" />
                 <StatCard icon="trending-up" value={String(profile.longestStreak)} label="Chuỗi max" />
               </View>
@@ -299,20 +299,20 @@ export function ProfileOverviewContent({
         </ScrollView>
       )}
 
-      <RankModal 
-        visible={showRankModal} 
-        currentRankName={profile?.currentRank ?? null} 
-        onClose={() => setShowRankModal(false)} 
+      <RankModal
+        visible={showRankModal}
+        currentRankName={profile?.currentRank ?? null}
+        onClose={() => setShowRankModal(false)}
       />
-      
-      <BadgeModal 
-        visible={!!selectedBadge} 
+
+      <BadgeModal
+        visible={!!selectedBadge}
         badge={selectedBadge ? {
           ...selectedBadge,
           isEarned: !!(profile?.badges.find(b => b.badgeId === selectedBadge.id)),
           earnedAt: profile?.badges.find(b => b.badgeId === selectedBadge.id)?.earnedAt?.toDate?.()
-        } : null} 
-        onClose={() => setSelectedBadge(null)} 
+        } : null}
+        onClose={() => setSelectedBadge(null)}
       />
     </Screen>
   );
@@ -344,7 +344,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3, shadowRadius: 24, elevation: 10,
   },
   headerTitle: { fontFamily: Fonts.serifExtraBold, fontSize: 32, color: '#f6e9cf', marginBottom: 12 },
-  
+
   avatarRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
   avatarFrame: {
     width: 76, height: 76, borderRadius: 38,
@@ -354,13 +354,13 @@ const styles = StyleSheet.create({
   },
   avatar: { width: '100%', height: '100%' },
   initials: { fontFamily: Fonts.serifExtraBold, fontSize: 32, color: SuVietColors.son },
-  
+
   nameContainer: { flex: 1 },
-  userName: { fontFamily: Fonts.serifExtraBold, fontSize: 24, color: '#fff', marginBottom: 2 },
+  userName: { fontFamily: Fonts.serifExtraBold, fontSize: 24, color: '#f6e9cf', marginBottom: 2 },
   usernameHandle: { fontFamily: Fonts.regular, fontSize: 14, color: SuVietColors.dong },
 
   bodyContent: { paddingHorizontal: 22, marginTop: -40 },
-  
+
   // Rank Card
   rankCard: {
     backgroundColor: SuVietColors.card,
@@ -379,7 +379,7 @@ const styles = StyleSheet.create({
   xpInfo: { alignItems: 'flex-end' },
   xpValue: { fontFamily: Fonts.serifExtraBold, fontSize: 18, color: SuVietColors.son },
   xpLabel: { fontFamily: Fonts.regular, fontSize: 11, color: SuVietColors.muc2 },
-  
+
   progressContainer: { marginTop: 16 },
   progressTrack: { height: 8, borderRadius: 4, backgroundColor: SuVietColors.line, overflow: 'hidden' },
   progressFill: { height: '100%', borderRadius: 4 },
