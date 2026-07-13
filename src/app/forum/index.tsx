@@ -27,6 +27,7 @@ import { useGamification } from '@/contexts/GamificationContext';
 import { ForumPost, getForumPosts } from '@/services/forumService';
 import { getRankTier } from '@/services/rankService';
 import { useFocusEffect } from '@react-navigation/native';
+import { ReportPostModal } from '@/components/forum/ReportPostModal';
 
 // ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -77,6 +78,7 @@ export default function ForumScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [reportPost, setReportPost] = useState<ForumPost | null>(null);
 
   const sortOptions = [
     { value: 'newest', label: 'Mới nhất' },
@@ -173,7 +175,14 @@ export default function ForumScreen() {
             <Text style={styles.timeText}>{timeAgo(item.createdAt)}</Text>
           </View>
           
-          <TouchableOpacity style={styles.moreBtn}>
+          <TouchableOpacity
+            accessibilityLabel="Báo cáo bài viết"
+            style={styles.moreBtn}
+            onPress={(event) => {
+              event.stopPropagation();
+              setReportPost(item);
+            }}
+          >
             <Ionicons name="ellipsis-vertical" size={16} color={SuVietColors.muc2} />
           </TouchableOpacity>
         </TouchableOpacity>
@@ -345,6 +354,13 @@ export default function ForumScreen() {
           <Ionicons name="pencil" size={24} color="#f6e9cf" />
         </LinearGradient>
       </TouchableOpacity>
+
+      <ReportPostModal
+        visible={reportPost !== null}
+        post={reportPost}
+        reporter={user}
+        onClose={() => setReportPost(null)}
+      />
     </Screen>
   );
 }

@@ -231,10 +231,10 @@ export const Fonts = {
   medium: 'Nunito_500Medium',
   semibold: 'Nunito_600SemiBold',
   bold: 'Nunito_700Bold',
-  serifRegular: 'PlayfairDisplay_400Regular',
-  serifSemiBold: 'PlayfairDisplay_600SemiBold',
-  serifBold: 'PlayfairDisplay_700Bold',
-  serifExtraBold: 'PlayfairDisplay_800ExtraBold',
+  serifRegular: 'Nunito_400Regular',
+  serifSemiBold: 'Nunito_600SemiBold',
+  serifBold: 'Nunito_700Bold',
+  serifExtraBold: 'Nunito_700Bold',
   mono: Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' }),
 };
 

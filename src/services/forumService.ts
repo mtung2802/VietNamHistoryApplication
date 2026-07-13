@@ -80,6 +80,27 @@ export interface AddReplyInput {
   authorRank: string;
 }
 
+export const FORUM_REPORT_REASONS = [
+  { code: 'spam', label: 'Spam hoặc quảng cáo' },
+  { code: 'harassment', label: 'Quấy rối hoặc xúc phạm' },
+  { code: 'hate_speech', label: 'Ngôn từ thù ghét' },
+  { code: 'historical_misinformation', label: 'Thông tin lịch sử sai lệch' },
+  { code: 'inappropriate_content', label: 'Nội dung không phù hợp' },
+  { code: 'impersonation', label: 'Mạo danh người khác' },
+  { code: 'other', label: 'Vi phạm khác' },
+] as const;
+
+export type ForumReportReasonCode = typeof FORUM_REPORT_REASONS[number]['code'];
+
+export interface CreateForumReportInput {
+  post: ForumPost;
+  reporterId: string;
+  reporterName: string;
+  reporterEmail?: string;
+  reasonCode: ForumReportReasonCode;
+  description: string;
+}
+
 /** Kết quả phân trang bài viết */
 export interface ForumPostsResult {
   posts: ForumPost[];
@@ -145,7 +166,8 @@ export async function getForumPosts(
   const allDocs = snap.docs;
   const hasMore = allDocs.length > limitCount;
   const docs = hasMore ? allDocs.slice(0, limitCount) : allDocs;
-  const posts = docs.map(parsePost);
+  const visibleDocs = docs.filter((item) => item.data().isHidden !== true);
+  const posts = visibleDocs.map(parsePost);
   const lastDoc = docs.length > 0 ? docs[docs.length - 1] : null;
 
   return { posts, lastDoc, hasMore };
@@ -162,6 +184,7 @@ export async function getForumPost(postId: string): Promise<ForumPost | null> {
   if (!snap.exists()) return null;
 
   const data = snap.data();
+  if (data.isHidden === true) return null;
   return {
     id: snap.id,
     title: data.title ?? '',
@@ -308,4 +331,34 @@ export async function createPost(input: CreatePostInput): Promise<string> {
   });
 
   return docRef.id;
+}
+
+/**
+ * Gửi báo cáo vi phạm cho một bài viết.
+ * Báo cáo nằm dưới bài viết để admin có thể truy vết và xử lý đúng nội dung.
+ */
+export async function createForumReport(input: CreateForumReportInput): Promise<string> {
+  const reason = FORUM_REPORT_REASONS.find((item) => item.code === input.reasonCode);
+  if (!reason) throw new Error('Lý do báo cáo không hợp lệ');
+
+  const reportRef = await addDoc(collection(db, 'forum', input.post.id, 'reports'), {
+    targetType: 'post',
+    postId: input.post.id,
+    postPath: `forum/${input.post.id}`,
+    postTitle: input.post.title,
+    postContentSnapshot: input.post.content,
+    reportedUserId: input.post.authorId,
+    reportedUserName: input.post.authorName,
+    reporterId: input.reporterId,
+    reporterName: input.reporterName,
+    reporterEmail: input.reporterEmail ?? '',
+    reasonCode: input.reasonCode,
+    reasonLabel: reason.label,
+    description: input.description.trim(),
+    status: 'pending',
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+
+  return reportRef.id;
 }

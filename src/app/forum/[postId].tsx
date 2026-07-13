@@ -33,6 +33,7 @@ import {
   ForumPost,
   ForumReply,
 } from '@/services/forumService';
+import { ReportPostModal } from '@/components/forum/ReportPostModal';
 
 // ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -129,6 +130,7 @@ export default function ForumDetailScreen() {
   const [replyText, setReplyText] = useState('');
   const [sending, setSending] = useState(false);
   const [liking, setLiking] = useState(false);
+  const [reportVisible, setReportVisible] = useState(false);
 
   const inputRef = useRef<TextInput>(null);
 
@@ -292,7 +294,11 @@ export default function ForumDetailScreen() {
               </View>
               <Text style={styles.postTime}>{timeAgo(post.createdAt)}</Text>
             </View>
-            <TouchableOpacity style={styles.moreBtn}>
+            <TouchableOpacity
+              accessibilityLabel="Báo cáo bài viết"
+              style={styles.moreBtn}
+              onPress={() => setReportVisible(true)}
+            >
               <Ionicons name="ellipsis-vertical" size={16} color={SuVietColors.muc2} />
             </TouchableOpacity>
           </TouchableOpacity>
@@ -416,6 +422,13 @@ export default function ForumDetailScreen() {
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
+
+      <ReportPostModal
+        visible={reportVisible}
+        post={post}
+        reporter={user}
+        onClose={() => setReportVisible(false)}
+      />
     </Screen>
   );
 }

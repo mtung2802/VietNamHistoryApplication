@@ -271,7 +271,11 @@ const styles = StyleSheet.create({
     gap: 6,
     borderRadius: BORDER_RADIUS.full,
   },
-  tabText: { fontSize: FONT_SIZES.sm, fontWeight: FONT_WEIGHTS.bold },
+  tabText: {
+    fontFamily: Fonts.bold,
+    fontSize: FONT_SIZES.sm,
+    fontWeight: FONT_WEIGHTS.bold,
+  },
 
   list: { padding: SPACING[5], gap: SPACING[4], paddingBottom: SPACING[10] },
 
@@ -289,6 +293,7 @@ const styles = StyleSheet.create({
   },
   headerSubtitle: {
     color: '#f6e9cf',
+    fontFamily: Fonts.semibold,
     fontSize: FONT_SIZES.sm,
     fontWeight: FONT_WEIGHTS.semibold,
     letterSpacing: 1,
@@ -301,6 +306,7 @@ const styles = StyleSheet.create({
   },
   headerDesc: {
     color: '#f6e9cf',
+    fontFamily: Fonts.regular,
     fontSize: FONT_SIZES.sm,
     opacity: 0.9,
     lineHeight: 20,
@@ -352,18 +358,20 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUS.full,
   },
   questionCountText: {
+    fontFamily: Fonts.medium,
     fontSize: FONT_SIZES.xs,
     fontWeight: FONT_WEIGHTS.medium,
   },
 
   cardTitle: {
+    fontFamily: Fonts.bold,
     fontSize: FONT_SIZES.base,
     fontWeight: FONT_WEIGHTS.bold,
     lineHeight: 22,
     marginTop: SPACING[2],
   },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
-  cardSub: { fontSize: FONT_SIZES.xs },
+  cardSub: { fontFamily: Fonts.regular, fontSize: FONT_SIZES.xs },
   eraIcon: {
     width: 48,
     height: 48,
@@ -392,5 +400,9 @@ const styles = StyleSheet.create({
     paddingTop: SPACING[2],
     borderTopWidth: StyleSheet.hairlineWidth,
   },
-  cardAction: { fontWeight: FONT_WEIGHTS.bold, fontSize: FONT_SIZES.sm },
+  cardAction: {
+    fontFamily: Fonts.bold,
+    fontWeight: FONT_WEIGHTS.bold,
+    fontSize: FONT_SIZES.sm,
+  },
 });

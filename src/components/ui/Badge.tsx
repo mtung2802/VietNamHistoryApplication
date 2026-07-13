@@ -30,7 +30,7 @@ export function Badge({ label, tone = 'gold', color, outline, style }: BadgeProp
         : colors.textMuted);
 
   const bg = outline ? 'transparent' : base;
-  const fg = outline ? base : tone === 'gold' ? colors.onSecondary : colors.onPrimary;
+  const fg = outline ? base : color ? '#f6e9cf' : tone === 'gold' ? colors.onSecondary : colors.onPrimary;
 
   return (
     <View

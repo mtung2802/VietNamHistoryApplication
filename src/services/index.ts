@@ -84,4 +84,6 @@ export {
   subscribeToReplies,
   addReply,
   createPost,
+  createForumReport,
+  FORUM_REPORT_REASONS,
 } from './forumService';

@@ -5,6 +5,8 @@ import { ThemeProvider, useThemeContext } from '@/contexts/ThemeContext';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { GamificationProvider } from '@/contexts/GamificationContext';
 import { useEffect } from 'react';
+import { Text, TextInput } from 'react-native';
+import { Fonts } from '@/constants/theme';
 import {
   useFonts as usePlayfair,
   PlayfairDisplay_400Regular,
@@ -21,6 +23,28 @@ import {
 } from '@expo-google-fonts/nunito';
 
 SplashScreen.preventAutoHideAsync();
+
+type DefaultableTextComponent = typeof Text & {
+  defaultProps?: { style?: unknown; [key: string]: unknown };
+};
+
+let defaultTypographyConfigured = false;
+
+function configureDefaultTypography() {
+  if (defaultTypographyConfigured) return;
+
+  // Các Text không khai báo fontFamily riêng sẽ dùng cùng font với menu "Lịch sử chơi".
+  [Text, TextInput].forEach((Component) => {
+    const typedComponent = Component as DefaultableTextComponent;
+    typedComponent.defaultProps = typedComponent.defaultProps ?? {};
+    typedComponent.defaultProps.style = [
+      typedComponent.defaultProps.style,
+      { fontFamily: Fonts.regular },
+    ];
+  });
+
+  defaultTypographyConfigured = true;
+}
 
 function RootNavigator() {
   const { colors, isDark } = useThemeContext();
@@ -95,6 +119,7 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (playfairLoaded && nunitoLoaded) {
+      configureDefaultTypography();
       SplashScreen.hideAsync();
     }
   }, [playfairLoaded, nunitoLoaded]);
