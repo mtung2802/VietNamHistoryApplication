@@ -28,7 +28,7 @@ export const getPersonPeriods = async (): Promise<PersonPeriodItem[]> => {
   try {
     const q = query(collection(db, 'periods_person'), orderBy('sortOrder', 'asc'));
     const snap = await getDocs(q);
-    return snap.docs.map((d) => {
+    return snap.docs.filter((d) => d.data().status === 'published').map((d) => {
       const data = d.data();
       return {
         id: d.id,
@@ -47,12 +47,17 @@ export const getPersonPeriods = async (): Promise<PersonPeriodItem[]> => {
 /** Lấy danh sách nhân vật trong một thời kỳ */
 export const getPersonsByPeriod = async (periodSlug: string): Promise<PersonListItem[]> => {
   try {
+    const periodSnap = await getDoc(doc(db, 'periods_person', periodSlug));
+    if (!periodSnap.exists() || periodSnap.data().status !== 'published') return [];
+
     const q = query(
       collection(db, 'periods_person', periodSlug, 'persons'),
       orderBy('sortOrder', 'asc'),
     );
     const snap = await getDocs(q);
-    return snap.docs.map((d) => ({ ...d.data(), id: d.id, slug: d.id } as PersonListItem));
+    return snap.docs
+      .filter((d) => d.data().status === 'published')
+      .map((d) => ({ ...d.data(), id: d.id, slug: d.id } as PersonListItem));
   } catch (e) {
     console.error('❌ Lỗi getPersonsByPeriod:', e);
     throw e;
@@ -65,8 +70,11 @@ export const getPersonDetail = async (
   personSlug: string,
 ): Promise<PersonDetail | null> => {
   try {
-    const snap = await getDoc(doc(db, 'periods_person', periodSlug, 'persons', personSlug));
-    if (!snap.exists()) return null;
+    const [periodSnap, snap] = await Promise.all([
+      getDoc(doc(db, 'periods_person', periodSlug)),
+      getDoc(doc(db, 'periods_person', periodSlug, 'persons', personSlug)),
+    ]);
+    if (!periodSnap.exists() || periodSnap.data().status !== 'published' || !snap.exists() || snap.data().status !== 'published') return null;
     return { ...snap.data(), id: snap.id, slug: snap.id } as PersonDetail;
   } catch (e) {
     console.error('❌ Lỗi getPersonDetail:', e);
@@ -80,10 +88,18 @@ export const getPersonEvents = async (
   personSlug: string,
 ): Promise<PersonEvent[]> => {
   try {
+    const [periodSnap, personSnap] = await Promise.all([
+      getDoc(doc(db, 'periods_person', periodSlug)),
+      getDoc(doc(db, 'periods_person', periodSlug, 'persons', personSlug)),
+    ]);
+    if (!periodSnap.exists() || periodSnap.data().status !== 'published' || !personSnap.exists() || personSnap.data().status !== 'published') return [];
+
     const snap = await getDocs(
       collection(db, 'periods_person', periodSlug, 'persons', personSlug, 'events'),
     );
-    return snap.docs.map((d) => ({ ...d.data(), id: d.id, slug: d.id } as PersonEvent));
+    return snap.docs
+      .filter((d) => d.data().status === 'published')
+      .map((d) => ({ ...d.data(), id: d.id, slug: d.id } as PersonEvent));
   } catch (e) {
     console.error('❌ Lỗi getPersonEvents:', e);
     throw e;
@@ -97,10 +113,16 @@ export const getPersonEventDetail = async (
   eventSlug: string,
 ): Promise<PersonEvent | null> => {
   try {
-    const snap = await getDoc(
-      doc(db, 'periods_person', periodSlug, 'persons', personSlug, 'events', eventSlug),
-    );
-    if (!snap.exists()) return null;
+    const [periodSnap, personSnap, snap] = await Promise.all([
+      getDoc(doc(db, 'periods_person', periodSlug)),
+      getDoc(doc(db, 'periods_person', periodSlug, 'persons', personSlug)),
+      getDoc(doc(db, 'periods_person', periodSlug, 'persons', personSlug, 'events', eventSlug)),
+    ]);
+    if (
+      !periodSnap.exists() || periodSnap.data().status !== 'published'
+      || !personSnap.exists() || personSnap.data().status !== 'published'
+      || !snap.exists() || snap.data().status !== 'published'
+    ) return null;
     return { ...snap.data(), id: snap.id, slug: snap.id } as PersonEvent;
   } catch (e) {
     console.error('❌ Lỗi getPersonEventDetail:', e);
